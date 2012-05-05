@@ -54,11 +54,15 @@
 	    uint16_t dummy[7];
 	};
 
-	uint32_t *mapear_archivo();
-	struct Superblock *read_superblock(uint32_t *datos);
+	void mapear_archivo();
+	struct Superblock *read_superblock();
 
 	uint32_t cantidadDeGrupos(uint32_t,uint32_t);
-	void leerLosGroupDescriptor(uint32_t *,uint32_t,uint32_t);
+	void leerLosGroupDescriptor(uint32_t,uint32_t);
+
+
+	char esPotenciaDe(uint32_t grupo);
+	uint32_t *dir_inicioDeGrupo (uint32_t grupo);
 
 
 #endif /* FUNCIONES_RFS_H_ */

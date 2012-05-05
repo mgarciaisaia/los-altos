@@ -14,14 +14,20 @@
 int32_t main(void) {
 
 
-	uint32_t *datos = mapear_archivo();
+	mapear_archivo();
 
-	struct Superblock *bloque = read_superblock(datos);
+	struct Superblock *bloque = read_superblock();
 
+	//posicionarme en el comienzo de cada grupo, osea donde empieza el
+	// bitmap block de c/u
 
+		uint8_t grupo = 1;
 
+		uint32_t *direccion = dir_inicioDeGrupo (grupo);
 
-/* aca seria el main *****************************************/
+		printf("direccion del grupo 1= %d, \n",*direccion);
+		printf("inodos= %d, \n",bloque->inodes);
+
 
 	printf("inodos= %d, \n",bloque->inodes);
 	printf("inodos por grupo= %d, \n",bloque->inodes_per_group);
@@ -34,11 +40,12 @@ int32_t main(void) {
 
 /* Leer los descriptores de grupo */
 
-	leerLosGroupDescriptor(datos,bloque->inodes,bloque->inodes_per_group);
+	leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
 
 	/* Aca liberamos la memoria que mapeamos */
 
-	if (munmap(datos, sizeof(datos)) == -1) {
+	extern uint32_t *ptr_arch;
+	if (munmap(ptr_arch, sizeof(*ptr_arch)) == -1) {
 	   	perror("Error un-mmapping the file");
 	}
 
