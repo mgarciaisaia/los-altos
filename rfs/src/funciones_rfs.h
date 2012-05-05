@@ -43,9 +43,22 @@
 	    uint16_t resv_gid;
 	};
 
+	struct GroupDesc
+	{
+	    uint32_t block_bitmap;
+	    uint32_t inode_bitmap;
+	    uint32_t inode_table;
+	    uint16_t free_blocks_count;
+	    uint16_t free_inodes_count;
+	    uint16_t used_dirs_count;
+	    uint16_t dummy[7];
+	};
+
 	uint32_t *mapear_archivo();
 	struct Superblock *read_superblock(uint32_t *datos);
 
+	uint32_t cantidadDeGrupos(uint32_t,uint32_t);
+	void leerLosGroupDescriptor(uint32_t *,uint32_t,uint32_t);
 
 
 #endif /* FUNCIONES_RFS_H_ */

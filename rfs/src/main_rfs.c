@@ -19,6 +19,8 @@ int32_t main(void) {
 	struct Superblock *bloque = read_superblock(datos);
 
 
+
+
 /* aca seria el main *****************************************/
 
 	printf("inodos= %d, \n",bloque->inodes);
@@ -30,6 +32,9 @@ int32_t main(void) {
 	printf("primer bloque libre= %d, \n",bloque->first_data_block);
 	printf("bloques reservados= %d, \n",bloque->reserved_blocks);
 
+/* Leer los descriptores de grupo */
+
+	leerLosGroupDescriptor(datos,bloque->inodes,bloque->inodes_per_group);
 
 	/* Aca liberamos la memoria que mapeamos */
 
