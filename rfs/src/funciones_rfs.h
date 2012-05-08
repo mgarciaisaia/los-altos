@@ -63,6 +63,6 @@
 
 	char esPotenciaDe(uint32_t grupo);
 	uint32_t *dir_inicioDeGrupo (uint32_t grupo);
-
+	struct GroupDesc *leerGroupDescriptor(uint32_t);
 
 #endif /* FUNCIONES_RFS_H_ */

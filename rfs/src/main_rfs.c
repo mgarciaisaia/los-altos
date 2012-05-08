@@ -10,25 +10,34 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/mman.h>
+#include <math.h>
+
+
 
 int32_t main(void) {
 
 
 	mapear_archivo();
 
-	struct Superblock *bloque = read_superblock();
+//	struct Superblock *bloque = read_superblock();
 
 	//posicionarme en el comienzo de cada grupo, osea donde empieza el
 	// bitmap block de c/u
 
-		uint8_t grupo = 1;
+		uint8_t grupo = 3;
 
 		uint32_t *direccion = dir_inicioDeGrupo (grupo);
 
-		printf("direccion del grupo 1= %d, \n",*direccion);
-		printf("inodos= %d, \n",bloque->inodes);
+		printf("direccion del grupo 1= %p, \n",direccion);
 
 
+		struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
+		printf("bloque de bitmap de grupo1: %d\n",TDgrupo->block_bitmap);
+
+		struct GroupDesc *TDgrupo2 = leerGroupDescriptor(3);
+		printf("bloque de bitmap de grupo3: %d\n",TDgrupo2->block_bitmap);
+
+/*
 	printf("inodos= %d, \n",bloque->inodes);
 	printf("inodos por grupo= %d, \n",bloque->inodes_per_group);
 	printf("bloques= %d, \n",bloque->blocks);
@@ -37,10 +46,15 @@ int32_t main(void) {
 	printf("bloques por grupo= %d, \n",bloque->blocks_per_group);
 	printf("primer bloque libre= %d, \n",bloque->first_data_block);
 	printf("bloques reservados= %d, \n",bloque->reserved_blocks);
+*/
+
 
 /* Leer los descriptores de grupo */
 
-	leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
+	//leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
+
+
+
 
 	/* Aca liberamos la memoria que mapeamos */
 
