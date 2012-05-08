@@ -59,6 +59,7 @@
 
 	uint32_t cantidadDeGrupos(uint32_t,uint32_t);
 	void leerLosGroupDescriptor(uint32_t,uint32_t);
+	struct GroupDesc * leerGrupoDescriptor(uint32_t);
 
 
 	char esPotenciaDe(uint32_t grupo);

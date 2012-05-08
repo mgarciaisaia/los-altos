@@ -24,18 +24,18 @@ int32_t main(void) {
 	//posicionarme en el comienzo de cada grupo, osea donde empieza el
 	// bitmap block de c/u
 
-		uint8_t grupo = 3;
+		uint8_t grupo = 0;
 
 		uint32_t *direccion = dir_inicioDeGrupo (grupo);
 
 		printf("direccion del grupo 1= %p, \n",direccion);
 
 
-		struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
-		printf("bloque de bitmap de grupo1: %d\n",TDgrupo->block_bitmap);
+//		struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
+//		printf("bloque de bitmap de grupo1: %d\n",TDgrupo->block_bitmap);
 
-		struct GroupDesc *TDgrupo2 = leerGroupDescriptor(3);
-		printf("bloque de bitmap de grupo3: %d\n",TDgrupo2->block_bitmap);
+//		struct GroupDesc *TDgrupo2 = leerGroupDescriptor(3);
+//		printf("bloque de bitmap de grupo3: %d\n",TDgrupo2->block_bitmap);
 
 /*
 	printf("inodos= %d, \n",bloque->inodes);
@@ -51,9 +51,10 @@ int32_t main(void) {
 
 /* Leer los descriptores de grupo */
 
-	//leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
+//	leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
 
-
+//	struct GroupDesc * gd = leerGrupoDescriptor(0);
+	leerGrupoDescriptor(3);
 
 
 	/* Aca liberamos la memoria que mapeamos */
@@ -66,4 +67,3 @@ int32_t main(void) {
 	return EXIT_SUCCESS;
 
 }
-
