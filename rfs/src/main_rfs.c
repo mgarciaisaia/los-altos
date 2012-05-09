@@ -31,7 +31,9 @@ int32_t main(void) {
 		printf("direccion del grupo 1= %p, \n",direccion);
 
 
-//		struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
+		leerTablaDeInodos(0);
+
+		//		struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
 //		printf("bloque de bitmap de grupo1: %d\n",TDgrupo->block_bitmap);
 
 //		struct GroupDesc *TDgrupo2 = leerGroupDescriptor(3);

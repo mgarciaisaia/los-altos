@@ -54,16 +54,46 @@
 	    uint16_t dummy[7];
 	};
 
+	struct INode
+	{
+	    uint16_t mode;
+	    uint16_t uid;
+	    uint32_t size;
+	    uint32_t atime;
+	    uint32_t ctime;
+	    uint32_t mtime;
+	    uint32_t dtime;
+	    uint16_t gid;
+	    uint16_t links;
+	    uint32_t nr_blocks;
+	    uint32_t flags;
+	    uint32_t reserved1;
+	    uint32_t blocks[12];
+	    uint32_t iblock;
+	    uint32_t iiblock;
+	    uint32_t iiiblock;
+	    uint32_t generation;
+	    uint32_t file_acl;
+	    uint32_t size_hi;
+	    uint32_t reserved2[4];
+	};
+
 	void mapear_archivo();
 	struct Superblock *read_superblock();
 
 	uint32_t cantidadDeGrupos(uint32_t,uint32_t);
 	void leerLosGroupDescriptor(uint32_t,uint32_t);
-	struct GroupDesc * leerGrupoDescriptor(uint32_t);
+
+	struct GroupDesc * leerGroupDescriptor(uint32_t);
 
 
 	char esPotenciaDe(uint32_t grupo);
 	uint32_t *dir_inicioDeGrupo (uint32_t grupo);
 	struct GroupDesc *leerGroupDescriptor(uint32_t);
+
+	void leerBitmapDeBloque(uint32_t);
+	void leerBitmapDeInodos(uint32_t);
+
+	void leerTablaDeInodos(uint32_t nroGrupo);
 
 #endif /* FUNCIONES_RFS_H_ */
