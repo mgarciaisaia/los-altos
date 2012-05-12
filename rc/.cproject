@@ -29,27 +29,23 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.2009587302" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug">
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.exe.debug.option.optimization.level.1404679556" name="Optimization Level" superClass="gnu.c.compiler.exe.debug.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.1846522115" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
-<<<<<<< HEAD
 								<option id="gnu.c.compiler.option.include.paths.1346828441" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="memcached"/>
-=======
+								</option>
 								<option id="gnu.c.compiler.option.include.paths.996301296" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/commons}&quot;"/>
->>>>>>> 3f0ba26182c41d243f7b1ab7c435b1ecdd50fbc7
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.877020436" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.86140972" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
-<<<<<<< HEAD
 								<option id="gnu.c.link.option.libs.1924184418" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="memcached"/>
-=======
+								</option>
 								<option id="gnu.c.link.option.paths.1134295845" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/commons/Debug}&quot;"/>
 								</option>
 								<option id="gnu.c.link.option.libs.467094352" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="commons"/>
->>>>>>> 3f0ba26182c41d243f7b1ab7c435b1ecdd50fbc7
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.272276203" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -72,9 +68,7 @@
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
-<<<<<<< HEAD
 				<externalSettings containerId="memcached-1.6;" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier"/>
-=======
 				<externalSettings containerId="commons;" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier">
 					<externalSetting>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/commons"/>
@@ -82,7 +76,6 @@
 						<entry flags="RESOLVED" kind="libraryFile" name="commons"/>
 					</externalSetting>
 				</externalSettings>
->>>>>>> 3f0ba26182c41d243f7b1ab7c435b1ecdd50fbc7
 			</storageModule>
 		</cconfiguration>
 		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.356699115">
@@ -146,12 +139,9 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-<<<<<<< HEAD
 	<storageModule moduleId="refreshScope"/>
-=======
 	<storageModule moduleId="refreshScope" versionNumber="1">
 		<resource resourceType="PROJECT" workspacePath="/rc"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
->>>>>>> 3f0ba26182c41d243f7b1ab7c435b1ecdd50fbc7
 </cproject>
