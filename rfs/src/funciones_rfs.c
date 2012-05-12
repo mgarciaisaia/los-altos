@@ -20,7 +20,8 @@
 #define PATH "/home/utnso/Desarrollo/ext2.disk"
 #define BLOQUE 1024
 
-uint32_t *ptr_arch;
+//uint32_t *ptr_arch;
+uint8_t *ptr_arch;
 
 void mapear_archivo() {
 
@@ -51,9 +52,9 @@ void mapear_archivo() {
 
 struct Superblock *read_superblock() {
 
-	uint32_t OFFSET = 256;
+	uint16_t OFFSET = 1024;
 	struct Superblock *bloque;
-	uint32_t *posicion = ptr_arch + OFFSET;
+	uint8_t *posicion = ptr_arch + OFFSET;
 	bloque = (struct Superblock *) posicion;
 
 	return bloque;
@@ -72,11 +73,10 @@ void leerLosGroupDescriptor(uint32_t inodosTotales,uint32_t inodosPorGrupo) {
 
 	struct GroupDesc * grupo;
 
-
-	int posInicialGD = 512;
-	int32_t tamanioGrupo = sizeof(struct GroupDesc) / 4;
+	uint16_t posInicialGD = 2048;
+	int32_t tamanioGrupo = sizeof(struct GroupDesc);
 	printf("Bytes de un grupo: %d\n", tamanioGrupo);
-	uint32_t *posActual;
+	uint8_t *posActual;
 
 	uint32_t i;
 		posActual = ptr_arch+posInicialGD;
@@ -100,77 +100,108 @@ void leerLosGroupDescriptor(uint32_t inodosTotales,uint32_t inodosPorGrupo) {
 struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
 	struct GroupDesc *grupo;
 
-	uint32_t posInicialGD = 512;
-	uint32_t tamanioGrupo = sizeof(struct GroupDesc) / 4;
-	uint32_t *posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
+	uint16_t posInicialGD = 2048;
+	uint8_t tamanioGrupo = sizeof(struct GroupDesc);
+	uint8_t *posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
 
 	grupo = (struct GroupDesc*) posActual;
 
 	return grupo;
 }
 
-char esPotenciaDe(uint32_t grupo) {
-
-	char resultado;
-	double ptr;
-
-	double resto_3 = log(grupo) / log(3);
-	double resto_5 = log(grupo) / log(5);
-	double resto_7 = log(grupo) / log(7);
-
-	if ((modf(resto_3, &ptr) == 0) || (modf(resto_5, &ptr) == 0)
-			|| (modf(resto_7, &ptr) == 0))
-		resultado = '1';
-	else
-		resultado = '0';
-
-	return resultado;
-
-}
-
-uint32_t *dir_inicioDeGrupo(uint32_t grupo) {
-
-	uint32_t *dir_inicio;
-
-	struct Superblock *bloque = read_superblock();
-
-	uint32_t bloqueMasTablaDG = (cantidadDeGrupos(bloque->inodes, bloque->inodes_per_group)* (sizeof(struct GroupDesc)));
-	uint32_t *posicion = ptr_arch + bloqueMasTablaDG;
-
-
-	if (grupo == 0)
-		dir_inicio = posicion + 256;
-
-	else {
-		if (esPotenciaDe(grupo))
-			dir_inicio = posicion + (grupo * bloque->blocks_per_group);
-
-		else
-			dir_inicio = (uint32_t *) (grupo * bloque->blocks_per_group);
-	}
-
-
-//otra opcion para este calculo
-	struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
-	uint32_t *dir_bitmap_bloque = ptr_arch + (TDgrupo->block_bitmap * 1024);
-	printf("direccion del grupo 1= %p, \n",dir_bitmap_bloque);
-
-
-	return dir_inicio;
-}
-
+//uint8_t *dir_inicioDeGrupo(uint32_t grupo) {
+//
+//	uint8_t *dir_inicio;
+//
+//	struct Superblock *bloque = read_superblock();
+//
+//	uint32_t bloqueMasTablaDG = (cantidadDeGrupos(bloque->inodes, bloque->inodes_per_group)* (sizeof(struct GroupDesc)));
+//	uint8_t *posicion = ptr_arch + bloqueMasTablaDG;
+//
+//
+//	if (grupo == 0)
+//		dir_inicio = posicion + 256;
+//
+//	else {
+//		if (esPotenciaDe(grupo))
+//			dir_inicio = posicion + (grupo * bloque->blocks_per_group);
+//
+//		else
+//			dir_inicio = (uint8_t *) (grupo * bloque->blocks_per_group);
+//	}
+//
+//
+////otra opcion para este calculo
+//	struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
+//	uint8_t *dir_bitmap_bloque = ptr_arch + (TDgrupo->block_bitmap * 1024);
+//	printf("direccion del grupo 1= %p, \n",dir_bitmap_bloque);
+//
+//
+//	return dir_inicio;
+//}
 
 void leerBitmapDeBloque(uint32_t nroGrupo){
 
-//	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo)
-//	uint32_t nroBloque = grupo->block_bitmap;
-//	uint32_t *posActual = ptr_arch + nroBloque * 256;
+	struct CampoBits * cb;
+	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
+	uint8_t bloques_libres = grupo->free_blocks_count;
+	printf("Bloques libre: %hu\n",bloques_libres);
+
+	uint8_t nroBloque = grupo->block_bitmap;
+	uint8_t *posActual = ptr_arch + nroBloque * 1024;
+
+	struct Superblock *bloque = read_superblock();
+	int cantBloques = bloque->blocks_per_group;
+	printf("Bloques por grupo: %d\n",cantBloques);
+	int cantIter = cantBloques / 8;
+
+	uint8_t tamanioUnByte = 1;
+	int i;
+	for(i = 0;i < cantIter;i++){
+		cb = (struct CampoBits*)posActual;
+		printf("b: %u\n",cb->b0);
+		printf("b1: %u\n",cb->b1);
+		printf("b2: %u\n",cb->b2);
+		printf("b3: %u\n",cb->b3);
+		printf("b4: %u\n",cb->b4);
+		printf("b5: %u\n",cb->b5);
+		printf("b6: %u\n",cb->b6);
+		printf("b7: %u\n",cb->b7);
+		posActual += tamanioUnByte;
+	}
+
 }
 
 void leerBitmapDeInodos(uint32_t nroGrupo){
-//	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo)
-//	uint32_t nroBloque = grupo->inode_bitmap;
-//	uint32_t *posActual = ptr_arch + nroBloque * 256;
+
+	struct CampoBits * cb;
+
+	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
+	uint8_t inodos_libres = grupo->free_inodes_count;
+	printf("inodos_libres: %hu\n",inodos_libres);
+
+	uint8_t nroBloque = grupo->inode_bitmap;
+	uint8_t *posActual = ptr_arch + nroBloque * 1024;
+
+	struct Superblock *bloque = read_superblock();
+	int cantInodos = bloque->inodes_per_group;
+	printf("cantidad de inodos por grupo: %d\n",cantInodos);
+	int cantIter = cantInodos / 8;
+	int i;
+	uint8_t tamanioUnByte = 1;
+	for(i = 0;i < cantIter;i++){
+		cb = (struct CampoBits*)posActual;
+		printf("b: %u\n",cb->b0);
+		printf("b1: %u\n",cb->b1);
+		printf("b2: %u\n",cb->b2);
+		printf("b3: %u\n",cb->b3);
+		printf("b4: %u\n",cb->b4);
+		printf("b5: %u\n",cb->b5);
+		printf("b6: %u\n",cb->b6);
+		printf("b7: %u\n",cb->b7);
+		posActual += tamanioUnByte;
+	}
+
 }
 
 void leerTablaDeInodos(uint32_t nroGrupo){
@@ -178,10 +209,10 @@ void leerTablaDeInodos(uint32_t nroGrupo){
 	uint32_t cantInodos = bloque->inodes_per_group;
 	printf("cantidad de inodos %d\n",cantInodos);
 
-	uint32_t tamanioInodo = sizeof(struct INode) / 4;
+	uint8_t tamanioInodo = sizeof(struct INode);
 	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-	uint32_t nroBloque = grupo->inode_table;
-	uint32_t *dir_tabla_inodos = ptr_arch + nroBloque * 256;
+	uint8_t nroBloque = grupo->inode_table;
+	uint8_t *dir_tabla_inodos = ptr_arch + nroBloque * 1024;
 	struct INode* inodo;
 	int i;
 	for(i=1;i<=cantInodos;i++){
@@ -194,5 +225,5 @@ void leerTablaDeInodos(uint32_t nroGrupo){
 
 		dir_tabla_inodos += tamanioInodo;
 	}
-	printf("inodos libres de este grupo: %hu",grupo->free_inodes_count);
+//	printf("inodos libres de este grupo: %hu",grupo->free_inodes_count);
 }

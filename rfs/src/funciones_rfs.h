@@ -78,6 +78,17 @@
 	    uint32_t reserved2[4];
 	};
 
+	struct CampoBits {
+	    unsigned int b0:1;
+	    unsigned int b1:1;
+	    unsigned int b2:1;
+	    unsigned int b3:1;
+	    unsigned int b4:1;
+	    unsigned int b5:1;
+	    unsigned int b6:1;
+	    unsigned int b7:1;
+	};
+
 	void mapear_archivo();
 	struct Superblock *read_superblock();
 
@@ -87,8 +98,8 @@
 	struct GroupDesc * leerGroupDescriptor(uint32_t);
 
 
-	char esPotenciaDe(uint32_t grupo);
-	uint32_t *dir_inicioDeGrupo (uint32_t grupo);
+//	char esPotenciaDe(uint32_t grupo);
+	uint8_t *dir_inicioDeGrupo (uint32_t grupo);
 	struct GroupDesc *leerGroupDescriptor(uint32_t);
 
 	void leerBitmapDeBloque(uint32_t);
