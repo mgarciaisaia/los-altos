@@ -3,6 +3,7 @@
 	<name>rc</name>
 	<comment></comment>
 	<projects>
+		<project>memcached-1.6</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
