@@ -109,36 +109,14 @@ struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
 	return grupo;
 }
 
-//uint8_t *dir_inicioDeGrupo(uint32_t grupo) {
-//
-//	uint8_t *dir_inicio;
-//
-//	struct Superblock *bloque = read_superblock();
-//
-//	uint32_t bloqueMasTablaDG = (cantidadDeGrupos(bloque->inodes, bloque->inodes_per_group)* (sizeof(struct GroupDesc)));
-//	uint8_t *posicion = ptr_arch + bloqueMasTablaDG;
-//
-//
-//	if (grupo == 0)
-//		dir_inicio = posicion + 256;
-//
-//	else {
-//		if (esPotenciaDe(grupo))
-//			dir_inicio = posicion + (grupo * bloque->blocks_per_group);
-//
-//		else
-//			dir_inicio = (uint8_t *) (grupo * bloque->blocks_per_group);
-//	}
-//
-//
-////otra opcion para este calculo
-//	struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
-//	uint8_t *dir_bitmap_bloque = ptr_arch + (TDgrupo->block_bitmap * 1024);
-//	printf("direccion del grupo 1= %p, \n",dir_bitmap_bloque);
-//
-//
-//	return dir_inicio;
-//}
+uint8_t *dir_inicioDeGrupo(uint32_t grupo) {
+
+	struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
+	uint8_t *dir_bitmap_bloque = ptr_arch + (TDgrupo->block_bitmap * 1024);
+	printf("direccion del grupo 1= %p, \n",dir_bitmap_bloque);
+	return dir_bitmap_bloque;
+
+}
 
 void leerBitmapDeBloque(uint32_t nroGrupo){
 

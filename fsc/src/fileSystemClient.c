@@ -175,13 +175,6 @@ int remote_getattr(const char *path, struct stat *statbuf) {
 	return -1;
 }
 
-/** Rename a file */
-// both path and newpath are fs-relative
-int remote_rename(const char *currentPath, const char *newPath) {
-	//FIXME: implementar
-	return -1;
-}
-
 static struct fuse_operations remote_operations = {
 		.create = remote_create,
 		.open = remote_open,
@@ -193,8 +186,7 @@ static struct fuse_operations remote_operations = {
 		.mkdir = remote_mkdir,
 		.readdir = remote_readdir,
 		.rmdir = remote_rmdir,
-		.getattr = remote_getattr,
-		.rename = remote_rename,
+		.getattr = remote_getattr
 };
 
 int main(int argc, char *argv[]) {
