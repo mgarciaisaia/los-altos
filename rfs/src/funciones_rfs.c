@@ -16,10 +16,15 @@
 #include <stdint.h>
 #include "funciones_rfs.h"
 #include <math.h>
+#include <src/commons/bitarray.h>
+//#include <commons/bitarray.h>
+#include <src/commons/collections/queue.h>
+//#include <commons/collections/queue.h>
 
 #define PATH "/home/utnso/Desarrollo/ext2.disk"
 #define BLOQUE 1024
 
+static const int tamanio_bloque = 1024;
 //uint32_t *ptr_arch;
 uint8_t *ptr_arch;
 
@@ -47,8 +52,6 @@ void mapear_archivo() {
 		perror("posix_madvise");
 
 }
-
-/*aca seria la funcion de leer el superbloque *****************/
 
 struct Superblock *read_superblock() {
 
@@ -112,7 +115,7 @@ struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
 uint8_t *dir_inicioDeGrupo(uint32_t grupo) {
 
 	struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
-	uint8_t *dir_bitmap_bloque = ptr_arch + (TDgrupo->block_bitmap * 1024);
+	uint8_t *dir_bitmap_bloque = ptr_arch + (TDgrupo->block_bitmap * tamanio_bloque);
 	printf("direccion del grupo 1= %p, \n",dir_bitmap_bloque);
 	return dir_bitmap_bloque;
 
@@ -120,65 +123,75 @@ uint8_t *dir_inicioDeGrupo(uint32_t grupo) {
 
 void leerBitmapDeBloque(uint32_t nroGrupo){
 
-	struct CampoBits * cb;
 	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-	uint8_t bloques_libres = grupo->free_blocks_count;
-	printf("Bloques libre: %hu\n",bloques_libres);
+//	uint16_t bloques_libres = grupo->free_blocks_count;
+//	printf("Bloques libre: %hu\n",bloques_libres);
 
-	uint8_t nroBloque = grupo->block_bitmap;
-	uint8_t *posActual = ptr_arch + nroBloque * 1024;
+	uint32_t nroBloque = grupo->block_bitmap;
+	uint8_t *posActual = ptr_arch + nroBloque * tamanio_bloque;
 
 	struct Superblock *bloque = read_superblock();
 	int cantBloques = bloque->blocks_per_group;
-	printf("Bloques por grupo: %d\n",cantBloques);
-	int cantIter = cantBloques / 8;
+//	printf("Bloques por grupo: %d\n",cantBloques);
+	int cantBytes = cantBloques / 8;
 
-	uint8_t tamanioUnByte = 1;
+	int bInicioDeGrupo = nroBloqueInicioDeGrupo(nroGrupo);
+
+	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+//	printf("set: %d\n",bitarray_test_bit(ptrBit,8191));
+
 	int i;
-	for(i = 0;i < cantIter;i++){
-		cb = (struct CampoBits*)posActual;
-		printf("b: %u\n",cb->b0);
-		printf("b1: %u\n",cb->b1);
-		printf("b2: %u\n",cb->b2);
-		printf("b3: %u\n",cb->b3);
-		printf("b4: %u\n",cb->b4);
-		printf("b5: %u\n",cb->b5);
-		printf("b6: %u\n",cb->b6);
-		printf("b7: %u\n",cb->b7);
-		posActual += tamanioUnByte;
+	int blibres = 0;
+	int bocupados = 0;
+	for(i = 0;i < cantBloques;i++){
+		bool valor = bitarray_test_bit(ptrBit, i);
+		printf("bloque %d: %d\n",i+bInicioDeGrupo,valor);
+		if(valor == 0){
+			printf("nroBloque %d: %d\n",i+bInicioDeGrupo,valor);
+			blibres++;
+		} else{
+			bocupados++;
+		}
 	}
+//	printf("blibres: %d\n",blibres);
+//	printf("bocupados: %d\n",bocupados);
+//	printf("Bloques libre: %hu\n",bloques_libres);
+//	printf("Bloques por grupo: %d\n",cantBloques);
 
 }
 
 void leerBitmapDeInodos(uint32_t nroGrupo){
 
-	struct CampoBits * cb;
-
+//	struct CampoBits * cb;
 	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-	uint8_t inodos_libres = grupo->free_inodes_count;
-	printf("inodos_libres: %hu\n",inodos_libres);
+	uint16_t inodos_libres = grupo->free_inodes_count;
+//	printf("Bloques libre: %hu\n",bloques_libres);
 
-	uint8_t nroBloque = grupo->inode_bitmap;
-	uint8_t *posActual = ptr_arch + nroBloque * 1024;
+	uint32_t nroBloque = grupo->inode_bitmap;
+	uint8_t *posActual = ptr_arch + nroBloque * tamanio_bloque;
 
 	struct Superblock *bloque = read_superblock();
-	int cantInodos = bloque->inodes_per_group;
-	printf("cantidad de inodos por grupo: %d\n",cantInodos);
-	int cantIter = cantInodos / 8;
+	int cantBloques = bloque->inodes_per_group;
+//	printf("Bloques por grupo: %d\n",cantBloques);
+	int cantBytes = cantBloques / 8;
+
+	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+
 	int i;
-	uint8_t tamanioUnByte = 1;
-	for(i = 0;i < cantIter;i++){
-		cb = (struct CampoBits*)posActual;
-		printf("b: %u\n",cb->b0);
-		printf("b1: %u\n",cb->b1);
-		printf("b2: %u\n",cb->b2);
-		printf("b3: %u\n",cb->b3);
-		printf("b4: %u\n",cb->b4);
-		printf("b5: %u\n",cb->b5);
-		printf("b6: %u\n",cb->b6);
-		printf("b7: %u\n",cb->b7);
-		posActual += tamanioUnByte;
+	int iLibres = 0;
+	int iOcupados = 0;
+	for(i = 0;i < cantBloques;i++){
+		bool valor = bitarray_test_bit(ptrBit, i);
+		printf("inodo %d: %d\n",i,valor);
+		if(valor == 0){
+			iLibres++;
+		} else
+			iOcupados++;
 	}
+	printf("iLibres: %d\n",iLibres);
+	printf("iOcupados: %d\n",iOcupados);
+	printf("Inodos libre: %hu\n",inodos_libres);
+	printf("Inodos por grupo: %d\n",cantBloques);
 
 }
 
@@ -190,18 +203,133 @@ void leerTablaDeInodos(uint32_t nroGrupo){
 	uint8_t tamanioInodo = sizeof(struct INode);
 	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
 	uint8_t nroBloque = grupo->inode_table;
-	uint8_t *dir_tabla_inodos = ptr_arch + nroBloque * 1024;
+
+	printf("inodos libre: %u\n",grupo->free_inodes_count);
+
+	uint8_t *dir_tabla_inodos = ptr_arch + nroBloque * tamanio_bloque;
 	struct INode* inodo;
 	int i;
 	for(i=1;i<=cantInodos;i++){
 		inodo = (struct INode*) dir_tabla_inodos;
 
-		printf("inodo nro %d\n",i);
-		printf("mode: %hu\n",inodo->mode);
-		printf("uid: %hu\n",inodo->uid);
-		printf("atime: %u\n",inodo->atime);
+		printf("\ninodo nro %d ",i);
+		printf("mode: %hu ",inodo->mode);
+		printf("uid: %hu ",inodo->uid);
+		printf("atime: %u ",inodo->atime);
+//		for(j = 0;j < 8; j++)
+//			printf("block[%d] %u",j,inodo->blocks[j]);
 
 		dir_tabla_inodos += tamanioInodo;
 	}
-//	printf("inodos libres de este grupo: %hu",grupo->free_inodes_count);
+
+}
+
+t_queue * buscarBloquesLibres(uint32_t bloquesRequeridos){
+//	struct Superblock *sb = read_superblock();
+//	if(sb->free_blocks < bloquesRequeridos)
+//		goto errorInsuficientesBloques;
+
+	t_queue * bloquesLibres = queue_create();
+	uint32_t nro_grupo = 0;
+	while(queue_size(bloquesLibres) < bloquesRequeridos){
+//		printf("entro bucle\n");
+		buscarBloquesLibresBitmaps(bloquesLibres,nro_grupo,bloquesRequeridos);
+		nro_grupo++;
+//		printf("tamaña cola de bloques libres: %d\n",queue_size(bloquesLibres));
+	}
+
+	return bloquesLibres;
+
+}
+
+void buscarBloquesLibresBitmaps(t_queue * bloquesLibres,uint32_t nro_grupo,uint32_t bloquesRequeridos){
+
+	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
+	uint32_t inicioBB = grupo->block_bitmap;
+	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
+
+	struct Superblock *bloque = read_superblock();
+	int cantBloques = bloque->blocks_per_group;
+	int cantBytes = cantBloques / 8;
+	uint32_t nroPrimerBloqueDelGrupo;
+
+	 nroPrimerBloqueDelGrupo =  nroBloqueInicioDeGrupo(nro_grupo);
+
+	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+
+//	printf("primer bloque del grupo: %hu\n",nroPrimerBloqueDelGrupo);
+	int i;
+	for(i = 0;queue_size(bloquesLibres) < bloquesRequeridos && i < cantBloques;i++){
+		bool valor = bitarray_test_bit(ptrBit, i);
+		if(valor == 0){
+			uint32_t nroBloque = nroPrimerBloqueDelGrupo + i;
+			queue_push(bloquesLibres,(void *)(nroBloque));
+//			printf("nroBloque agregado a la cola: %hu\n",nroBloque);
+		}
+//		printf("tamano cola bloques libres: %d\n",queue_size(bloquesLibres));
+	}
+
+}
+
+t_queue * buscarInodosLibres(uint32_t inodosRequeridos){
+	//	struct Superblock *sb = read_superblock();
+	//	if(sb->free_blocks < bloquesRequeridos)
+	//		goto errorInsuficientesBloques;
+
+		t_queue * inodosLibres = queue_create();
+		uint32_t nro_grupo = 0;
+		while(queue_size(inodosLibres) < inodosRequeridos){
+	//		printf("entro bucle\n");
+			buscarInodosLibresBitmaps(inodosLibres,nro_grupo,inodosRequeridos);
+			nro_grupo++;
+	//		printf("tamaña cola de bloques libres: %d\n",queue_size(bloquesLibres));
+		}
+
+		return inodosLibres;
+
+}
+
+void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_t inodosRequeridos){
+
+	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
+	uint32_t inicioIB = grupo->inode_bitmap;
+	uint8_t *posActual = ptr_arch + inicioIB * tamanio_bloque;
+
+	struct Superblock *bloque = read_superblock();
+	int cantBloques = bloque->inodes_per_group;
+	int cantBytes = cantBloques / 8;
+	uint32_t nroPrimerInodoDelGrupo;
+
+	 nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
+
+	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+
+//	printf("primer bloque del grupo: %hu\n",nroPrimerBloqueDelGrupo);
+	int i;
+	for(i = 0;queue_size(inodosLibres) < inodosRequeridos && i < cantBloques;i++){
+		bool valor = bitarray_test_bit(ptrBit, i);
+		if(valor == 0){
+			uint32_t nroInodo = nroPrimerInodoDelGrupo + i;
+			queue_push(inodosLibres,(void *)(nroInodo));
+			printf("nroInodo agregado a la cola: %hu\n",nroInodo);
+		}
+//		printf("tamano cola Inodos libres: %d\n",queue_size(inodosLibres));
+	}
+
+}
+
+int nroBloqueInicioDeGrupo(uint32_t nro_grupo){
+	struct Superblock *sb = read_superblock();
+	uint32_t bloquesPorGrupo = sb->blocks_per_group;
+//	printf("bloques por grupo: %hu\n",bloquesPorGrupo);
+//	printf("inodos por grupo: %hu\n",bloque->inodes_per_group);
+	int nroBloque;
+	nroBloque = (tamanio_bloque == 1024) ? 1 : 0;
+	return nroBloque + bloquesPorGrupo * nro_grupo;
+}
+
+int nroInodoInicioDeGrupo(uint32_t nro_grupo){
+	struct Superblock *sb = read_superblock();
+	uint32_t inodosPorGrupo = sb->inodes_per_group;
+	return inodosPorGrupo * nro_grupo + 1; //el + 1 es porque empieza en el inodo nro 1
 }

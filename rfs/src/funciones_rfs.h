@@ -11,6 +11,8 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <src/commons/collections/queue.h>
+//#include <commons/collections/queue.h>
 
 
 
@@ -78,17 +80,6 @@
 	    uint32_t reserved2[4];
 	};
 
-	struct CampoBits {
-	    unsigned int b0:1;
-	    unsigned int b1:1;
-	    unsigned int b2:1;
-	    unsigned int b3:1;
-	    unsigned int b4:1;
-	    unsigned int b5:1;
-	    unsigned int b6:1;
-	    unsigned int b7:1;
-	};
-
 	void mapear_archivo();
 	struct Superblock *read_superblock();
 
@@ -105,6 +96,12 @@
 	void leerBitmapDeBloque(uint32_t);
 	void leerBitmapDeInodos(uint32_t);
 
+	int nroBloqueInicioDeGrupo(uint32_t);
 	void leerTablaDeInodos(uint32_t nroGrupo);
+	t_queue * buscarBloquesLibres(uint32_t);
+	void buscarBloquesLibresBitmaps(t_queue *,uint32_t,uint32_t);
+	t_queue * buscarInodosLibres(uint32_t);
+	void buscarInodosLibresBitmaps(t_queue *,uint32_t,uint32_t);
+	int nroInodoInicioDeGrupo(uint32_t nro_grupo);
 
 #endif /* FUNCIONES_RFS_H_ */

@@ -13,7 +13,6 @@
 #include <math.h>
 
 
-
 int32_t main(void) {
 
 
@@ -24,14 +23,14 @@ int32_t main(void) {
 	//posicionarme en el comienzo de cada grupo, osea donde empieza el
 	// bitmap block de c/u
 
-		uint8_t grupo = 0;
+//		uint8_t grupo = 0;
+//
+//		uint32_t *direccion = dir_inicioDeGrupo (grupo);
+//
+//		printf("direccion del grupo 1= %p, \n",direccion);
 
-		uint32_t *direccion = dir_inicioDeGrupo (grupo);
 
-		printf("direccion del grupo 1= %p, \n",direccion);
-
-
-		leerTablaDeInodos(0);
+//		leerTablaDeInodos(0);
 
 		//		struct GroupDesc *TDgrupo = leerGroupDescriptor(grupo);
 //		printf("bloque de bitmap de grupo1: %d\n",TDgrupo->block_bitmap);
@@ -39,25 +38,56 @@ int32_t main(void) {
 //		struct GroupDesc *TDgrupo2 = leerGroupDescriptor(3);
 //		printf("bloque de bitmap de grupo3: %d\n",TDgrupo2->block_bitmap);
 
-/*
-	printf("inodos= %d, \n",bloque->inodes);
-	printf("inodos por grupo= %d, \n",bloque->inodes_per_group);
-	printf("bloques= %d, \n",bloque->blocks);
-	printf("bloques libres= %d, \n",bloque->free_blocks);
-	printf("inodos libres= %d, \n",bloque->free_inodes);
-	printf("bloques por grupo= %d, \n",bloque->blocks_per_group);
-	printf("primer bloque libre= %d, \n",bloque->first_data_block);
-	printf("bloques reservados= %d, \n",bloque->reserved_blocks);
-*/
+//	printf("inodos= %d, \n",bloque->inodes);
+//	printf("inodos por grupo= %d, \n",bloque->inodes_per_group);
+//	printf("bloques= %d, \n",bloque->blocks);
+//	printf("bloques libres= %d, \n",bloque->free_blocks);
+//	printf("inodos libres= %d, \n",bloque->free_inodes);
+//	printf("bloques por grupo= %d, \n",bloque->blocks_per_group);
+//	printf("primer bloque libre= %d, \n",bloque->first_data_block);
+//	printf("bloques reservados= %d, \n",bloque->reserved_blocks);
 
 
 /* Leer los descriptores de grupo */
 
 //	leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
 
-//	struct GroupDesc * gd = leerGrupoDescriptor(0);
-	leerGrupoDescriptor(3);
+//	struct GroupDesc * gd = leerGroupDescriptor(3);
+//	printf("block_bitmap: %hu\n",gd->block_bitmap);
+//	printf("inode_bitmap: %hu\n",gd->inode_bitmap);
+//	printf("inode_table: %hu\n",gd->inode_table);
+//	leerGroupDescriptor(3);
 
+
+//	leerBitmapDeBloque(0);
+
+//	leerBitmapDeInodos(0);
+
+// Busqueda de bloques libres
+
+	t_queue * bloquesLibres = buscarBloquesLibres(4);
+	if (!queue_is_empty(bloquesLibres)){
+		printf("entro aca\n");
+		printf("tam: %d\n",queue_size(bloquesLibres));
+		queue_clean(bloquesLibres);
+		printf("tam: %d\n",queue_size(bloquesLibres));
+		queue_destroy(bloquesLibres);
+	}
+
+//Fin - Busqueda de bloques libres
+
+// Busqueda inodos libres
+
+//	t_queue * inodosLibres = buscarInodosLibres(4);
+//	if (!queue_is_empty(inodosLibres)){
+//		printf("entro aca\n");
+//		printf("tam: %d\n",queue_size(inodosLibres));
+//		queue_clean(inodosLibres);
+//		printf("tam: %d\n",queue_size(inodosLibres));
+//		queue_destroy(inodosLibres);
+//	}
+
+//Fin - Busqueda inodos libres
 
 	/* Aca liberamos la memoria que mapeamos */
 
