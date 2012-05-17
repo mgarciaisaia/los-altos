@@ -363,7 +363,6 @@ void leerIndireccionSimple(uint32_t nroInodo){
 		nroBloque = *(inicio += i * 4);
 		printf("nro de bloque: %hu\n",nroBloque);
 	}
-
 }
 
 void leerIndireccionDoble(uint32_t nroInodo){
@@ -383,7 +382,6 @@ void leerIndireccionDoble(uint32_t nroInodo){
 		nroBloque = *(inicio += i * 4);
 		leerIndireccionSimple(nroBloque);
 	}
-
 }
 
 void leerIndireccionTriple(uint32_t nroInodo){
@@ -403,5 +401,4 @@ void leerIndireccionTriple(uint32_t nroInodo){
 		nroBloque = *(inicio += i * 4);
 		leerIndireccionDoble(nroBloque);
 	}
-
 }

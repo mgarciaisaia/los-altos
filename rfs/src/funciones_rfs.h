@@ -114,6 +114,7 @@
 	struct INode * getInodo(int);
 	uint8_t * posicionarInicioBloque(uint32_t nroBloque);
 
+
 	void leerIndireccionSimple(uint32_t);
 	void leerIndireccionDoble(uint32_t);
 	void leerIndireccionTriple(uint32_t);
