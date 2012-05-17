@@ -155,7 +155,7 @@ void leerBitmapDeBloque(uint32_t nroGrupo){
 	}
 //	printf("blibres: %d\n",blibres);
 //	printf("bocupados: %d\n",bocupados);
-//	printf("Bloques libre: %hu\n",bloques_libres);
+//	printf("Bloques libre: %hu\n",grupo->free_blocks_count);
 //	printf("Bloques por grupo: %d\n",cantBloques);
 
 }
@@ -164,7 +164,7 @@ void leerBitmapDeInodos(uint32_t nroGrupo){
 
 //	struct CampoBits * cb;
 	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-	uint16_t inodos_libres = grupo->free_inodes_count;
+//	uint16_t inodos_libres = grupo->free_inodes_count;
 //	printf("Bloques libre: %hu\n",bloques_libres);
 
 	uint32_t nroBloque = grupo->inode_bitmap;
@@ -188,10 +188,10 @@ void leerBitmapDeInodos(uint32_t nroGrupo){
 		} else
 			iOcupados++;
 	}
-	printf("iLibres: %d\n",iLibres);
-	printf("iOcupados: %d\n",iOcupados);
-	printf("Inodos libre: %hu\n",inodos_libres);
-	printf("Inodos por grupo: %d\n",cantBloques);
+//	printf("iLibres: %d\n",iLibres);
+//	printf("iOcupados: %d\n",iOcupados);
+//	printf("Inodos libre: %hu\n",inodos_libres);
+//	printf("Inodos por grupo: %d\n",cantBloques);
 
 }
 
@@ -230,14 +230,9 @@ t_queue * buscarBloquesLibres(uint32_t bloquesRequeridos){
 //		goto errorInsuficientesBloques;
 
 	t_queue * bloquesLibres = queue_create();
-	uint32_t nro_grupo = 0;
-	while(queue_size(bloquesLibres) < bloquesRequeridos){
-//		printf("entro bucle\n");
+	uint32_t nro_grupo;
+	for(nro_grupo = 0;queue_size(bloquesLibres) < bloquesRequeridos;nro_grupo++)
 		buscarBloquesLibresBitmaps(bloquesLibres,nro_grupo,bloquesRequeridos);
-		nro_grupo++;
-//		printf("tamaña cola de bloques libres: %d\n",queue_size(bloquesLibres));
-	}
-
 	return bloquesLibres;
 
 }
@@ -264,7 +259,7 @@ void buscarBloquesLibresBitmaps(t_queue * bloquesLibres,uint32_t nro_grupo,uint3
 		if(valor == 0){
 			uint32_t nroBloque = nroPrimerBloqueDelGrupo + i;
 			queue_push(bloquesLibres,(void *)(nroBloque));
-//			printf("nroBloque agregado a la cola: %hu\n",nroBloque);
+			printf("nroBloque agregado a la cola: %hu\n",nroBloque);
 		}
 //		printf("tamano cola bloques libres: %d\n",queue_size(bloquesLibres));
 	}
@@ -277,14 +272,9 @@ t_queue * buscarInodosLibres(uint32_t inodosRequeridos){
 	//		goto errorInsuficientesBloques;
 
 		t_queue * inodosLibres = queue_create();
-		uint32_t nro_grupo = 0;
-		while(queue_size(inodosLibres) < inodosRequeridos){
-	//		printf("entro bucle\n");
+		uint32_t nro_grupo;
+		for(nro_grupo = 3;queue_size(inodosLibres) < inodosRequeridos;nro_grupo++)
 			buscarInodosLibresBitmaps(inodosLibres,nro_grupo,inodosRequeridos);
-			nro_grupo++;
-	//		printf("tamaña cola de bloques libres: %d\n",queue_size(bloquesLibres));
-		}
-
 		return inodosLibres;
 
 }
@@ -300,7 +290,7 @@ void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_
 	int cantBytes = cantBloques / 8;
 	uint32_t nroPrimerInodoDelGrupo;
 
-	 nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
+	nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
 
 	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
 
@@ -332,4 +322,86 @@ int nroInodoInicioDeGrupo(uint32_t nro_grupo){
 	struct Superblock *sb = read_superblock();
 	uint32_t inodosPorGrupo = sb->inodes_per_group;
 	return inodosPorGrupo * nro_grupo + 1; //el + 1 es porque empieza en el inodo nro 1
+}
+
+struct INode * getInodo(int nroInodo){
+
+	struct Superblock *sb = read_superblock();
+	int nroGrupo = (nroInodo - 1) / sb->inodes_per_group;
+	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+	uint32_t nroBloqueTablaInodos = grupo->inode_table;
+	uint8_t *dir_tabla_inodos = ptr_arch + nroBloqueTablaInodos * tamanio_bloque;
+	uint8_t tamanioInodo = sizeof(struct INode);
+
+	int cantInodos = nroInodo - nroGrupo * sb->inodes_per_group;
+
+	struct INode* inodo;
+	int i;
+	for(i=1;i<cantInodos;i++,dir_tabla_inodos += tamanioInodo);
+	inodo = (struct INode*) dir_tabla_inodos;
+	return inodo;
+
+}
+
+uint8_t * posicionarInicioBloque(uint32_t nroBloque){
+	return ptr_arch + nroBloque * tamanio_bloque;
+}
+
+void leerIndireccionSimple(uint32_t nroInodo){
+	struct Superblock *sb = read_superblock();
+	uint32_t tamanio_inodo = sb->inode_size;
+
+	struct INode * inodo = getInodo(nroInodo);
+	uint32_t bloqueIndireccionSimple = inodo->iblock;
+	uint8_t * inicio = posicionarInicioBloque(bloqueIndireccionSimple);
+//	printf("tamanio inodo: %d\n",tamanio_inodo);
+	uint32_t cantidadPunteros = tamanio_bloque / tamanio_inodo;
+//	printf("indireccion simple: %d\n",bloqueIndireccionSimple);
+	uint32_t nroBloque;
+	int i;
+	for(i = 0;i < cantidadPunteros;){
+		nroBloque = *(inicio += i * 4);
+		printf("nro de bloque: %hu\n",nroBloque);
+	}
+
+}
+
+void leerIndireccionDoble(uint32_t nroInodo){
+
+	struct Superblock *sb = read_superblock();
+	uint32_t tamanio_inodo = sb->inode_size;
+
+	struct INode * inodo = getInodo(nroInodo);
+	uint32_t bloqueIndireccionDoble = inodo->iiblock;
+	uint8_t * inicio = posicionarInicioBloque(bloqueIndireccionDoble);
+//	printf("tamanio inodo: %d\n",tamanio_inodo);
+	uint32_t cantidadPunteros = tamanio_bloque / tamanio_inodo;
+//	printf("indireccion simple: %d\n",bloqueIndireccionSimple);
+	uint32_t nroBloque;
+	int i;
+	for(i = 0;i < cantidadPunteros;){
+		nroBloque = *(inicio += i * 4);
+		leerIndireccionSimple(nroBloque);
+	}
+
+}
+
+void leerIndireccionTriple(uint32_t nroInodo){
+
+	struct Superblock *sb = read_superblock();
+	uint32_t tamanio_inodo = sb->inode_size;
+
+	struct INode * inodo = getInodo(nroInodo);
+	uint32_t bloqueIndireccionTriple = inodo->iiiblock;
+	uint8_t * inicio = posicionarInicioBloque(bloqueIndireccionTriple);
+//	printf("tamanio inodo: %d\n",tamanio_inodo);
+	uint32_t cantidadPunteros = tamanio_bloque / tamanio_inodo;
+//	printf("indireccion simple: %d\n",bloqueIndireccionSimple);
+	uint32_t nroBloque;
+	int i;
+	for(i = 0;i < cantidadPunteros;){
+		nroBloque = *(inicio += i * 4);
+		leerIndireccionDoble(nroBloque);
+	}
+
 }

@@ -18,7 +18,8 @@ int32_t main(void) {
 
 	mapear_archivo();
 
-//	struct Superblock *bloque = read_superblock();
+//	struct Superblock *sb= read_superblock();
+//	printf("primer bloque libre: %hu\n",sb->inode_size);
 
 	//posicionarme en el comienzo de cada grupo, osea donde empieza el
 	// bitmap block de c/u
@@ -65,14 +66,14 @@ int32_t main(void) {
 
 // Busqueda de bloques libres
 
-	t_queue * bloquesLibres = buscarBloquesLibres(4);
-	if (!queue_is_empty(bloquesLibres)){
-		printf("entro aca\n");
-		printf("tam: %d\n",queue_size(bloquesLibres));
-		queue_clean(bloquesLibres);
-		printf("tam: %d\n",queue_size(bloquesLibres));
-		queue_destroy(bloquesLibres);
-	}
+//	t_queue * bloquesLibres = buscarBloquesLibres(4);
+//	if (!queue_is_empty(bloquesLibres)){
+//		printf("entro aca\n");
+//		printf("tam: %d\n",queue_size(bloquesLibres));
+//		queue_clean(bloquesLibres);
+//		printf("tam: %d\n",queue_size(bloquesLibres));
+//		queue_destroy(bloquesLibres);
+//	}
 
 //Fin - Busqueda de bloques libres
 
@@ -89,7 +90,18 @@ int32_t main(void) {
 
 //Fin - Busqueda inodos libres
 
+/* Probando getInodo
+	struct INode * inodo = getInodo(5641);
+	printf("%u\n",inodo->atime);
+	printf("%u\n",inodo->uid);
+	printf("%u\n",inodo->size);
+Fin - Probando getInodo*/
+
 	/* Aca liberamos la memoria que mapeamos */
+
+//	leerIndirecciones(7);
+
+//	printf("%d\n",nroBloqueInicioDeGrupo(0));
 
 	extern uint32_t *ptr_arch;
 	if (munmap(ptr_arch, sizeof(*ptr_arch)) == -1) {

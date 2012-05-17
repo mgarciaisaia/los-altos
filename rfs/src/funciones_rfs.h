@@ -43,6 +43,14 @@
 	    uint32_t rev_level;
 	    uint16_t resv_uid;
 	    uint16_t resv_gid;
+	    uint32_t first_inode;
+	    uint16_t inode_size;
+	    uint16_t block_group;
+	    uint32_t feature_compat;
+	    uint32_t feature_incompat;
+	    uint32_t feature_ro_compat;
+	    uint8_t uuid[16];
+
 	};
 
 	struct GroupDesc
@@ -91,7 +99,6 @@
 
 //	char esPotenciaDe(uint32_t grupo);
 	uint8_t *dir_inicioDeGrupo (uint32_t grupo);
-	struct GroupDesc *leerGroupDescriptor(uint32_t);
 
 	void leerBitmapDeBloque(uint32_t);
 	void leerBitmapDeInodos(uint32_t);
@@ -103,5 +110,12 @@
 	t_queue * buscarInodosLibres(uint32_t);
 	void buscarInodosLibresBitmaps(t_queue *,uint32_t,uint32_t);
 	int nroInodoInicioDeGrupo(uint32_t nro_grupo);
+
+	struct INode * getInodo(int);
+	uint8_t * posicionarInicioBloque(uint32_t nroBloque);
+
+	void leerIndireccionSimple(uint32_t);
+	void leerIndireccionDoble(uint32_t);
+	void leerIndireccionTriple(uint32_t);
 
 #endif /* FUNCIONES_RFS_H_ */
