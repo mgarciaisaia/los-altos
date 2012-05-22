@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fuse.h>
+#include <sys/types.h>
+#include "src/nipc/nipc.h"
+#include <errno.h>
+#include <string.h>
 
 /**
  * Create and open a file
@@ -18,8 +22,14 @@
  * Introduced in version 2.5
  */
 int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
+    printf("create%s\n", path);
+    printf("%d, %d, %s\n", nipc_create, mode, path);
+    struct nipc_create* createData = new_nipc_create(path, mode, fileInfo->flags);
+    struct nipc_packet* packet = createData->serialize(createData);
+    struct nipc_create* deserialized = deserialize_create(packet);
+    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->fileMode, deserialized->path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** File open operation
@@ -54,7 +64,8 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
 // with the fusexmp code which returns the amount of data also
 // returned by read.
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-	//FIXME: implementar
+    printf("read%s\n", path);
+    //FIXME: implementar
 	return -1;
 }
 
@@ -69,6 +80,7 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
+    printf("write%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -97,6 +109,7 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
+    printf("flush%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -116,18 +129,21 @@ int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
+    printf("release%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
 
 /** Remove a file */
 int remote_unlink(const char *path) {
+    printf("unlink%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
 
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
+    printf("mkdir%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -154,12 +170,17 @@ int remote_mkdir(const char *path, mode_t mode) {
  * Introduced in version 2.3
  */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
+    printf("readdir%s\n", path);
 	//FIXME: implementar
-	return -1;
+    filler(output, ".", NULL, 0);
+    filler(output, "..", NULL, 0);
+
+    return 0;
 }
 
 /** Remove a directory */
 int remote_rmdir(const char *path) {
+    printf("rmdir%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -171,8 +192,14 @@ int remote_rmdir(const char *path) {
  * mount option is given.
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
+    printf("getattr %s\n", path);
 	//FIXME: implementar
-	return -1;
+    if (strcmp(path, "/") == 0) {
+        statbuf->st_mode = S_IFDIR | 0755;
+        statbuf->st_nlink = 2;
+        return 0;
+    }
+    return -ENOENT;
 }
 
 static struct fuse_operations remote_operations = {
