@@ -19,8 +19,6 @@ struct nipc_create {
     mode_t fileMode;
 };
 
-static struct nipc_packet* serialize_create(struct nipc_create* payload);
-
 struct nipc_create* deserialize_create(struct nipc_packet* packet);
 
 struct nipc_create* empty_nipc_create();
