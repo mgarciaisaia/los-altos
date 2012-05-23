@@ -24,7 +24,7 @@
 int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
     printf("create%s\n", path);
     printf("%d, %d, %s\n", nipc_create, mode, path);
-    struct nipc_create* createData = new_nipc_create(path, mode, fileInfo->flags);
+    struct nipc_create* createData = new_nipc_create(path, mode);
     struct nipc_packet* packet = createData->serialize(createData);
     struct nipc_create* deserialized = deserialize_create(packet);
     printf("%d, %d, %s\n", deserialized->nipcType, deserialized->fileMode, deserialized->path);
@@ -43,6 +43,12 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  * Changed in version 2.2
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
+    printf("open %s\n", path);
+    printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
+    struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
+    struct nipc_packet* packet = openData->serialize(openData);
+    struct nipc_open* deserialized = deserialize_open(packet);
+    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
 	return -1;
 }
@@ -197,9 +203,12 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     if (strcmp(path, "/") == 0) {
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2;
-        return 0;
+    } else {
+        statbuf->st_mode = S_IFREG | 0755;
+        statbuf->st_nlink = 1;
+        statbuf->st_size = 30;
     }
-    return -ENOENT;
+    return 0;
 }
 
 static struct fuse_operations remote_operations = {
