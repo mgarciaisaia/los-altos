@@ -50,7 +50,7 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
     struct nipc_open* deserialized = deserialize_open(packet);
     printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Read data from an open file
@@ -70,9 +70,15 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
 // with the fusexmp code which returns the amount of data also
 // returned by read.
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("read%s\n", path);
+    printf("read %s\n", path);
+    printf("%d, %zd, %lu, %s\n", nipc_read, size, offset, path);
+    struct nipc_read* readData = new_nipc_read(path, size, offset);
+    struct nipc_packet* packet = readData->serialize(readData);
+    struct nipc_read* deserialized = deserialize_read(packet);
+    printf("%d, %zd, %lu, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path);
     //FIXME: implementar
-	return -1;
+    strcpy(output, "Trabajo muy duro, como un esclavo :)");
+    return strlen("Trabajo muy duro, como un esclavo :)");
 }
 
 /** Write data to an open file
@@ -117,7 +123,7 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
 int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
     printf("flush%s\n", path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Release an open file
@@ -180,6 +186,10 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
 	//FIXME: implementar
     filler(output, ".", NULL, 0);
     filler(output, "..", NULL, 0);
+    struct stat stats;
+    stats.st_mode = S_IFREG | 755;
+    stats.st_size = 304325;
+    filler(output, "bb", &stats, 0);
 
     return 0;
 }
@@ -206,7 +216,7 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     } else {
         statbuf->st_mode = S_IFREG | 0755;
         statbuf->st_nlink = 1;
-        statbuf->st_size = 30;
+        statbuf->st_size = 32350;
     }
     return 0;
 }

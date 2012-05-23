@@ -101,3 +101,54 @@ struct nipc_open* new_nipc_open(char* path, int flags) {
     instance->flags = flags;
     return instance;
 }
+
+
+
+
+static struct nipc_packet* serialize_read(struct nipc_read* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+    int path_lenght = strlen(payload->path) + 1;
+
+    packet->data_length = path_lenght + sizeof(payload->size) + sizeof(payload->offset);
+
+    packet->data = malloc(packet->data_length);
+
+    memcpy(packet->data, payload->path, path_lenght);
+
+    memcpy(packet->data + path_lenght, &(payload->size), sizeof(payload->size));
+
+    memcpy(packet->data + path_lenght + sizeof(payload->size), &(payload->offset), sizeof(payload->offset));
+
+    return packet;
+}
+
+struct nipc_read* deserialize_read(struct nipc_packet* packet) {
+    if(packet->type != nipc_read) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_read* instance = empty_nipc_read();
+    size_t path_length = strlen(packet->data) + 1;
+    instance->path = malloc(path_length);
+    strcpy(instance->path, packet->data);
+    memcpy(&(instance->size), packet->data + path_length, sizeof(instance->size));
+    memcpy(&(instance->offset), packet->data + path_length + sizeof(instance->size), sizeof(instance->offset));
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_read* empty_nipc_read() {
+    struct nipc_read* instance = malloc(sizeof(struct nipc_read));
+    instance->nipcType = nipc_read;
+    instance->serialize = &serialize_read;
+    return instance;
+}
+
+struct nipc_read* new_nipc_read(char* path, size_t size, off_t offset) {
+    struct nipc_read* instance = empty_nipc_read();
+    instance->path = path;
+    instance->size = size;
+    instance->offset = offset;
+    return instance;
+}
