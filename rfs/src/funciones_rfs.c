@@ -128,7 +128,8 @@ void leerBitmapDeBloque(uint32_t nroGrupo){
 //	printf("Bloques libre: %hu\n",bloques_libres);
 
 	uint32_t nroBloque = grupo->block_bitmap;
-	uint8_t *posActual = ptr_arch + nroBloque * tamanio_bloque;
+//	uint8_t *posActual = ptr_arch + nroBloque * tamanio_bloque;
+	uint8_t * inicio = posicionarInicioBloque(nroBloque);
 
 	struct Superblock *bloque = read_superblock();
 	int cantBloques = bloque->blocks_per_group;
@@ -137,7 +138,7 @@ void leerBitmapDeBloque(uint32_t nroGrupo){
 
 	int bInicioDeGrupo = nroBloqueInicioDeGrupo(nroGrupo);
 
-	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
 //	printf("set: %d\n",bitarray_test_bit(ptrBit,8191));
 
 	int i;
@@ -145,11 +146,12 @@ void leerBitmapDeBloque(uint32_t nroGrupo){
 	int bocupados = 0;
 	for(i = 0;i < cantBloques;i++){
 		bool valor = bitarray_test_bit(ptrBit, i);
-		printf("bloque %d: %d\n",i+bInicioDeGrupo,valor);
+//		printf("bloque %d: %d\n",i+bInicioDeGrupo,valor);
 		if(valor == 0){
-			printf("nroBloque %d: %d\n",i+bInicioDeGrupo,valor);
+//			printf("nroBloque %d: %d\n",i+bInicioDeGrupo,valor);
 			blibres++;
 		} else{
+			printf("nroBloque %d: %d\n",i+bInicioDeGrupo,valor);
 			bocupados++;
 		}
 	}
@@ -168,14 +170,15 @@ void leerBitmapDeInodos(uint32_t nroGrupo){
 //	printf("Bloques libre: %hu\n",bloques_libres);
 
 	uint32_t nroBloque = grupo->inode_bitmap;
-	uint8_t *posActual = ptr_arch + nroBloque * tamanio_bloque;
+//	uint8_t *posActual = ptr_arch + nroBloque * tamanio_bloque;
+	uint8_t * inicio = posicionarInicioBloque(nroBloque);
 
 	struct Superblock *bloque = read_superblock();
 	int cantBloques = bloque->inodes_per_group;
 //	printf("Bloques por grupo: %d\n",cantBloques);
 	int cantBytes = cantBloques / 8;
 
-	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
 
 	int i;
 	int iLibres = 0;
@@ -273,7 +276,7 @@ t_queue * buscarInodosLibres(uint32_t inodosRequeridos){
 
 		t_queue * inodosLibres = queue_create();
 		uint32_t nro_grupo;
-		for(nro_grupo = 3;queue_size(inodosLibres) < inodosRequeridos;nro_grupo++)
+		for(nro_grupo = 0;queue_size(inodosLibres) < inodosRequeridos;nro_grupo++)
 			buscarInodosLibresBitmaps(inodosLibres,nro_grupo,inodosRequeridos);
 		return inodosLibres;
 
@@ -285,9 +288,9 @@ void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_
 	uint32_t inicioIB = grupo->inode_bitmap;
 	uint8_t *posActual = ptr_arch + inicioIB * tamanio_bloque;
 
-	struct Superblock *bloque = read_superblock();
-	int cantBloques = bloque->inodes_per_group;
-	int cantBytes = cantBloques / 8;
+	struct Superblock *sb = read_superblock();
+	int cantInodos = sb->inodes_per_group;
+	int cantBytes = cantInodos / 8;
 	uint32_t nroPrimerInodoDelGrupo;
 
 	nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
@@ -296,7 +299,7 @@ void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_
 
 //	printf("primer bloque del grupo: %hu\n",nroPrimerBloqueDelGrupo);
 	int i;
-	for(i = 0;queue_size(inodosLibres) < inodosRequeridos && i < cantBloques;i++){
+	for(i = 0;queue_size(inodosLibres) < inodosRequeridos && i < cantInodos;i++){
 		bool valor = bitarray_test_bit(ptrBit, i);
 		if(valor == 0){
 			uint32_t nroInodo = nroPrimerInodoDelGrupo + i;
@@ -324,7 +327,7 @@ int nroInodoInicioDeGrupo(uint32_t nro_grupo){
 	return inodosPorGrupo * nro_grupo + 1; //el + 1 es porque empieza en el inodo nro 1
 }
 
-struct INode * getInodo(int nroInodo){
+struct INode * getInodo(uint32_t nroInodo){
 
 	struct Superblock *sb = read_superblock();
 	int nroGrupo = (nroInodo - 1) / sb->inodes_per_group;
@@ -347,58 +350,54 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 	return ptr_arch + nroBloque * tamanio_bloque;
 }
 
-void leerIndireccionSimple(uint32_t nroInodo){
-	struct Superblock *sb = read_superblock();
-	uint32_t tamanio_inodo = sb->inode_size;
+void bloquesOcupados(struct INode * inodo){
 
-	struct INode * inodo = getInodo(nroInodo);
-	uint32_t bloqueIndireccionSimple = inodo->iblock;
-	uint8_t * inicio = posicionarInicioBloque(bloqueIndireccionSimple);
-//	printf("tamanio inodo: %d\n",tamanio_inodo);
-	uint32_t cantidadPunteros = tamanio_bloque / tamanio_inodo;
-//	printf("indireccion simple: %d\n",bloqueIndireccionSimple);
-	uint32_t nroBloque;
+	leerBloquesDirectos(inodo);
+	leerIndireccionSimple1(inodo->iblock);
+	leerIndireccionDoble1(inodo->iiblock);
+	leerIndireccionTriple1(inodo->iiiblock);
+
+}
+
+void leerBloquesDirectos(struct INode * inodo){
 	int i;
-	for(i = 0;i < cantidadPunteros;){
-		nroBloque = *(inicio += i * 4);
-		printf("nro de bloque: %hu\n",nroBloque);
+	for(i = 0;i < 12;i++)
+		printf("bloque directo: %d %u\n",i+1,inodo->blocks[i]);
+}
+
+void leerIndireccionSimple(uint32_t iblock){
+	uint8_t * inicio = posicionarInicioBloque(iblock);
+	uint32_t cantidadPunteros = tamanio_bloque / sizeof(uint32_t);
+	uint32_t * nroBloque;
+	int i;
+	for(i = 0;i < cantidadPunteros;i++){
+		nroBloque = (uint32_t *)(inicio + i * 4);
+		printf("nro de bloque: %u\n",*nroBloque);
 	}
 }
 
-void leerIndireccionDoble(uint32_t nroInodo){
+void leerIndireccionDoble(uint32_t iiblock){
 
-	struct Superblock *sb = read_superblock();
-	uint32_t tamanio_inodo = sb->inode_size;
-
-	struct INode * inodo = getInodo(nroInodo);
-	uint32_t bloqueIndireccionDoble = inodo->iiblock;
-	uint8_t * inicio = posicionarInicioBloque(bloqueIndireccionDoble);
-//	printf("tamanio inodo: %d\n",tamanio_inodo);
-	uint32_t cantidadPunteros = tamanio_bloque / tamanio_inodo;
-//	printf("indireccion simple: %d\n",bloqueIndireccionSimple);
-	uint32_t nroBloque;
+	uint8_t * inicio = posicionarInicioBloque(iiblock);
+	uint32_t cantidadPunteros = tamanio_bloque / sizeof(uint32_t);
+	uint32_t * nroBloque;
 	int i;
-	for(i = 0;i < cantidadPunteros;){
-		nroBloque = *(inicio += i * 4);
-		leerIndireccionSimple(nroBloque);
+	for(i = 0;i < cantidadPunteros;i++){
+		nroBloque = (uint32_t *)(inicio + i * 4);
+		leerIndireccionSimple1(*nroBloque);
+
 	}
 }
 
-void leerIndireccionTriple(uint32_t nroInodo){
+void leerIndireccionTriple(uint32_t iiiblock){
 
-	struct Superblock *sb = read_superblock();
-	uint32_t tamanio_inodo = sb->inode_size;
-
-	struct INode * inodo = getInodo(nroInodo);
-	uint32_t bloqueIndireccionTriple = inodo->iiiblock;
-	uint8_t * inicio = posicionarInicioBloque(bloqueIndireccionTriple);
-//	printf("tamanio inodo: %d\n",tamanio_inodo);
-	uint32_t cantidadPunteros = tamanio_bloque / tamanio_inodo;
-//	printf("indireccion simple: %d\n",bloqueIndireccionSimple);
-	uint32_t nroBloque;
+	uint8_t * inicio = posicionarInicioBloque(iiiblock);
+	uint32_t cantidadPunteros = tamanio_bloque / sizeof(uint32_t);
+	uint32_t * nroBloque;
 	int i;
-	for(i = 0;i < cantidadPunteros;){
-		nroBloque = *(inicio += i * 4);
-		leerIndireccionDoble(nroBloque);
+	for(i = 0;i < cantidadPunteros;i++){
+		nroBloque = (uint32_t *)(inicio + i * 4);
+		leerIndireccionDoble1(*nroBloque);
+
 	}
 }

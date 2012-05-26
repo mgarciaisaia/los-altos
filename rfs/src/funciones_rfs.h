@@ -111,10 +111,11 @@
 	void buscarInodosLibresBitmaps(t_queue *,uint32_t,uint32_t);
 	int nroInodoInicioDeGrupo(uint32_t nro_grupo);
 
-	struct INode * getInodo(int);
+	struct INode * getInodo(uint32_t);
 	uint8_t * posicionarInicioBloque(uint32_t nroBloque);
 
-
+	void bloquesOcupados(struct INode *);
+	void leerBloquesDirectos(struct INode *);
 	void leerIndireccionSimple(uint32_t);
 	void leerIndireccionDoble(uint32_t);
 	void leerIndireccionTriple(uint32_t);
