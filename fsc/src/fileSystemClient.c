@@ -115,7 +115,7 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     printf("%d, %zd, %lu, %s, %s\n", nipc_write, size, offset, path, input);
     struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
-    struct nipc_write* packet = writeData->serialize(writeData);
+    struct nipc_packet* packet = writeData->serialize(writeData);
     struct nipc_write* deserialized = deserialize_write(packet);
     printf("%d, %zd, %lu, %s, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path, deserialized->data);
     //FIXME: implementar
