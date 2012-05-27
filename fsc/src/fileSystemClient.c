@@ -42,6 +42,17 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  * Changed in version 2.2
  */
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Open()
+ *
+ * int hello_open(const char *path, struct fuse_file_info *fi)
+ *
+ * Argument     in/out              description
+ * path         input               A path to file we want to check for opening possibility.
+ * fi           input and output    a structure containing detailed information about operation
+ * return       output              zero if everything went OK, negeted error otherwise
+ *
+ */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
     printf("open %s\n", path);
     printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
@@ -69,6 +80,19 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
 // can return with anything up to the amount of data requested. nor
 // with the fusexmp code which returns the amount of data also
 // returned by read.
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Read()
+ *
+ * read(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+ *
+ * Argument     in/out      Description
+ * path         input       A path to the file from which function has to read
+ * buf          output      buffer to which function has to write contents of the file
+ * size         input       both the size of buf and amount of data to read
+ * offset       input       offset from the beginning of file
+ * fi           input       detailed information about read operation, see fuse_file_info for more information
+ * return       output      amount of bytes read, or negated error number on error
+ */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     printf("read %s\n", path);
     printf("%d, %zd, %lu, %s\n", nipc_read, size, offset, path);
@@ -181,6 +205,19 @@ int remote_mkdir(const char *path, mode_t mode) {
  *
  * Introduced in version 2.3
  */
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Readdir()
+ *
+ * int readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+ *
+ * Argument   in/out    Description
+ * path       input     A path to the directory we want information about
+ * buf        output    buffer containing information about directory
+ * filler     input     pointer to fuse_fill_dir_t function that is used to add entries to buffer
+ * offset     input     offset in directory entries, read below for more information
+ * fi         input     A struct fuse_file_info, contains detailed information why this readdir operation was invoked.
+ * return     output    negated error number, or 0 if everything went OK
+ */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
     printf("readdir%s\n", path);
 	//FIXME: implementar
@@ -207,6 +244,17 @@ int remote_rmdir(const char *path) {
  * ignored.  The 'st_ino' field is ignored except if the 'use_ino'
  * mount option is given.
  */
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Getattr()
+ *
+ * int getattr (const char *path, struct stat *stbuf)
+ *
+ * Argument in/out  Description
+ * path    input    A path to the file that we want information about.
+ * stbuf   output   A struct stat that the information should be stored in.
+ * return  output   negated error number or 0 if everything went OK
+ *
+ */
 int remote_getattr(const char *path, struct stat *statbuf) {
     printf("getattr %s\n", path);
 	//FIXME: implementar
@@ -221,6 +269,9 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     return 0;
 }
 
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Functions_list
+ */
 static struct fuse_operations remote_operations = {
 		.create = remote_create,
 		.open = remote_open,
@@ -236,5 +287,6 @@ static struct fuse_operations remote_operations = {
 };
 
 int main(int argc, char *argv[]) {
+    // deberia conectarme con el RFS antes del fuse_main
 	return fuse_main(argc, argv, &remote_operations, NULL);
 }
