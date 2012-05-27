@@ -171,8 +171,13 @@ int remote_release(const char *path, struct fuse_file_info *fileInfo) {
 
 /** Remove a file */
 int remote_unlink(const char *path) {
-	//FIXME: implementar
-	return -1;
+    printf("%d, %s\n", nipc_unlink, path);
+    struct nipc_unlink* unlinkData = new_nipc_unlink(path);
+    struct nipc_packet* packet = unlinkData->serialize(unlinkData);
+    struct nipc_unlink* deserialized = deserialize_unlink(packet);
+    printf("%d, %s\n", deserialized->nipcType, deserialized->path);
+    //FIXME: implementar
+	return 0;
 }
 
 /** Create a directory */

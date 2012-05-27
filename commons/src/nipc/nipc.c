@@ -209,3 +209,43 @@ struct nipc_write* new_nipc_write(char* path, char* data, size_t size, off_t off
     instance->offset = offset;
     return instance;
 }
+
+
+
+
+
+static struct nipc_packet* serialize_unlink(struct nipc_unlink* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+
+    packet->type = payload->nipcType;
+    packet->data_length = strlen(payload->path) + 1;
+    packet->data = malloc(packet->data_length);
+    memcpy(packet->data, payload->path, packet->data_length);
+
+    return packet;
+}
+
+struct nipc_unlink* deserialize_unlink(struct nipc_packet* packet) {
+    if(packet->type != nipc_unlink) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_unlink* instance = empty_nipc_unlink();
+    instance->path = malloc(packet->data_length);
+    strcpy(instance->path, packet->data);
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_unlink* empty_nipc_unlink() {
+    struct nipc_unlink* instance = malloc(sizeof(struct nipc_unlink));
+    instance->nipcType = nipc_unlink;
+    instance->serialize = &serialize_unlink;
+    return instance;
+}
+
+struct nipc_unlink* new_nipc_unlink(char* path) {
+    struct nipc_unlink* instance = empty_nipc_unlink();
+    instance->path = path;
+    return instance;
+}

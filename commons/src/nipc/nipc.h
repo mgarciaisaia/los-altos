@@ -5,7 +5,8 @@ enum tipo_nipc {
     nipc_create,
     nipc_open,
     nipc_read,
-    nipc_write
+    nipc_write,
+    nipc_unlink
 };
 
 struct nipc_packet {
@@ -77,5 +78,20 @@ struct nipc_write* deserialize_write(struct nipc_packet* packet);
 struct nipc_write* empty_nipc_write();
 
 struct nipc_write* new_nipc_write(char* path, char* data, size_t size, off_t offset);
+
+
+
+
+struct nipc_unlink {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_unlink*);
+    char* path;
+};
+
+struct nipc_unlink* deserialize_unlink(struct nipc_packet* packet);
+
+struct nipc_unlink* empty_nipc_unlink();
+
+struct nipc_unlink* new_nipc_unlink(char* path);
 
 #endif /* NIPC_H_ */
