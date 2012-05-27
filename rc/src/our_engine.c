@@ -14,13 +14,17 @@
 // Aca estan las tools de memcached para levantar la configuración provista por el usuario en los parametros de ejecución
 #include <memcached/config_parser.h>
 
+#include "manage.h"
+#include "vector.h"
 #include "our_engine.h"
 #include <mcheck.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <err.h>
+#include <src/commons/config.h>
+#include <stdio.h>
 
-key_element key_vector[];
+#define PATH_CONFIG "/home/utnso/Desarrollo/configuracion"
 
 /*
  * Estas son las funciones estaticas necesarias para que el engine funcione
@@ -78,9 +82,14 @@ void dummy_ng_dummp(int signal);
 /*
  * Esta va a ser la estructura donde voy a ir almacenando la información que me llegue.
  */
+extern key_element *key_vector;
 
+/* ver que onda con esto. yo use cache como puntero al inicio en initialize
+ * donde aloque la memoria. me parece que eso se ahce en create instance
+ * con un punto al key_vector (porq termino teniendo 2 variables: key_vector
+ * y cache que harian lo mismo?). PREGUNTAR.
+*/
 void *cache;
-key_element key_vector[];
 
 /*
  * Esta es la función que va a llamar memcached para instanciar nuestro engine
@@ -130,21 +139,26 @@ key_element key_vector[];
 
 	/* creo la cache de almacenamiento */
 
-	/*	void _cache_item_destroy(void *item){
-	 // La variable item es un elemento que esta
-	 // dentro del dictionary, el cual es un
-	 // t_dummy_ng_item. Este solo puede ser borrado
-	 // si no esta "storeado"
+	void _cache_item_destroy(void *item) {
+		// La variable item es un elemento que esta
+		// dentro del dictionary, el cual es un
+		// t_dummy_ng_item. Este solo puede ser borrado
+		// si no esta "storeado"
 
-	 ((t_dummy_ng_item*)item)->stored = false;
+		((key_element*) item)->stored = false;
 
-	 dummy_ng_item_release(NULL, NULL, item);
-	 }
+		dummy_ng_item_release(NULL, NULL, item);
+	}
 
-	 cache = dictionary_create(_cache_item_destroy);
-	 */
+	// hacer esta funcion
+	cache = vector_create(_cache_item_destroy);
+
 	return ENGINE_SUCCESS;
 }
+
+
+t_config* config;
+key_element *temporal;
 
 /*
  * Esta función se llama inmediatamente despues del create_instance y sirve para inicializar
@@ -176,26 +190,50 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 				.datatype = DT_SIZE, .value.dt_size =
 						&engine->config.block_size_max }, { .key = NULL } };
 
-		double cuenta = 49
-				* (engine->config.block_size_max / engine->config.chunk_size);
-		void *key_table = malloc(cuenta);
+		parse_config(config_str, items, NULL);
 
-		key_vector = key_table;
+		config = config_create(PATH_CONFIG);
 
-		cache = malloc(engine->config.block_size_max);
+		//elegimos el algoritmo a usar
+
+		bool valor = config_has_property(config, "ESQUEMA");
+		if (valor == 1) {
+			char *string = config_get_string_value(config, "ESQUEMA");
+			if (strcmp(string, "PART_DINAM") == 0) {
+				//hago la tabla de keys y apuntar a la fn ng_store que corresponda
+
+				double worstCase = engine->config.block_size_max
+						/ engine->config.chunk_size;
+
+				alocate_keysDinam(worstCase);
+
+				cache = malloc(engine->config.block_size_max);
+
+			} else {
+
+				if (strcmp(string, "BUDDY") == 0) {
+					//apuntar a la fn y hacer las cuentas para buddy
+					0;
+				}
+			}
+
+		} else
+			printf("no existe la clave");
+
+		 void *auxi= malloc(sizeof(key_element));
+		 temporal = auxi;
 
 		//aca ya aloque lo del vector de keys y la cache.
 		void mtrace(void);
 
 		int lock = mlock(cache, engine->config.block_size_max);
-		if (lock == -1) {
+		if (lock == -1)
 			perror("Error locking the cache");
-		}
 
-		parse_config(config_str, items, NULL);
+//		parse_config(config_str, items, NULL);
+	}
 
 //		printf("%d", engine->config.block_size_max);
-	}
 
 	/*
 	 * Registro la SIGUSR1. El registro de signals debe ser realizado en la función initialize
@@ -217,8 +255,7 @@ static void dummy_ng_destroy(ENGINE_HANDLE* handle, const bool force) {
  */
 static const engine_info* dummy_ng_get_info(ENGINE_HANDLE* handle) {
 	static engine_info info = { .description = "Dummy Engine v0.1",
-			.num_features = 0, .features = {
-					[0].feature = ENGINE_FEATURE_LRU,
+			.num_features = 0, .features = { [0].feature = ENGINE_FEATURE_LRU,
 					[0].description = "No hay soporte de LRU" } };
 
 	return &info;
@@ -232,11 +269,28 @@ static const engine_info* dummy_ng_get_info(ENGINE_HANDLE* handle) {
 // memcached hace el envio de la información en 2 partes, una con la key, size y metadata y otra parte con la data en si.
 // Por lo que es posible que una vez se llame para hacer un allocamiento temporal del item y luego se llame otra vez, la cual
 // si va a ser almacenada.
+
 static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		const void* cookie, item **item, const void* key, const size_t nkey,
 		const size_t nbytes, const int flags, const rel_time_t exptime) {
 
-	//FIXME
+	key_element *it = temporal;
+
+	if (it == NULL) {
+		return ENGINE_ENOMEM;
+	}
+
+//		it->flags = flags;			flags de que?
+//		it->exptime = exptime;
+//		it->nkey = nkey;
+	it->data_size = nbytes;
+//		it->key = malloc(nkey);		innecesario porq ya tengo espacio
+//		it->data = malloc(nbytes);	innecesario porq ya tengo espacio
+	it->stored = false; //este capaz que se necesita
+
+	memcpy(it->key, key, nkey);
+	*item = it;
+
 	return ENGINE_SUCCESS;
 }
 
@@ -246,16 +300,15 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 		item* item) {
 
-	key_element *it = (key_element*)item;
+	key_element *it = (key_element*) item;
 
-	//esto seria si mantenemos el formato del item que dieron ellos
-	//necesitamos el flag stored?
-	//if( !it->stored ){
+//esto seria si mantenemos el formato del item que dieron ellos
+//necesitamos el flag stored? creo q si porq es como se maneja memcached
+	if (!it->stored) {
 		free(it->key);
 		free(it->data);
 		free(it);
-
-
+	}
 }
 
 /*
@@ -264,27 +317,26 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
  */
 static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
 		const item* item, item_info *item_info) {
-	// casteamos de item*, el cual es la forma generica en la cual memcached trata a nuestro tipo de item, al tipo
-	// correspondiente que nosotros utilizamos
-	key_element *it = (key_element*)item;
+// casteamos de item*, el cual es la forma generica en la cual memcached trata a nuestro tipo de item, al tipo
+// correspondiente que nosotros utilizamos
+	key_element *it = (key_element*) item;
 
 	if (item_info->nvalue < 1) {
-	  return false;
+		return false;
 	}
 
-	item_info->cas = 0; 		/* Not supported */
-	item_info->clsid = 0; 		/* Not supported */
+	item_info->cas = 0; /* Not supported */
+	item_info->clsid = 0; /* Not supported */
 
 	item_info->exptime = 0; // esto lo necesita? it->exptime;
-	item_info->flags = 0;	// esto lo necesita?it->flags;
+	item_info->flags = 0; // esto lo necesita?it->flags;
 	item_info->key = it->key;
-	item_info->nkey = 0;	// esto lo necesita?it->nkey;
-	item_info->nbytes = 0; 	//esto lo necesita?it->ndata;
+	item_info->nkey = sizeof(key_element); // esto lo necesita?it->nkey;
+	item_info->nbytes = it->data_size; /* Total length of the items data */
 
-	item_info->nvalue = 1; 			/* Number of fragments used ( Default ) */
+	item_info->nvalue = 1; /* Number of fragments used ( Default ) */
 	item_info->value[0].iov_base = it->data; /* Hacemos apuntar item_info al comienzo de la info */
 	item_info->value[0].iov_len = it->data_size; /* Le seteamos al item_info el tamaño de la información */
-
 
 	return true;
 }
@@ -294,9 +346,22 @@ static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
  */
 static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 		item** item, const void* key, const int nkey, uint16_t vbucket) {
-	// transformamos  la variable key a string
 
-//FIXME
+	// transformamos  la variable key a string
+	char strkey[nkey + 1];
+	memcpy(strkey, key, nkey);
+	strkey[nkey] = '\0';
+
+	// buscamos y obtenemos el item
+	key_element *it = vector_get(cache, strkey);
+
+	if (it == NULL) {
+		return ENGINE_NOT_STORED;
+	}
+
+	//retornamos el item
+	*item = it;
+
 	return ENGINE_SUCCESS;
 }
 
@@ -307,7 +372,18 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 		const void *cookie, item* item, uint64_t *cas,
 		ENGINE_STORE_OPERATION operation, uint16_t vbucket) {
 
-	//FIXME
+	key_element *it = (key_element*) item;
+
+	char *strkey = it->key;
+//		memcpy(strkey, it->key, it->nkey);
+//		strkey[it->nkey] = '\0';
+
+	it->stored = true;
+
+	vector_put(cache, strkey, it);
+
+	*cas = 0;
+
 	return ENGINE_SUCCESS;
 }
 
@@ -317,8 +393,8 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 static ENGINE_ERROR_CODE dummy_ng_flush(ENGINE_HANDLE* handle,
 		const void* cookie, time_t when) {
 
-	//limpio toda la cache
-	//FIXME: hacer funcion que borre la cache
+//limpio toda la cache
+	vector_clean(cache);
 
 	return ENGINE_SUCCESS;
 }
@@ -330,7 +406,20 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 		const void* cookie, const void* key, const size_t nkey, uint64_t cas,
 		uint16_t vbucket) {
 
-	//FIXME
+	char strkey[nkey + 1];
+	memcpy(strkey, key, nkey);
+	strkey[nkey] = '\0';
+
+	void *item = vector_remove(cache, strkey);
+
+	if( item == NULL ) {
+		return ENGINE_KEY_ENOENT;
+	}
+
+	((key_element*)item)->stored = false;
+
+	dummy_ng_item_release(handle, NULL, item);
+
 	return ENGINE_SUCCESS;
 }
 
@@ -363,7 +452,7 @@ static void dummy_ng_item_set_cas(ENGINE_HANDLE *handle, const void *cookie,
  */
 void dummy_ng_dummp(int signal) {
 
-	//ver que hacer con esta funcion
+//ver que hacer con esta funcion
 	/*	void it(char *key, void *data){
 	 printf("%s\n", key);
 	 }

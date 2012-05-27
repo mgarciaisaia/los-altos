@@ -14,12 +14,20 @@
 
 struct key_element {
 	char *key;
+	bool stored;
 	size_t data_size;
 	void *data;
 };
 
-
 typedef struct key_element key_element;
+/*
+struct key_lista{
+		key_element nodo;
+		struct key_lista *next;
+	};
+
+typedef struct key_lista t_key_lista;
+*/
 /*
  typedef struct {
  void *key;
@@ -40,6 +48,7 @@ typedef struct {
 	size_t chunk_size;
 } t_dummy_ng_config;
 
+
 /*
  * Esta es la estructura que utilizo para representar el engine, para que memcached pueda manipularla el
  * primer campo de esta tiene que ser ENGINE_HANDLE_V1 engine; el resto de los campos pueden ser los que querramos
@@ -49,6 +58,7 @@ typedef struct {
 	GET_SERVER_API get_server_api;
 	t_dummy_ng_config config;
 } t_dummy_ng;
+
 // Esta funcion es escencial ya que es la que busca memcached para ejecutar cuando levanta la shared library
 MEMCACHED_PUBLIC_API ENGINE_ERROR_CODE create_instance(uint64_t interface,
 		GET_SERVER_API get_server_api, ENGINE_HANDLE **handle);
