@@ -53,7 +53,8 @@ int32_t main(void) {
 
 //	leerLosGroupDescriptor(bloque->inodes,bloque->inodes_per_group);
 
-//	struct GroupDesc * gd = leerGroupDescriptor(3);
+//	struct GroupDesc * gd = leerGroupDescriptor(1);
+//	printf("user dirs count: %hu\n",gd->used_dirs_count);
 //	printf("block_bitmap: %hu\n",gd->block_bitmap);
 //	printf("inode_bitmap: %hu\n",gd->inode_bitmap);
 //	printf("inode_table: %hu\n",gd->inode_table);
@@ -90,12 +91,12 @@ int32_t main(void) {
 
 //Fin - Busqueda inodos libres
 
-/* Probando getInodo
-	struct INode * inodo = getInodo(5641);
-	printf("%u\n",inodo->atime);
-	printf("%u\n",inodo->uid);
-	printf("%u\n",inodo->size);
-Fin - Probando getInodo*/
+/// Probando getInodo y bloques ocupados por un archivo
+	uint32_t nroInodo = 12;
+	struct INode * inodo = getInodo(nroInodo);
+	bloquesOcupados(inodo);
+
+//Fin - Probando getInodo/
 
 	/* Aca liberamos la memoria que mapeamos */
 

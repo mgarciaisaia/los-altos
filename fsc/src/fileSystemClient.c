@@ -22,9 +22,8 @@
  * Introduced in version 2.5
  */
 int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
-    printf("create%s\n", path);
     printf("%d, %d, %s\n", nipc_create, mode, path);
-    struct nipc_create* createData = new_nipc_create(path, mode, fileInfo->flags);
+    struct nipc_create* createData = new_nipc_create(path, mode);
     struct nipc_packet* packet = createData->serialize(createData);
     struct nipc_create* deserialized = deserialize_create(packet);
     printf("%d, %d, %s\n", deserialized->nipcType, deserialized->fileMode, deserialized->path);
@@ -42,9 +41,25 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  * Changed in version 2.2
  */
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Open()
+ *
+ * int hello_open(const char *path, struct fuse_file_info *fi)
+ *
+ * Argument     in/out              description
+ * path         input               A path to file we want to check for opening possibility.
+ * fi           input and output    a structure containing detailed information about operation
+ * return       output              zero if everything went OK, negeted error otherwise
+ *
+ */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
+    printf("%d, %zd, %s\n", nipc_open, fileInfo->flags, path);
+    struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
+    struct nipc_packet* packet = openData->serialize(openData);
+    struct nipc_open* deserialized = deserialize_open(packet);
+    printf("%d, %zd, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Read data from an open file
@@ -63,10 +78,28 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
 // can return with anything up to the amount of data requested. nor
 // with the fusexmp code which returns the amount of data also
 // returned by read.
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Read()
+ *
+ * read(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+ *
+ * Argument     in/out      Description
+ * path         input       A path to the file from which function has to read
+ * buf          output      buffer to which function has to write contents of the file
+ * size         input       both the size of buf and amount of data to read
+ * offset       input       offset from the beginning of file
+ * fi           input       detailed information about read operation, see fuse_file_info for more information
+ * return       output      amount of bytes read, or negated error number on error
+ */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("read%s\n", path);
+    printf("%d, %zd, %lu, %s\n", nipc_read, size, offset, path);
+    struct nipc_read* readData = new_nipc_read(path, size, offset);
+    struct nipc_packet* packet = readData->serialize(readData);
+    struct nipc_read* deserialized = deserialize_read(packet);
+    printf("%d, %zd, %lu, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path);
     //FIXME: implementar
-	return -1;
+    strcpy(output, "Trabajo muy duro, como un esclavo :)");
+    return strlen("Trabajo muy duro, como un esclavo :)");
 }
 
 /** Write data to an open file
@@ -80,9 +113,13 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("write%s\n", path);
-	//FIXME: implementar
-	return -1;
+    printf("%d, %zd, %lu, %s, %s\n", nipc_write, size, offset, path, input);
+    struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
+    struct nipc_write* packet = writeData->serialize(writeData);
+    struct nipc_write* deserialized = deserialize_write(packet);
+    printf("%d, %zd, %lu, %s, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path, deserialized->data);
+    //FIXME: implementar
+	return 0;
 }
 
 /** Possibly flush cached data
@@ -109,9 +146,8 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
-    printf("flush%s\n", path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Release an open file
@@ -129,21 +165,18 @@ int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
-    printf("release%s\n", path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Remove a file */
 int remote_unlink(const char *path) {
-    printf("unlink%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
 
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
-    printf("mkdir%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -169,18 +202,33 @@ int remote_mkdir(const char *path, mode_t mode) {
  *
  * Introduced in version 2.3
  */
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Readdir()
+ *
+ * int readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+ *
+ * Argument   in/out    Description
+ * path       input     A path to the directory we want information about
+ * buf        output    buffer containing information about directory
+ * filler     input     pointer to fuse_fill_dir_t function that is used to add entries to buffer
+ * offset     input     offset in directory entries, read below for more information
+ * fi         input     A struct fuse_file_info, contains detailed information why this readdir operation was invoked.
+ * return     output    negated error number, or 0 if everything went OK
+ */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("readdir%s\n", path);
 	//FIXME: implementar
     filler(output, ".", NULL, 0);
     filler(output, "..", NULL, 0);
+    struct stat stats;
+    stats.st_mode = S_IFREG | 755;
+    stats.st_size = 304325;
+    filler(output, "bb", &stats, 0);
 
     return 0;
 }
 
 /** Remove a directory */
 int remote_rmdir(const char *path) {
-    printf("rmdir%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -191,17 +239,38 @@ int remote_rmdir(const char *path) {
  * ignored.  The 'st_ino' field is ignored except if the 'use_ino'
  * mount option is given.
  */
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Getattr()
+ *
+ * int getattr (const char *path, struct stat *stbuf)
+ *
+ * Argument in/out  Description
+ * path    input    A path to the file that we want information about.
+ * stbuf   output   A struct stat that the information should be stored in.
+ * return  output   negated error number or 0 if everything went OK
+ *
+ */
 int remote_getattr(const char *path, struct stat *statbuf) {
-    printf("getattr %s\n", path);
 	//FIXME: implementar
     if (strcmp(path, "/") == 0) {
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2;
-        return 0;
+    } else {
+        statbuf->st_mode = S_IFREG | 0755;
+        statbuf->st_nlink = 1;
+        statbuf->st_size = 32350;
     }
-    return -ENOENT;
+    return 0;
 }
 
+int remote_truncate(const char * path, off_t offset) {
+    // funcion dummy para que no se queje de "function not implemented"
+    return 0;
+}
+
+/**
+ * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Functions_list
+ */
 static struct fuse_operations remote_operations = {
 		.create = remote_create,
 		.open = remote_open,
@@ -213,9 +282,11 @@ static struct fuse_operations remote_operations = {
 		.mkdir = remote_mkdir,
 		.readdir = remote_readdir,
 		.rmdir = remote_rmdir,
-		.getattr = remote_getattr
+		.getattr = remote_getattr,
+		.truncate = remote_truncate
 };
 
 int main(int argc, char *argv[]) {
+    // deberia conectarme con el RFS antes del fuse_main
 	return fuse_main(argc, argv, &remote_operations, NULL);
 }
