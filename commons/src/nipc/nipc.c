@@ -49,9 +49,10 @@ struct nipc_create* empty_nipc_create() {
     return instance;
 }
 
-struct nipc_create* new_nipc_create(char* path, mode_t mode) {
+struct nipc_create* new_nipc_create(const char* path, mode_t mode) {
     struct nipc_create* instance = empty_nipc_create();
-    instance->path = path;
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
     instance->fileMode = mode;
     return instance;
 }
@@ -95,9 +96,10 @@ struct nipc_open* empty_nipc_open() {
     return instance;
 }
 
-struct nipc_open* new_nipc_open(char* path, int flags) {
+struct nipc_open* new_nipc_open(const char* path, int flags) {
     struct nipc_open* instance = empty_nipc_open();
-    instance->path = path;
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
     instance->flags = flags;
     return instance;
 }
@@ -145,9 +147,10 @@ struct nipc_read* empty_nipc_read() {
     return instance;
 }
 
-struct nipc_read* new_nipc_read(char* path, size_t size, off_t offset) {
+struct nipc_read* new_nipc_read(const char* path, size_t size, off_t offset) {
     struct nipc_read* instance = empty_nipc_read();
-    instance->path = path;
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
     instance->size = size;
     instance->offset = offset;
     return instance;
@@ -201,10 +204,12 @@ struct nipc_write* empty_nipc_write() {
     return instance;
 }
 
-struct nipc_write* new_nipc_write(char* path, char* data, size_t size, off_t offset) {
+struct nipc_write* new_nipc_write(const char* path, const char* data, size_t size, off_t offset) {
     struct nipc_write* instance = empty_nipc_write();
-    instance->path = path;
-    instance->data = data;
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
+    instance->data = malloc(strlen(data) + 1);
+    strcpy(instance->data, data);
     instance->size = size;
     instance->offset = offset;
     return instance;
@@ -244,8 +249,9 @@ struct nipc_unlink* empty_nipc_unlink() {
     return instance;
 }
 
-struct nipc_unlink* new_nipc_unlink(char* path) {
+struct nipc_unlink* new_nipc_unlink(const char* path) {
     struct nipc_unlink* instance = empty_nipc_unlink();
-    instance->path = path;
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
     return instance;
 }

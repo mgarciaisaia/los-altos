@@ -28,7 +28,7 @@ struct nipc_create* deserialize_create(struct nipc_packet* packet);
 struct nipc_create* empty_nipc_create();
 
 //XXX: manejar flags?
-struct nipc_create* new_nipc_create(char* path, mode_t mode);
+struct nipc_create* new_nipc_create(const char* path, mode_t mode);
 
 
 
@@ -43,7 +43,7 @@ struct nipc_open* deserialize_open(struct nipc_packet* packet);
 
 struct nipc_open* empty_nipc_open();
 
-struct nipc_open* new_nipc_open(char* path, int flags);
+struct nipc_open* new_nipc_open(const char* path, int flags);
 
 
 
@@ -59,7 +59,7 @@ struct nipc_read* deserialize_read(struct nipc_packet* packet);
 
 struct nipc_read* empty_nipc_read();
 
-struct nipc_read* new_nipc_read(char* path, size_t size, off_t offset);
+struct nipc_read* new_nipc_read(const char* path, size_t size, off_t offset);
 
 
 
@@ -77,7 +77,7 @@ struct nipc_write* deserialize_write(struct nipc_packet* packet);
 
 struct nipc_write* empty_nipc_write();
 
-struct nipc_write* new_nipc_write(char* path, char* data, size_t size, off_t offset);
+struct nipc_write* new_nipc_write(const char* path, const char* data, size_t size, off_t offset);
 
 
 
@@ -92,6 +92,6 @@ struct nipc_unlink* deserialize_unlink(struct nipc_packet* packet);
 
 struct nipc_unlink* empty_nipc_unlink();
 
-struct nipc_unlink* new_nipc_unlink(char* path);
+struct nipc_unlink* new_nipc_unlink(const char* path);
 
 #endif /* NIPC_H_ */
