@@ -22,7 +22,6 @@
  * Introduced in version 2.5
  */
 int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
-    printf("create%s\n", path);
     printf("%d, %d, %s\n", nipc_create, mode, path);
     struct nipc_create* createData = new_nipc_create(path, mode);
     struct nipc_packet* packet = createData->serialize(createData);
@@ -54,7 +53,6 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
-    printf("open %s\n", path);
     printf("%d, %zd, %s\n", nipc_open, fileInfo->flags, path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
@@ -94,7 +92,6 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
  * return       output      amount of bytes read, or negated error number on error
  */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("read %s\n", path);
     printf("%d, %zd, %lu, %s\n", nipc_read, size, offset, path);
     struct nipc_read* readData = new_nipc_read(path, size, offset);
     struct nipc_packet* packet = readData->serialize(readData);
@@ -116,7 +113,6 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("write %s\n", path);
     printf("%d, %zd, %lu, %s, %s\n", nipc_write, size, offset, path, input);
     struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
     struct nipc_write* packet = writeData->serialize(writeData);
@@ -150,7 +146,6 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
-    printf("flush%s\n", path);
 	//FIXME: implementar
 	return 0;
 }
@@ -170,21 +165,18 @@ int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
-    printf("release %s\n", path);
 	//FIXME: implementar
 	return 0;
 }
 
 /** Remove a file */
 int remote_unlink(const char *path) {
-    printf("unlink%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
 
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
-    printf("mkdir%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -224,7 +216,6 @@ int remote_mkdir(const char *path, mode_t mode) {
  * return     output    negated error number, or 0 if everything went OK
  */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("readdir%s\n", path);
 	//FIXME: implementar
     filler(output, ".", NULL, 0);
     filler(output, "..", NULL, 0);
@@ -238,7 +229,6 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
 
 /** Remove a directory */
 int remote_rmdir(const char *path) {
-    printf("rmdir%s\n", path);
 	//FIXME: implementar
 	return -1;
 }
@@ -261,7 +251,6 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
-    printf("getattr %s\n", path);
 	//FIXME: implementar
     if (strcmp(path, "/") == 0) {
         statbuf->st_mode = S_IFDIR | 0755;
