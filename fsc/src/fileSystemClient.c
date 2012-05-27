@@ -55,11 +55,11 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
     printf("open %s\n", path);
-    printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
+    printf("%d, %zd, %s\n", nipc_open, fileInfo->flags, path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
     struct nipc_open* deserialized = deserialize_open(packet);
-    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
+    printf("%d, %zd, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
 	return 0;
 }
@@ -116,9 +116,14 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("write%s\n", path);
-	//FIXME: implementar
-	return -1;
+    printf("write %s\n", path);
+    printf("%d, %zd, %lu, %s, %s\n", nipc_write, size, offset, path, input);
+    struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
+    struct nipc_write* packet = writeData->serialize(writeData);
+    struct nipc_write* deserialized = deserialize_write(packet);
+    printf("%d, %zd, %lu, %s, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path, deserialized->data);
+    //FIXME: implementar
+	return 0;
 }
 
 /** Possibly flush cached data
@@ -165,9 +170,9 @@ int remote_flush(const char *path, struct fuse_file_info *fileInfo) {
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
-    printf("release%s\n", path);
+    printf("release %s\n", path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Remove a file */
@@ -269,6 +274,11 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     return 0;
 }
 
+int remote_truncate(const char * path, off_t offset) {
+    // funcion dummy para que no se queje de "function not implemented"
+    return 0;
+}
+
 /**
  * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Functions_list
  */
@@ -283,7 +293,8 @@ static struct fuse_operations remote_operations = {
 		.mkdir = remote_mkdir,
 		.readdir = remote_readdir,
 		.rmdir = remote_rmdir,
-		.getattr = remote_getattr
+		.getattr = remote_getattr,
+		.truncate = remote_truncate
 };
 
 int main(int argc, char *argv[]) {

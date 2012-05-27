@@ -152,3 +152,60 @@ struct nipc_read* new_nipc_read(char* path, size_t size, off_t offset) {
     instance->offset = offset;
     return instance;
 }
+
+
+
+
+
+static struct nipc_packet* serialize_write(struct nipc_write* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+    int path_lenght = strlen(payload->path) + 1;
+
+    packet->data_length = path_lenght + payload->size + sizeof(payload->size) + sizeof(payload->offset);
+
+    packet->data = malloc(packet->data_length);
+
+    memcpy(packet->data, payload->path, path_lenght);
+
+    memcpy(packet->data + path_lenght, &(payload->size), sizeof(payload->size));
+
+    memcpy(packet->data + path_lenght + sizeof(payload->size), payload->data, payload->size);
+
+    memcpy(packet->data + path_lenght + sizeof(payload->size) + payload->size, &(payload->offset), sizeof(payload->offset));
+
+    return packet;
+}
+
+struct nipc_write* deserialize_write(struct nipc_packet* packet) {
+    if(packet->type != nipc_write) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_write* instance = empty_nipc_write();
+    size_t path_length = strlen(packet->data) + 1;
+    instance->path = malloc(path_length);
+    strcpy(instance->path, packet->data);
+    memcpy(&(instance->size), packet->data + path_length, sizeof(instance->size));
+    instance->data = malloc(instance->size);
+    strcpy(instance->data, packet->data + path_length + sizeof(instance->size));
+    memcpy(&(instance->offset), packet->data + path_length + sizeof(instance->size) + instance->size, sizeof(instance->offset));
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_write* empty_nipc_write() {
+    struct nipc_write* instance = malloc(sizeof(struct nipc_write));
+    instance->nipcType = nipc_write;
+    instance->serialize = &serialize_write;
+    return instance;
+}
+
+struct nipc_write* new_nipc_write(char* path, char* data, size_t size, off_t offset) {
+    struct nipc_write* instance = empty_nipc_write();
+    instance->path = path;
+    instance->data = data;
+    instance->size = size;
+    instance->offset = offset;
+    return instance;
+}
