@@ -7,7 +7,8 @@ enum tipo_nipc {
     nipc_read,
     nipc_write,
     nipc_unlink,
-    nipc_release
+    nipc_release,
+    nipc_mkdir
 };
 
 struct nipc_packet {
@@ -110,5 +111,23 @@ struct nipc_release* deserialize_release(struct nipc_packet* packet);
 struct nipc_release* empty_nipc_release();
 
 struct nipc_release* new_nipc_release(const char* path, int flags);
+
+
+
+
+
+
+struct nipc_mkdir {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_mkdir*);
+    char* path;
+    mode_t fileMode;
+};
+
+struct nipc_mkdir* deserialize_mkdir(struct nipc_packet* packet);
+
+struct nipc_mkdir* empty_nipc_mkdir();
+
+struct nipc_mkdir* new_nipc_mkdir(const char* path, mode_t mode);
 
 #endif /* NIPC_H_ */

@@ -158,8 +158,13 @@ int remote_unlink(const char *path) {
 
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
+    printf("%d, %d, %s\n", nipc_mkdir, mode, path);
+    struct nipc_mkdir* mkdirData = new_nipc_mkdir(path, mode);
+    struct nipc_packet* packet = mkdirData->serialize(mkdirData);
+    struct nipc_mkdir* deserialized = deserialize_mkdir(packet);
+    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->fileMode, deserialized->path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Read directory
@@ -236,6 +241,8 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     if (strcmp(path, "/") == 0) {
         statbuf->st_mode = S_IFDIR | 0755;
         statbuf->st_nlink = 2;
+    } else if(strcmp(path, "/nueva") == 0) {
+        return -ENOENT;
     } else {
         statbuf->st_mode = S_IFREG | 0755;
         statbuf->st_nlink = 1;

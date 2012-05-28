@@ -307,3 +307,50 @@ struct nipc_release* new_nipc_release(const char* path, int flags) {
     instance->flags = flags;
     return instance;
 }
+
+
+
+
+
+static struct nipc_packet* serialize_mkdir(struct nipc_mkdir* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+    int path_lenght = strlen(payload->path) + 1;
+    packet->data_length = path_lenght + sizeof(mode_t);
+    packet->data = malloc(packet->data_length);
+    memcpy(packet->data, payload->path, path_lenght);
+    memcpy(packet->data + path_lenght, &(payload->fileMode), sizeof(mode_t));
+
+    free(payload);
+
+    return packet;
+}
+
+struct nipc_mkdir* deserialize_mkdir(struct nipc_packet* packet) {
+    if(packet->type != nipc_mkdir) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_mkdir* instance = empty_nipc_mkdir();
+    size_t path_length = strlen((char*)packet->data) + 1;
+    instance->path = malloc(path_length);
+    strcpy(instance->path, packet->data);
+    memcpy(&(instance->fileMode), packet->data + path_length, sizeof(mode_t));
+    free(packet->data);
+    free(packet); // FIXME: hago el free aca?
+    return instance;
+}
+
+struct nipc_mkdir* empty_nipc_mkdir() {
+    struct nipc_mkdir* instance = malloc(sizeof(struct nipc_mkdir));
+    instance->nipcType = nipc_mkdir;
+    instance->serialize = &serialize_mkdir;
+    return instance;
+}
+
+struct nipc_mkdir* new_nipc_mkdir(const char* path, mode_t mode) {
+    struct nipc_mkdir* instance = empty_nipc_mkdir();
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
+    instance->fileMode = mode;
+    return instance;
+}
