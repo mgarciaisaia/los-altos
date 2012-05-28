@@ -206,17 +206,26 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
     filler(output, ".", NULL, 0);
     filler(output, "..", NULL, 0);
     struct stat stats;
-    stats.st_mode = S_IFREG | 755;
+    stats.st_mode = S_IFREG | 0755;
     stats.st_size = 304325;
     filler(output, "bb", &stats, 0);
+
+    stats.st_mode = S_IFDIR | 0755;
+    stats.st_nlink = 2;
+    filler(output, "aa", &stats, 0);
 
     return 0;
 }
 
 /** Remove a directory */
 int remote_rmdir(const char *path) {
+    printf("%d, %s\n", nipc_rmdir, path);
+    struct nipc_rmdir* rmdirData = new_nipc_rmdir(path);
+    struct nipc_packet* packet = rmdirData->serialize(rmdirData);
+    struct nipc_rmdir* deserialized = deserialize_rmdir(packet);
+    printf("%d, %s\n", deserialized->nipcType, deserialized->path);
 	//FIXME: implementar
-	return -1;
+	return 0;
 }
 
 /** Get file attributes.
@@ -243,6 +252,9 @@ int remote_getattr(const char *path, struct stat *statbuf) {
         statbuf->st_nlink = 2;
     } else if(strcmp(path, "/nueva") == 0) {
         return -ENOENT;
+    } else if (strcmp(path, "/aa") == 0) {
+        statbuf->st_mode = S_IFDIR | 0755;
+        statbuf->st_nlink = 2;
     } else {
         statbuf->st_mode = S_IFREG | 0755;
         statbuf->st_nlink = 1;

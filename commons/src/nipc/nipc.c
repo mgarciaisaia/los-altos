@@ -354,3 +354,47 @@ struct nipc_mkdir* new_nipc_mkdir(const char* path, mode_t mode) {
     instance->fileMode = mode;
     return instance;
 }
+
+
+
+
+
+
+
+
+static struct nipc_packet* serialize_rmdir(struct nipc_rmdir* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+
+    packet->type = payload->nipcType;
+    packet->data_length = strlen(payload->path) + 1;
+    packet->data = malloc(packet->data_length);
+    memcpy(packet->data, payload->path, packet->data_length);
+
+    return packet;
+}
+
+struct nipc_rmdir* deserialize_rmdir(struct nipc_packet* packet) {
+    if(packet->type != nipc_rmdir) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_rmdir* instance = empty_nipc_rmdir();
+    instance->path = malloc(packet->data_length);
+    strcpy(instance->path, packet->data);
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_rmdir* empty_nipc_rmdir() {
+    struct nipc_rmdir* instance = malloc(sizeof(struct nipc_rmdir));
+    instance->nipcType = nipc_rmdir;
+    instance->serialize = &serialize_rmdir;
+    return instance;
+}
+
+struct nipc_rmdir* new_nipc_rmdir(const char* path) {
+    struct nipc_rmdir* instance = empty_nipc_rmdir();
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
+    return instance;
+}

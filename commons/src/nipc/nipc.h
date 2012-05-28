@@ -8,7 +8,8 @@ enum tipo_nipc {
     nipc_write,
     nipc_unlink,
     nipc_release,
-    nipc_mkdir
+    nipc_mkdir,
+    nipc_rmdir
 };
 
 struct nipc_packet {
@@ -129,5 +130,21 @@ struct nipc_mkdir* deserialize_mkdir(struct nipc_packet* packet);
 struct nipc_mkdir* empty_nipc_mkdir();
 
 struct nipc_mkdir* new_nipc_mkdir(const char* path, mode_t mode);
+
+
+
+
+
+struct nipc_rmdir {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_rmdir*);
+    char* path;
+};
+
+struct nipc_rmdir* deserialize_rmdir(struct nipc_packet* packet);
+
+struct nipc_rmdir* empty_nipc_rmdir();
+
+struct nipc_rmdir* new_nipc_rmdir(const char* path);
 
 #endif /* NIPC_H_ */
