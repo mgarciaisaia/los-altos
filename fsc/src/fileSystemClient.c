@@ -252,6 +252,11 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
+    printf("%d, %s\n", nipc_getattr, path);
+    struct nipc_getattr* getattrData = new_nipc_getattr(path);
+    struct nipc_packet* packet = getattrData->serialize(getattrData);
+    struct nipc_getattr* deserialized = deserialize_getattr(packet);
+    printf("%d, %s\n", deserialized->nipcType, deserialized->path);
 	//FIXME: implementar
     if (strcmp(path, "/") == 0) {
         statbuf->st_mode = S_IFDIR | 0755;

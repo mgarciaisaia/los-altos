@@ -10,7 +10,8 @@ enum tipo_nipc {
     nipc_release,
     nipc_mkdir,
     nipc_rmdir,
-    nipc_readdir
+    nipc_readdir,
+    nipc_getattr
 };
 
 struct nipc_packet {
@@ -166,5 +167,26 @@ struct nipc_readdir* deserialize_readdir(struct nipc_packet* packet);
 struct nipc_readdir* empty_nipc_readdir();
 
 struct nipc_readdir* new_nipc_readdir(const char* path, off_t offset);
+
+
+
+
+
+
+
+
+
+
+struct nipc_getattr {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_getattr*);
+    char* path;
+};
+
+struct nipc_getattr* deserialize_getattr(struct nipc_packet* packet);
+
+struct nipc_getattr* empty_nipc_getattr();
+
+struct nipc_getattr* new_nipc_getattr(const char* path);
 
 #endif /* NIPC_H_ */

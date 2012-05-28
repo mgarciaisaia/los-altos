@@ -448,3 +448,49 @@ struct nipc_readdir* new_nipc_readdir(const char* path, off_t offset) {
     instance->offset = offset;
     return instance;
 }
+
+
+
+
+
+
+
+
+
+static struct nipc_packet* serialize_getattr(struct nipc_getattr* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+    packet->data_length = strlen(payload->path) + 1;
+    packet->data = malloc(packet->data_length);
+    memcpy(packet->data, payload->path, packet->data_length);
+
+    free(payload);
+
+    return packet;
+}
+
+struct nipc_getattr* deserialize_getattr(struct nipc_packet* packet) {
+    if(packet->type != nipc_getattr) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_getattr* instance = empty_nipc_getattr();
+    instance->path = malloc(packet->data_length);
+    strcpy(instance->path, packet->data);
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_getattr* empty_nipc_getattr() {
+    struct nipc_getattr* instance = malloc(sizeof(struct nipc_getattr));
+    instance->nipcType = nipc_getattr;
+    instance->serialize = &serialize_getattr;
+    return instance;
+}
+
+struct nipc_getattr* new_nipc_getattr(const char* path) {
+    struct nipc_getattr* instance = empty_nipc_getattr();
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
+    return instance;
+}
