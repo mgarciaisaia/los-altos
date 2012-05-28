@@ -202,6 +202,12 @@ int remote_mkdir(const char *path, mode_t mode) {
  * return     output    negated error number, or 0 if everything went OK
  */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
+    printf("%d, %s, %lu\n", nipc_readdir, path, offset);
+    struct nipc_readdir* readdirData = new_nipc_readdir(path, offset);
+    struct nipc_packet* packet = readdirData->serialize(readdirData);
+    struct nipc_readdir* deserialized = deserialize_readdir(packet);
+    printf("%d, %s, %lu\n", deserialized->nipcType, deserialized->path, deserialized->offset);
+
 	//FIXME: implementar
     filler(output, ".", NULL, 0);
     filler(output, "..", NULL, 0);

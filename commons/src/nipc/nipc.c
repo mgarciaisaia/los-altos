@@ -398,3 +398,53 @@ struct nipc_rmdir* new_nipc_rmdir(const char* path) {
     strcpy(instance->path, path);
     return instance;
 }
+
+
+
+
+
+
+
+
+static struct nipc_packet* serialize_readdir(struct nipc_readdir* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+    int path_lenght = strlen(payload->path) + 1;
+    packet->data_length = path_lenght + sizeof(payload->offset);
+    packet->data = malloc(packet->data_length);
+    memcpy(packet->data, payload->path, path_lenght);
+    memcpy(packet->data + path_lenght, &(payload->offset), sizeof(payload->offset));
+
+    free(payload);
+
+    return packet;
+}
+
+struct nipc_readdir* deserialize_readdir(struct nipc_packet* packet) {
+    if(packet->type != nipc_readdir) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_readdir* instance = empty_nipc_readdir();
+    size_t path_length = strlen((char*)packet->data) + 1;
+    instance->path = malloc(path_length);
+    strcpy(instance->path, packet->data);
+    memcpy(&(instance->offset), packet->data + path_length, sizeof(instance->offset));
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_readdir* empty_nipc_readdir() {
+    struct nipc_readdir* instance = malloc(sizeof(struct nipc_readdir));
+    instance->nipcType = nipc_readdir;
+    instance->serialize = &serialize_readdir;
+    return instance;
+}
+
+struct nipc_readdir* new_nipc_readdir(const char* path, off_t offset) {
+    struct nipc_readdir* instance = empty_nipc_readdir();
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
+    instance->offset = offset;
+    return instance;
+}
