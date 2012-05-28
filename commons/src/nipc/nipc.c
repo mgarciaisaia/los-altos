@@ -255,3 +255,55 @@ struct nipc_unlink* new_nipc_unlink(const char* path) {
     strcpy(instance->path, path);
     return instance;
 }
+
+
+
+
+
+
+
+
+static struct nipc_packet* serialize_release(struct nipc_release* payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+    int path_lenght = strlen(payload->path) + 1;
+
+    packet->data_length = path_lenght + sizeof(payload->flags);
+
+    packet->data = malloc(packet->data_length);
+
+    memcpy(packet->data, payload->path, path_lenght);
+
+    memcpy(packet->data + path_lenght, &(payload->flags), sizeof(payload->flags));
+
+    return packet;
+}
+
+struct nipc_release* deserialize_release(struct nipc_packet* packet) {
+    if(packet->type != nipc_release) {
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_release* instance = empty_nipc_release();
+    size_t path_length = strlen(packet->data) + 1;
+    instance->path = malloc(path_length);
+    strcpy(instance->path, packet->data);
+    memcpy(&(instance->flags), packet->data + path_length, sizeof(instance->flags));
+    free(packet->data);
+    free(packet);
+    return instance;
+}
+
+struct nipc_release* empty_nipc_release() {
+    struct nipc_release* instance = malloc(sizeof(struct nipc_release));
+    instance->nipcType = nipc_release;
+    instance->serialize = &serialize_release;
+    return instance;
+}
+
+struct nipc_release* new_nipc_release(const char* path, int flags) {
+    struct nipc_release* instance = empty_nipc_release();
+    instance->path = malloc(strlen(path) +1);
+    strcpy(instance->path, path);
+    instance->flags = flags;
+    return instance;
+}

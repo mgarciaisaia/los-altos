@@ -53,11 +53,11 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
-    printf("%d, %zd, %s\n", nipc_open, fileInfo->flags, path);
+    printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
     struct nipc_open* deserialized = deserialize_open(packet);
-    printf("%d, %zd, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
+    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
 	return 0;
 }
@@ -137,7 +137,11 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
-	//FIXME: implementar
+    printf("%d, %d, %s\n", nipc_release, fileInfo->flags, path);
+    struct nipc_release* releaseData = new_nipc_release(path, fileInfo->flags);
+    struct nipc_packet* packet = releaseData->serialize(releaseData);
+    struct nipc_release* deserialized = deserialize_release(packet);
+    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	return 0;
 }
 

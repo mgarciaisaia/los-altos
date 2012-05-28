@@ -6,7 +6,8 @@ enum tipo_nipc {
     nipc_open,
     nipc_read,
     nipc_write,
-    nipc_unlink
+    nipc_unlink,
+    nipc_release
 };
 
 struct nipc_packet {
@@ -93,5 +94,21 @@ struct nipc_unlink* deserialize_unlink(struct nipc_packet* packet);
 struct nipc_unlink* empty_nipc_unlink();
 
 struct nipc_unlink* new_nipc_unlink(const char* path);
+
+
+
+
+struct nipc_release {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_release*);
+    char* path;
+    int flags; // FIXME: como se cual de los dos intXX_t usar aca?
+};
+
+struct nipc_release* deserialize_release(struct nipc_packet* packet);
+
+struct nipc_release* empty_nipc_release();
+
+struct nipc_release* new_nipc_release(const char* path, int flags);
 
 #endif /* NIPC_H_ */
