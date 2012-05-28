@@ -274,8 +274,16 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     return 0;
 }
 
+/**
+ * Change the size of a file
+ */
 int remote_truncate(const char * path, off_t offset) {
-    // funcion dummy para que no se queje de "function not implemented"
+    printf("%d, %s, %lu\n", nipc_truncate, path, offset);
+    struct nipc_truncate* truncateData = new_nipc_truncate(path, offset);
+    struct nipc_packet* packet = truncateData->serialize(truncateData);
+    struct nipc_truncate* deserialized = deserialize_truncate(packet);
+    printf("%d, %s, %lu\n", deserialized->nipcType, deserialized->path, deserialized->offset);
+    // FIXME: implementar
     return 0;
 }
 
