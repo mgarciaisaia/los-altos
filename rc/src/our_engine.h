@@ -14,9 +14,13 @@
 
 struct key_element {
 	char *key;
+	size_t nkey;
 	bool stored;
 	size_t data_size;
 	void *data;
+//	int flags;
+	rel_time_t exptime;
+
 };
 
 typedef struct key_element key_element;

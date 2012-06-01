@@ -10,23 +10,30 @@
 #include <math.h>
 #include <stdint.h>
 
- key_element *key_vector;
+void alocate_buddy(void){
 
-void alocate_keysDinam(double worstCase){
+}
+
+key_element *alocate_keysDinam(double worstCase) {
 
 	double cuenta = 50 * worstCase;
 
 	void *key_table = malloc(cuenta);
 
-	key_vector = key_table;
+	key_element *key_vector = key_table;
 
-	double ptr;
-	double aux = modf(worstCase, &ptr);
+return key_vector;
 
-	uint32_t maxSize = 1;
+	/* Esto no es necesario
 
-	if (aux != 0)
-		maxSize = (uint32_t) ptr + 1;
-	else
-		maxSize = (uint32_t) ptr;
+	 double ptr;
+	 double aux = modf(worstCase, &ptr);
+
+	 uint32_t maxSize = 1;
+
+	 if (aux != 0)
+	 maxSize = (uint32_t) ptr + 1;
+	 else
+	 maxSize = (uint32_t) ptr;
+	 */
 }

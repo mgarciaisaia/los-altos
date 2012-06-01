@@ -24,6 +24,8 @@
 #include <src/commons/config.h>
 #include <stdio.h>
 
+#define KEY_MAXSIZE		40
+#define DATA_MAXSIZE
 #define PATH_CONFIG "/home/utnso/Desarrollo/configuracion"
 
 /*
@@ -80,15 +82,10 @@ static void dummy_ng_item_set_cas(ENGINE_HANDLE *, const void *cookie,
 void dummy_ng_dummp(int signal);
 
 /*
- * Esta va a ser la estructura donde voy a ir almacenando la información que me llegue.
+ * Esta va a ser la estructura donde voy a ir almacenando la información
+ * que me llegue. (el vector) y la cache el puntero a donde reserve la memoria
  */
-extern key_element *key_vector;
-
-/* ver que onda con esto. yo use cache como puntero al inicio en initialize
- * donde aloque la memoria. me parece que eso se ahce en create instance
- * con un punto al key_vector (porq termino teniendo 2 variables: key_vector
- * y cache que harian lo mismo?). PREGUNTAR.
-*/
+key_element *key_vector;
 void *cache;
 
 /*
@@ -137,7 +134,7 @@ void *cache;
 	 */
 	*handle = (ENGINE_HANDLE*) engine;
 
-	/* creo la cache de almacenamiento */
+	/* creo la cache de almacenamiento --- > esto lo hago dsp
 
 	void _cache_item_destroy(void *item) {
 		// La variable item es un elemento que esta
@@ -152,13 +149,11 @@ void *cache;
 
 	// hacer esta funcion
 	cache = vector_create(_cache_item_destroy);
-
+*/
 	return ENGINE_SUCCESS;
 }
 
 
-t_config* config;
-key_element *temporal;
 
 /*
  * Esta función se llama inmediatamente despues del create_instance y sirve para inicializar
@@ -192,7 +187,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		parse_config(config_str, items, NULL);
 
-		config = config_create(PATH_CONFIG);
+		t_config* config = config_create(PATH_CONFIG);
 
 		//elegimos el algoritmo a usar
 
@@ -202,26 +197,23 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 			if (strcmp(string, "PART_DINAM") == 0) {
 				//hago la tabla de keys y apuntar a la fn ng_store que corresponda
 
-				double worstCase = engine->config.block_size_max
+				double worstCase = engine->config.cache_max_size
 						/ engine->config.chunk_size;
 
-				alocate_keysDinam(worstCase);
+				key_vector = alocate_keysDinam(worstCase);
 
-				cache = malloc(engine->config.block_size_max);
+				cache = malloc(engine->config.cache_max_size);
 
 			} else {
 
 				if (strcmp(string, "BUDDY") == 0) {
 					//apuntar a la fn y hacer las cuentas para buddy
-					0;
+					alocate_buddy();
 				}
 			}
 
 		} else
 			printf("no existe la clave");
-
-		 void *auxi= malloc(sizeof(key_element));
-		 temporal = auxi;
 
 		//aca ya aloque lo del vector de keys y la cache.
 		void mtrace(void);
@@ -230,7 +222,6 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 		if (lock == -1)
 			perror("Error locking the cache");
 
-//		parse_config(config_str, items, NULL);
 	}
 
 //		printf("%d", engine->config.block_size_max);
@@ -274,19 +265,22 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		const void* cookie, item **item, const void* key, const size_t nkey,
 		const size_t nbytes, const int flags, const rel_time_t exptime) {
 
-	key_element *it = temporal;
+//	key_element *it = buscar un lugar para guardarlo!;
+
+	key_element *it = vector_search(cache,nbytes);
+
 
 	if (it == NULL) {
 		return ENGINE_ENOMEM;
 	}
 
 //		it->flags = flags;			flags de que?
-//		it->exptime = exptime;
-//		it->nkey = nkey;
-	it->data_size = nbytes;
+		it->exptime = 0;
+		it->nkey = nkey;
+		it->data_size = nbytes;
 //		it->key = malloc(nkey);		innecesario porq ya tengo espacio
 //		it->data = malloc(nbytes);	innecesario porq ya tengo espacio
-	it->stored = false; //este capaz que se necesita
+		it->stored = false; //este capaz que se necesita
 
 	memcpy(it->key, key, nkey);
 	*item = it;
@@ -331,7 +325,7 @@ static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
 	item_info->exptime = 0; // esto lo necesita? it->exptime;
 	item_info->flags = 0; // esto lo necesita?it->flags;
 	item_info->key = it->key;
-	item_info->nkey = sizeof(key_element); // esto lo necesita?it->nkey;
+	item_info->nkey = it->nkey;
 	item_info->nbytes = it->data_size; /* Total length of the items data */
 
 	item_info->nvalue = 1; /* Number of fragments used ( Default ) */

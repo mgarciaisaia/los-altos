@@ -10,17 +10,21 @@
 #ifndef VECTOR_H_
 #define VECTOR_H_
 
-key_element *key_vector;
+extern key_element *key_vector;
 //typedef key_vector key_vector;
+
+void *buscarElemento(key_element *key_vector, char *key);
 
 //dictionary_get(cache, strkey);
 key_element *vector_get(void *cache, char *key);
 
-//cache = dictionary_create(_cache_item_destroy);
-void *vector_create(void *_cache_item_destroy);
+// Este no lo hago porque lo de crear el espacio lo hice en allocate en manage
+//void *vector_create(void *_cache_item_destroy);
+
+// aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
+key_element *vector_search(void *cache, size_t nbytes);
 
 //dictionary_put(cache, strkey, it);
-// aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
 void vector_put(key_element *cache, char *key, void *data);
 
 //dictionary_clean(cache);
