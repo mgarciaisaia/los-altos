@@ -18,7 +18,8 @@ struct key_element {
 	bool stored;
 	size_t data_size;
 	void *data;
-//	int flags;
+	int32_t flags;
+	bool libre;
 	rel_time_t exptime;
 
 };

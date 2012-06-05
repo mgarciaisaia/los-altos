@@ -24,8 +24,6 @@
 #include <src/commons/config.h>
 #include <stdio.h>
 
-#define KEY_MAXSIZE		40
-#define DATA_MAXSIZE
 #define PATH_CONFIG "/home/utnso/Desarrollo/configuracion"
 
 /*
@@ -87,6 +85,9 @@ void dummy_ng_dummp(int signal);
  */
 key_element *key_vector;
 void *cache;
+//key_element *last_posicion;
+int32_t ultima_posicion;
+t_config* config;
 
 /*
  * Esta es la función que va a llamar memcached para instanciar nuestro engine
@@ -187,7 +188,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		parse_config(config_str, items, NULL);
 
-		t_config* config = config_create(PATH_CONFIG);
+		config = config_create(PATH_CONFIG);
 
 		//elegimos el algoritmo a usar
 
@@ -202,7 +203,15 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 				key_vector = alocate_keysDinam(worstCase);
 
+				ultima_posicion = 0;
+
 				cache = malloc(engine->config.cache_max_size);
+
+// aca deberia reservar espacio aparte para las keys?
+//	key_vector[ultima_posicion]->key = NULL;
+				key_vector[ultima_posicion]->data = cache;
+				key_vector[ultima_posicion]->libre=true;
+				key_vector[ultima_posicion]->data_size = engine->config.cache_max_size;
 
 			} else {
 
@@ -274,13 +283,14 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		return ENGINE_ENOMEM;
 	}
 
-//		it->flags = flags;			flags de que?
+		it->flags = flags;
 		it->exptime = 0;
 		it->nkey = nkey;
 		it->data_size = nbytes;
 //		it->key = malloc(nkey);		innecesario porq ya tengo espacio
 //		it->data = malloc(nbytes);	innecesario porq ya tengo espacio
-		it->stored = false; //este capaz que se necesita
+		it->stored = false; 		//este capaz que se necesita
+		it->libre = false;
 
 	memcpy(it->key, key, nkey);
 	*item = it;
@@ -301,7 +311,7 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 	if (!it->stored) {
 		free(it->key);
 		free(it->data);
-		free(it);
+//		free(it);  aca deberia hacer eso?
 	}
 }
 
@@ -323,7 +333,7 @@ static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
 	item_info->clsid = 0; /* Not supported */
 
 	item_info->exptime = 0; // esto lo necesita? it->exptime;
-	item_info->flags = 0; // esto lo necesita?it->flags;
+	item_info->flags = it->flags;
 	item_info->key = it->key;
 	item_info->nkey = it->nkey;
 	item_info->nbytes = it->data_size; /* Total length of the items data */
