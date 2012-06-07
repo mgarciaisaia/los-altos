@@ -20,12 +20,6 @@ void alocate_buddy(void) {
 
 key_element *alocate_keysDinam(double worstCase) {
 
-	double cuenta = (sizeof(key_element) + MAX_KEY) * worstCase;
-
-	void *key_table = malloc(cuenta);
-
-	key_element *key_vector = key_table;
-
 	/* Calculo la cantidad total de registros */
 
 	double ptr;
@@ -38,6 +32,20 @@ key_element *alocate_keysDinam(double worstCase) {
 	else
 		cantRegistros = (uint32_t) ptr;
 
+	double cuenta = sizeof(key_element) * cantRegistros;
+
+	void *key_table = malloc(cuenta);
+
+	key_element *key_vector = key_table;
+
 	return key_vector;
+
+}
+
+char *alocate_keys_space(double worstCase) {
+
+	char *resultado;
+	resultado = malloc(MAX_KEY * cantRegistros);
+	return resultado;
 
 }

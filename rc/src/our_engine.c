@@ -85,7 +85,7 @@ void dummy_ng_dummp(int signal);
  */
 key_element *key_vector;
 void *cache;
-//key_element *last_posicion;
+char *keys_space;
 int32_t ultima_posicion;
 t_config* config;
 
@@ -205,10 +205,12 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 				ultima_posicion = 0;
 
+				// aca deberia reservar espacio aparte para las keys?
+				keys_space = alocate_keys_space(worstCase);
+
 				cache = malloc(engine->config.cache_max_size);
 
-// aca deberia reservar espacio aparte para las keys?
-//	key_vector[ultima_posicion]->key = NULL;
+				key_vector[ultima_posicion]->key = keys_space;
 				key_vector[ultima_posicion]->data = cache;
 				key_vector[ultima_posicion]->libre=true;
 				key_vector[ultima_posicion]->data_size = engine->config.cache_max_size;

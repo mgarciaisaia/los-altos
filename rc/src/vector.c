@@ -49,6 +49,11 @@ void compactarDinam(void) {
 
 key_element *buscarLibreNext(void *cache, size_t espacio) {
 
+	/*ver que hacer cuando se juntan varios pedacitos menores a
+	 * la particion minima. tendria que venir como parametro quiza
+	 * con la diferencia ¿? o no .... VER que hacer con eso
+	 */
+
 	int16_t busquedas_fallidas = 0;
 	key_element *resultado;
 	uint32_t i = ultima_posicion;
@@ -92,16 +97,22 @@ key_element *buscarLibreNext(void *cache, size_t espacio) {
 		}
 	}
 
-	ultima_posicion = i + 1;
+	if ((i + 1) < cantRegistros)
+		ultima_posicion = i + 1;
+	else
+		ultima_posicion = 0;
 
 	/* Creo la particion sgte libre */
 
 	// PREGUNTAR SI EL DESPLAZAMIENTO RESULTA COMO YO QUIERO AL SER VOID
 	if ((key_vector[i].data_size - espacio) > 0) {
+		key_vector[ultima_posicion].key = key_vector[i].key + 41;
 		key_vector[ultima_posicion].data = key_vector[i].data + espacio;
-		key_vector[ultima_posicion].data_size = key_vector[i].data_size - espacio;
+		key_vector[ultima_posicion].data_size = key_vector[i].data_size
+				- espacio;
 		key_vector[ultima_posicion].libre = true;
 	} else {
+		key_vector[ultima_posicion].key = key_vector[i].key;
 		key_vector[ultima_posicion].data = key_vector[i].data;
 		key_vector[ultima_posicion].data_size = 0;
 		key_vector[ultima_posicion].libre = true;
@@ -113,7 +124,76 @@ key_element *buscarLibreNext(void *cache, size_t espacio) {
 
 key_element *buscarLibreWorst(size_t espacio) {
 
-	return key_vector;
+	int16_t busquedas_fallidas = 0;
+	key_element *resultado;
+	uint32_t i = 0;
+	uint32_t pos_mayor_tamaño = 0;
+	uint32_t mayor_tamaño = 0;
+	char encontrado = 0;
+
+	while (encontrado == 0) {
+
+		while (not(key_vector[i].libre) && i < cantRegistros) {
+			i++;
+		}
+		if (i == cantRegistros) {
+
+			if (mayor_tamaño == 0) {
+
+				//si llegue al final sin encontrar ninguno
+
+				int32_t frecuencia = config_get_int_value(config, "FREQ");
+				busquedas_fallidas++;
+
+				/* preguntar frecuencia de compactacion; si aplica,
+				 * compactar, sino preguntar si es FIFO o LRU y borrar
+				 * una FREQ*/
+
+				if (busquedas_fallidas < frecuencia)
+					//eliminar una particion segun esquema
+					uint32_t particion = eliminar_particion();
+				else
+					// compactar
+					compactarDinam();
+
+				if (key_vector[i]->data_size >= espacio) {
+					encontrado = 1;
+					uint32_t pos_mayor_tamaño = i;
+					uint32_t mayor_tamaño = key_vector[i]->data_size;
+				} else
+					encontrado = 0;
+			} else {
+				encontrado = 1;
+				uint32_t pos_mayor_tamaño = i;
+				uint32_t mayor_tamaño = key_vector[i]->data_size;
+			}
+		} else {
+			if (key_vector[i]->data_size >= espacio)
+				uint32_t pos_mayor_tamaño = i;
+			uint32_t mayor_tamaño = key_vector[i]->data_size;
+		}
+	}
+
+	/* Creo la particion sgte libre */
+
+	// PREGUNTAR SI EL DESPLAZAMIENTO RESULTA COMO YO QUIERO AL SER VOID
+//para actualizar el nuevo espacio tendria q buscar una entrada libre en el vector
+	/*	if ((mayor_tamaño - espacio) > 0) {
+	 key_vector[ultima_posicion].key = key_vector[i].key + 41;
+	 key_vector[ultima_posicion].data = key_vector[i].data + espacio;
+	 key_vector[ultima_posicion].data_size = key_vector[i].data_size
+	 - espacio;
+	 key_vector[ultima_posicion].libre = true;
+	 } else {
+	 key_vector[ultima_posicion].key = key_vector[i].key;
+	 key_vector[ultima_posicion].data = key_vector[i].data;
+	 key_vector[ultima_posicion].data_size = 0;
+	 key_vector[ultima_posicion].libre = true;
+	 }
+	 */
+	resultado = key_vector[pos_mayor_tamaño];
+
+	return resultado;
 }
 
 void *buscarElemento(key_element *key_vector, char *key) {
