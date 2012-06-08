@@ -8,6 +8,7 @@
 #include "src/nipc/nipc.h"
 #include <errno.h>
 #include <string.h>
+#include "fileSystemClientUtils.h"
 
 /**
  * Create and open a file
@@ -56,6 +57,7 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
     printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
+    struct nipc_packet* response = requestRemoteFileSystem(packet);
     struct nipc_open* deserialized = deserialize_open(packet);
     printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar

@@ -1,5 +1,6 @@
 #ifndef NIPC_H_
 #define NIPC_H_
+#include <sys/types.h>
 
 enum tipo_nipc {
     nipc_create,
@@ -18,7 +19,7 @@ enum tipo_nipc {
 struct nipc_packet {
     enum tipo_nipc type;
     u_int16_t data_length;
-    void* data; // TODO: seguramente tenga que ser un array
+    void* data;
 } __attribute__ ((__packed__));
 
 struct nipc_create {
@@ -209,5 +210,12 @@ struct nipc_truncate* deserialize_truncate(struct nipc_packet* packet);
 struct nipc_truncate* empty_nipc_truncate();
 
 struct nipc_truncate* new_nipc_truncate(const char* path, off_t offset);
+
+
+
+
+size_t nipc_serialize(struct nipc_packet *packet, void *rawPacket);
+
+struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize);
 
 #endif /* NIPC_H_ */
