@@ -9,9 +9,7 @@
 #ifndef MANAGE_H_
 #define MANAGE_H_
 
-extern key_element *key_vector;
-
-key_element *alocate_keysDinam(double worstCase);
+key_element *cantRegistros_keysDinam(double worstCase);
 void alocate_buddy(void);
 
 #endif /* MANAGE_H_ */

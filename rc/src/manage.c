@@ -33,12 +33,10 @@ key_element *alocate_keysDinam(double worstCase) {
 		cantRegistros = (uint32_t) ptr;
 
 	double cuenta = sizeof(key_element) * cantRegistros;
+	key_element *key_table = malloc(cuenta);
+//	key_element *key_vector = key_table;
 
-	void *key_table = malloc(cuenta);
-
-	key_element *key_vector = key_table;
-
-	return key_vector;
+	return key_table;
 
 }
 

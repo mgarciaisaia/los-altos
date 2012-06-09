@@ -24,6 +24,7 @@
 #include <src/commons/config.h>
 #include <stdio.h>
 
+#define MAX_KEY 41
 #define PATH_CONFIG "/home/utnso/Desarrollo/configuracion"
 
 /*
@@ -137,24 +138,22 @@ t_config* config;
 
 	/* creo la cache de almacenamiento --- > esto lo hago dsp
 
-	void _cache_item_destroy(void *item) {
-		// La variable item es un elemento que esta
-		// dentro del dictionary, el cual es un
-		// t_dummy_ng_item. Este solo puede ser borrado
-		// si no esta "storeado"
+	 void _cache_item_destroy(void *item) {
+	 // La variable item es un elemento que esta
+	 // dentro del dictionary, el cual es un
+	 // t_dummy_ng_item. Este solo puede ser borrado
+	 // si no esta "storeado"
 
-		((key_element*) item)->stored = false;
+	 ((key_element*) item)->stored = false;
 
-		dummy_ng_item_release(NULL, NULL, item);
-	}
+	 dummy_ng_item_release(NULL, NULL, item);
+	 }
 
-	// hacer esta funcion
-	cache = vector_create(_cache_item_destroy);
-*/
+	 // hacer esta funcion
+	 cache = vector_create(_cache_item_destroy);
+	 */
 	return ENGINE_SUCCESS;
 }
-
-
 
 /*
  * Esta función se llama inmediatamente despues del create_instance y sirve para inicializar
@@ -201,19 +200,13 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 				double worstCase = engine->config.cache_max_size
 						/ engine->config.chunk_size;
 
-				key_vector = alocate_keysDinam(worstCase);
+				key_vector = (key_element *)alocate_keysDinam(worstCase);
+				keys_space = (char *)alocate_keys_space(worstCase);
+				cache = malloc(engine->config.cache_max_size);
 
 				ultima_posicion = 0;
 
-				// aca deberia reservar espacio aparte para las keys?
-				keys_space = alocate_keys_space(worstCase);
-
-				cache = malloc(engine->config.cache_max_size);
-
-				key_vector[ultima_posicion]->key = keys_space;
-				key_vector[ultima_posicion]->data = cache;
-				key_vector[ultima_posicion]->libre=true;
-				key_vector[ultima_posicion]->data_size = engine->config.cache_max_size;
+				cargarEnVector(keys_space, cache,engine->config.cache_max_size, true, ultima_posicion);
 
 			} else {
 
@@ -278,21 +271,22 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 
 //	key_element *it = buscar un lugar para guardarlo!;
 
-	key_element *it = vector_search(cache,nbytes);
+	key_element *it = vector_search(cache, nbytes);
 
+//	key_element *it = &(key_vector[posicion]);
 
-	if (it == NULL) {
+		if (it == NULL) {
 		return ENGINE_ENOMEM;
 	}
 
-		it->flags = flags;
-		it->exptime = 0;
-		it->nkey = nkey;
-		it->data_size = nbytes;
+	it->flags = flags;
+	it->exptime = 0;
+	it->nkey = nkey;
+	it->data_size = nbytes;
 //		it->key = malloc(nkey);		innecesario porq ya tengo espacio
 //		it->data = malloc(nbytes);	innecesario porq ya tengo espacio
-		it->stored = false; 		//este capaz que se necesita
-		it->libre = false;
+	it->stored = false; //este capaz que se necesita
+	it->libre = false;
 
 	memcpy(it->key, key, nkey);
 	*item = it;
@@ -308,12 +302,11 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 
 	key_element *it = (key_element*) item;
 
-//esto seria si mantenemos el formato del item que dieron ellos
-//necesitamos el flag stored? creo q si porq es como se maneja memcached
+//Ver si no le cambio los datos de key y data, si cuando los piso
+//se hace lio
+
 	if (!it->stored) {
-		free(it->key);
-		free(it->data);
-//		free(it);  aca deberia hacer eso?
+		it->libre = true;
 	}
 }
 
@@ -334,7 +327,7 @@ static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
 	item_info->cas = 0; /* Not supported */
 	item_info->clsid = 0; /* Not supported */
 
-	item_info->exptime = 0; // esto lo necesita? it->exptime;
+	item_info->exptime = 0;
 	item_info->flags = it->flags;
 	item_info->key = it->key;
 	item_info->nkey = it->nkey;
@@ -418,11 +411,11 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 
 	void *item = vector_remove(cache, strkey);
 
-	if( item == NULL ) {
+	if (item == NULL) {
 		return ENGINE_KEY_ENOENT;
 	}
 
-	((key_element*)item)->stored = false;
+	((key_element*) item)->stored = false;
 
 	dummy_ng_item_release(handle, NULL, item);
 

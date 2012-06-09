@@ -11,6 +11,7 @@
 #include <memcached/engine.h>
 #include <memcached/util.h>
 #include <memcached/visibility.h>
+#include <time.h>
 
 struct key_element {
 	char *key;
@@ -25,25 +26,7 @@ struct key_element {
 };
 
 typedef struct key_element key_element;
-/*
-struct key_lista{
-		key_element nodo;
-		struct key_lista *next;
-	};
 
-typedef struct key_lista t_key_lista;
-*/
-/*
- typedef struct {
- void *key;
- size_t nkey;
- void *data;
- size_t ndata;
- int flags;
- bool stored;
- rel_time_t exptime;
- }t_dummy_ng_item;
- */
 /*
  * Esta es una estructura custom que utilizo para almacenar la configuración que me pasa memcached
  */

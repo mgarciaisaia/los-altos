@@ -13,6 +13,9 @@
 extern key_element *key_vector;
 //typedef key_vector key_vector;
 
+void cargarEnVector(char *keys, void *data, size_t ndata, bool libre,
+		uint32_t pos);
+
 void *buscarElemento(key_element *key_vector, char *key);
 
 //dictionary_get(cache, strkey);
