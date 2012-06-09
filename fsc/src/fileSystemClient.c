@@ -58,7 +58,7 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
     struct nipc_packet* response = requestRemoteFileSystem(packet);
-    struct nipc_open* deserialized = deserialize_open(packet);
+    struct nipc_open* deserialized = deserialize_open(response);
     printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
 	return 0;

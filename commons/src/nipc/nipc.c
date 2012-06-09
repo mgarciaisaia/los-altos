@@ -512,14 +512,14 @@ struct nipc_truncate* new_nipc_truncate(const char* path, off_t offset) {
     return instance;
 }
 
-size_t nipc_serialize(struct nipc_packet *packet, void *rawPacket) {
+size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket) {
     size_t typeLenght = sizeof(packet->type);
     size_t dataLengthLength = sizeof(packet->data_length);
     size_t packetSize = typeLenght + dataLengthLength + packet->data_length;
-    rawPacket = malloc(packetSize);
-    memcpy(rawPacket, &packet->type, typeLenght);
-    memcpy(rawPacket + typeLenght, &packet->data_length, dataLengthLength);
-    memcpy(rawPacket + typeLenght + dataLengthLength, packet->data,
+    *rawPacket = malloc(packetSize);
+    memcpy(*rawPacket, &packet->type, typeLenght);
+    memcpy(*rawPacket + typeLenght, &packet->data_length, dataLengthLength);
+    memcpy(*rawPacket + typeLenght + dataLengthLength, packet->data,
             packet->data_length);
     free(packet);
     return packetSize;

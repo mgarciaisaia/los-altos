@@ -17,7 +17,7 @@ enum tipo_nipc {
 };
 
 struct nipc_packet {
-    enum tipo_nipc type;
+    enum tipo_nipc type; // FIXME: deberia ser 1 unico byte?
     u_int16_t data_length;
     void* data;
 } __attribute__ ((__packed__));
@@ -214,7 +214,7 @@ struct nipc_truncate* new_nipc_truncate(const char* path, off_t offset);
 
 
 
-size_t nipc_serialize(struct nipc_packet *packet, void *rawPacket);
+size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket);
 
 struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize);
 

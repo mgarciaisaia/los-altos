@@ -11,11 +11,46 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <math.h>
+#include "src/sockets/sockets.h"
+#include <netinet/in.h>
+#include "src/nipc/nipc.h"
 
+
+void serve_open(int socket, struct nipc_open *request) {
+    char *archivo = request->path;
+    printf("SEEEEEEEEEEEEEEEEE!!!!!!!!!");
+    socket_send(socket,request);
+    printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType, request->flags);
+    // FIXME: comprobar que pueda abrir el archivo
+    // devuelve 0 si esta OK, sino devuelve -1
+}
 
 int32_t main(void) {
 
-
+    int socketDescriptor = socket_binded(3087);
+    struct sockaddr_in address;
+    socklen_t addressLength = sizeof address;
+    while(1) { // FIXME: aca iria el select o lo que pinte :)
+        listen(socketDescriptor, 1);
+        int newSocket = accept(socketDescriptor, (struct sockaddr *)&address, &addressLength);
+        void* message = NULL;
+        int messageSize = socket_receive(newSocket,&message);
+        struct nipc_packet *packet = nipc_deserialize(message,messageSize);
+        switch(packet->type) {
+            case nipc_open:
+                serve_open(newSocket, deserialize_open(packet));
+                break;
+            case nipc_create:
+                serve_create(newSocket, deserialize_create(packet));
+                break;
+            // FIXME: etc...
+            default:
+                // FIXME: Boom! no reconocimos el tipo de paquete
+                printf("Me llego un tipo de paquete que no conozco: %d", packet->type);
+                break;
+        }
+    }
+    return 0;
 	mapear_archivo();
 
 //	read_superblock();
