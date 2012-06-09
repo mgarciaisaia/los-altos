@@ -13,13 +13,12 @@
 extern key_element *key_vector;
 //typedef key_vector key_vector;
 
+//void inicializarVector(void);
+
 void cargarEnVector(char *keys, void *data, size_t ndata, bool libre,
 		uint32_t pos);
 
-void *buscarElemento(key_element *key_vector, char *key);
-
-//dictionary_get(cache, strkey);
-key_element *vector_get(void *cache, char *key);
+key_element *vector_get(char *key);
 
 // Este no lo hago porque lo de crear el espacio lo hice en allocate en manage
 //void *vector_create(void *_cache_item_destroy);
@@ -28,12 +27,11 @@ key_element *vector_get(void *cache, char *key);
 key_element *vector_search(void *cache, size_t nbytes);
 
 //dictionary_put(cache, strkey, it);
-void vector_put(key_element *cache, char *key, void *data);
+void vector_put(char *key, key_element *item);
 
-//dictionary_clean(cache);
-void vector_clean(key_element *cache);
+void vector_clean(void);
 
 //void *item = dictionary_remove(cache, strkey);
-void *vector_remove(key_element *cache, char *key);
+void *vector_remove(char *key);
 
 #endif /* VECTOR_H_ */

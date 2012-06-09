@@ -9,7 +9,8 @@
 #ifndef MANAGE_H_
 #define MANAGE_H_
 
-key_element *cantRegistros_keysDinam(double worstCase);
+key_element *alocate_keysDinam(double worstCase);
+char *alocate_keys_space(double worstCase);
 void alocate_buddy(void);
 
 #endif /* MANAGE_H_ */

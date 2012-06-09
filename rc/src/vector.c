@@ -21,7 +21,7 @@ int32_t buscarPosLibre(void) {
 
 	int32_t i = 0;
 
-	while ((key_vector[i].data != NULL) && (i < cantRegistros)) {
+	while ((key_vector[i].data_size != 0) && (i < cantRegistros)) {
 		i++;
 	}
 
@@ -218,17 +218,20 @@ uint32_t buscarLibreWorst(size_t espacio) {
 
 }
 
-void *buscarElemento(key_element *key_vector, char *key) {
-
-	return key_vector;
-}
-
-//dictionary_get(cache, strkey);
 //busca el item con esa key y lo devuelve.
-key_element *vector_get(void *cache, char *key) {
+key_element *vector_get(char *key) {
 	key_element *resultado;
-
+	uint32_t i;
 	//buscar la key en el vector
+
+	while ((strcmp(key_vector[i].key, key) != 0) && (i < cantRegistros)){
+		i++;
+	}
+	if (i == cantRegistros)
+		//llegue al final y no la encontre
+		printf("No se encontró la clave");
+	else
+		resultado = &(key_vector[i]);
 
 	return resultado;
 }
@@ -252,17 +255,35 @@ key_element *vector_search(void *cache, size_t nbytes) {
 }
 
 //dictionary_put(cache, strkey, it);
-void vector_put(key_element *cache, char *key, void *data) {
+void vector_put(char *key, key_element *item) {
+//que hace esta?
+}
+
+
+void vector_clean(void) {
+
+//	INICIALIZARLO COMO AL PRINCIPIO
+	uint32_t i;
+
+	for(i = 0; i < cantRegistros; i++){
+		key_vector[i].libre = true;
+		key_vector[i].key = "";
+		key_vector[i].stored = false;
+	}
+	// esto es para que me quede el espacio grande original
+	compactarDinam();
 
 }
 
-//dictionary_clean(cache);
-void vector_clean(key_element *cache) {
 
-}
+//devuelve los datos que estaban en esa key y la libera
+void *vector_remove(char *key) {
 
-//void *item = dictionary_remove(cache, strkey);
-void *vector_remove(key_element *cache, char *key) {
+	key_element *resultado = vector_get(key);
 
-	return key_vector;
+	resultado->key = "";
+	resultado->libre = true;
+	resultado->stored = false;
+
+	return resultado->data;
 }

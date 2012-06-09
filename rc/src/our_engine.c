@@ -200,8 +200,8 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 				double worstCase = engine->config.cache_max_size
 						/ engine->config.chunk_size;
 
-				key_vector = (key_element *)alocate_keysDinam(worstCase);
-				keys_space = (char *)alocate_keys_space(worstCase);
+				key_vector = alocate_keysDinam(worstCase);
+				keys_space = alocate_keys_space(worstCase);
 				cache = malloc(engine->config.cache_max_size);
 
 				ultima_posicion = 0;
@@ -272,8 +272,6 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 //	key_element *it = buscar un lugar para guardarlo!;
 
 	key_element *it = vector_search(cache, nbytes);
-
-//	key_element *it = &(key_vector[posicion]);
 
 		if (it == NULL) {
 		return ENGINE_ENOMEM;
@@ -352,7 +350,7 @@ static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 	strkey[nkey] = '\0';
 
 	// buscamos y obtenemos el item
-	key_element *it = vector_get(cache, strkey);
+	key_element *it = vector_get(strkey);
 
 	if (it == NULL) {
 		return ENGINE_NOT_STORED;
@@ -373,13 +371,15 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 
 	key_element *it = (key_element*) item;
 
-	char *strkey = it->key;
+//para que hace esto?
+//	char *strkey = it->key;
 //		memcpy(strkey, it->key, it->nkey);
 //		strkey[it->nkey] = '\0';
 
 	it->stored = true;
 
-	vector_put(cache, strkey, it);
+	vector_put(it->key, it);
+//QUE TENGO QUE HACER ACA??
 
 	*cas = 0;
 
@@ -392,8 +392,8 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 static ENGINE_ERROR_CODE dummy_ng_flush(ENGINE_HANDLE* handle,
 		const void* cookie, time_t when) {
 
-//limpio toda la cache
-	vector_clean(cache);
+//limpio toda la cache (o sea el vector, y a compacto todoo asi tengo el espacio original)
+	vector_clean();
 
 	return ENGINE_SUCCESS;
 }
@@ -409,13 +409,14 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
 
-	void *item = vector_remove(cache, strkey);
+	void *item = vector_remove(strkey);
 
 	if (item == NULL) {
 		return ENGINE_KEY_ENOENT;
 	}
 
-	((key_element*) item)->stored = false;
+	//si item son los datos porque se castea como key?
+//	((key_element*) item)->stored = false;
 
 	dummy_ng_item_release(handle, NULL, item);
 
