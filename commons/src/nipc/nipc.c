@@ -534,3 +534,11 @@ struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize) {
     free(rawPacket);
     return packet;
 }
+
+struct nipc_packet* new_nipc_error(char *errorMessage) {
+    struct nipc_packet *instance = malloc(sizeof(struct nipc_packet));
+    instance->type = nipc_error;
+    instance->data = errorMessage;
+    instance->data_length = strlen(errorMessage);
+    return instance;
+}

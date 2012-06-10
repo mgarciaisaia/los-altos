@@ -28,18 +28,13 @@ int socket_connect(char *remoteIP, uint16_t port) {
     return socketDescriptor;
 }
 
-int socket_binded(uint16_t port) {
-    int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
-    const struct sockaddr_in *address = socket_address(INADDR_ANY, port);
-    bind(socketDescriptor, (struct sockaddr*) address,
-            sizeof(struct sockaddr_in));
-    return socketDescriptor;
-}
+int nipc_send(int socketDescriptor, struct nipc_packet *request) {
+    void *rawRequest = NULL;
+    size_t requestSize = nipc_serialize(request, &rawRequest);
 
-int socket_send(int socketDescriptor, void* message, size_t messageLenght) {
     int sentBytes = 0;
-    while (sentBytes < messageLenght) {
-        int sentChunkSize = send(socketDescriptor, message, messageLenght, 0);
+    while (sentBytes < requestSize) {
+        int sentChunkSize = send(socketDescriptor, rawRequest, requestSize, 0);
         if (sentChunkSize < 0) {
             perror("Error enviando un chunk");
             return -1;
@@ -49,38 +44,56 @@ int socket_send(int socketDescriptor, void* message, size_t messageLenght) {
     return sentBytes;
 }
 
-size_t socket_receive(int socketDescriptor, void **receivedMessage) {
-    size_t headerSize = sizeof(enum tipo_nipc) + sizeof(uint16_t); // FIXME: parametrizar
+struct nipc_packet *nipc_receive(int socketDescriptor) {
+    struct nipc_packet* packet = NULL;
+    size_t headerSize = sizeof(packet->type) + sizeof(packet->data_length);
+
     char header[headerSize];
     int receivedHeaderLenght = 0;
     while (receivedHeaderLenght < headerSize) {
         int received = recv(socketDescriptor, &header, headerSize, MSG_PEEK);
         if (received < 0) {
-            perror("Error recibiendo cabecera");
-            return -1;
+            return new_nipc_error("Error recibiendo cabecera");
+        } else if(received == 0) {
+            return new_nipc_error("Desconectado del servidor");
         }
         receivedHeaderLenght += received;
     }
 
-    uint16_t messageSize = headerSize + ((uint16_t) header[sizeof(enum tipo_nipc)]);
-    *receivedMessage = malloc(messageSize);
+    uint16_t messageSize = headerSize
+            + ((uint16_t) header[sizeof(packet->type)]);
+    void *message = malloc(messageSize);
     int receivedBytes = 0;
     while (receivedBytes < messageSize) {
-        int received = recv(socketDescriptor, *receivedMessage + receivedBytes,
+        int received = recv(socketDescriptor, message + receivedBytes,
                 messageSize - receivedBytes, 0);
         if (received < 0) {
-            perror("Error recibiendo el mensaje");
-            free(*receivedMessage);
-            return -1;
+            free(message);
+            return new_nipc_error("Error recibiendo paquete");
+        } else if(received == 0) {
+            free(message);
+            return new_nipc_error("Desconectado del servidor");
         }
         receivedBytes += received;
     }
 
-    return receivedBytes;
+    packet = nipc_deserialize(message, messageSize);
+
+    return packet;
 }
 
-size_t socket_query(int socketDescriptor, void *rawRequest, size_t requestSize,
-        void **rawResponse) {
-    socket_send(socketDescriptor, rawRequest, requestSize);
-    return socket_receive(socketDescriptor, rawResponse);
+struct nipc_packet *nipc_query(struct nipc_packet *request, char *remoteIP, uint16_t port) {
+    int socketDescriptor = socket_connect(remoteIP, port);
+    if(nipc_send(socketDescriptor, request) < 0) {
+        return new_nipc_error("Error enviando paquete");
+    }
+    return nipc_receive(socketDescriptor);
+}
+
+int socket_binded(uint16_t port) {
+    int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    const struct sockaddr_in *address = socket_address(INADDR_ANY, port);
+    bind(socketDescriptor, (struct sockaddr*) address,
+            sizeof(struct sockaddr_in));
+    return socketDescriptor;
 }

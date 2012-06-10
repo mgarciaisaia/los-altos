@@ -13,20 +13,20 @@ enum tipo_nipc {
     nipc_rmdir,
     nipc_readdir,
     nipc_getattr,
-    nipc_truncate
+    nipc_truncate,
+    nipc_error
 };
 
 struct nipc_packet {
-    enum tipo_nipc type; // FIXME: deberia ser 1 unico byte?
+    enum tipo_nipc type;
     u_int16_t data_length;
-    void* data;
+    char* data;
 } __attribute__ ((__packed__));
 
 struct nipc_create {
     enum tipo_nipc nipcType;
     struct nipc_packet* (*serialize)(struct nipc_create*);
-    //struct nipc_create* (*deserealize)(struct nipc_packet*); // FIXME: deserealize es inllamable aca
-    char* path;
+    void* path;
     mode_t fileMode;
 };
 
@@ -217,5 +217,7 @@ struct nipc_truncate* new_nipc_truncate(const char* path, off_t offset);
 size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket);
 
 struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize);
+
+struct nipc_packet* new_nipc_error(char *errorMessage);
 
 #endif /* NIPC_H_ */

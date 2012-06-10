@@ -6,9 +6,13 @@
 #include <fuse.h>
 #include <sys/types.h>
 #include "src/nipc/nipc.h"
+#include "src/sockets/sockets.h"
 #include <errno.h>
 #include <string.h>
-#include "fileSystemClientUtils.h"
+
+//FIXME: parametrizar
+#define fileSystemIP "127.0.0.1"
+#define fileSystemPort 3087
 
 /**
  * Create and open a file
@@ -57,7 +61,7 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
     printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
-    struct nipc_packet* response = requestRemoteFileSystem(packet);
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
     struct nipc_open* deserialized = deserialize_open(response);
     printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
 	//FIXME: implementar
