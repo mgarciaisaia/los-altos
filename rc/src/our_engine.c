@@ -87,6 +87,7 @@ void dummy_ng_dummp(int signal);
 key_element *key_vector;
 void *cache;
 char *keys_space;
+size_t cache_size;
 int32_t ultima_posicion;
 t_config* config;
 
@@ -204,9 +205,10 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 				keys_space = alocate_keys_space(worstCase);
 				cache = malloc(engine->config.cache_max_size);
 
+				cache_size = engine->config.cache_max_size;
 				ultima_posicion = 0;
 
-				cargarEnVector(keys_space, cache,engine->config.cache_max_size, true, ultima_posicion);
+				vector_inicializar(keys_space,cache,cache_size);
 
 			} else {
 
@@ -276,6 +278,8 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		if (it == NULL) {
 		return ENGINE_ENOMEM;
 	}
+		struct timespec tp;
+		clock_gettime(0, &tp);
 
 	it->flags = flags;
 	it->exptime = 0;
@@ -285,6 +289,7 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 //		it->data = malloc(nbytes);	innecesario porq ya tengo espacio
 	it->stored = false; //este capaz que se necesita
 	it->libre = false;
+	it->tp = tp;
 
 	memcpy(it->key, key, nkey);
 	*item = it;
@@ -299,9 +304,6 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 		item* item) {
 
 	key_element *it = (key_element*) item;
-
-//Ver si no le cambio los datos de key y data, si cuando los piso
-//se hace lio
 
 	if (!it->stored) {
 		it->libre = true;
@@ -355,6 +357,8 @@ static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 	if (it == NULL) {
 		return ENGINE_NOT_STORED;
 	}
+	//pregunta el modo FIFO o LRU.
+	actualizar_key(it);
 
 	//retornamos el item
 	*item = it;
@@ -371,15 +375,7 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 
 	key_element *it = (key_element*) item;
 
-//para que hace esto?
-//	char *strkey = it->key;
-//		memcpy(strkey, it->key, it->nkey);
-//		strkey[it->nkey] = '\0';
-
 	it->stored = true;
-
-	vector_put(it->key, it);
-//QUE TENGO QUE HACER ACA??
 
 	*cas = 0;
 
@@ -392,8 +388,8 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 static ENGINE_ERROR_CODE dummy_ng_flush(ENGINE_HANDLE* handle,
 		const void* cookie, time_t when) {
 
-//limpio toda la cache (o sea el vector, y a compacto todoo asi tengo el espacio original)
-	vector_clean();
+//inicializo el vector como al principio
+	vector_inicializar(keys_space,cache,cache_size);
 
 	return ENGINE_SUCCESS;
 }
@@ -409,14 +405,14 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
 
-	void *item = vector_remove(strkey);
+//	void *item = vector_remove(strkey);
+
+	key_element *item = vector_get(strkey);
 
 	if (item == NULL) {
 		return ENGINE_KEY_ENOENT;
 	}
 
-	//si item son los datos porque se castea como key?
-//	((key_element*) item)->stored = false;
 
 	dummy_ng_item_release(handle, NULL, item);
 

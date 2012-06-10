@@ -22,7 +22,7 @@ struct key_element {
 	int32_t flags;
 	bool libre;
 	rel_time_t exptime;
-
+	struct timespec tp;
 };
 
 typedef struct key_element key_element;
