@@ -15,11 +15,12 @@
 #include <netinet/in.h>
 #include "src/nipc/nipc.h"
 #include <sys/epoll.h>
+#include <pthread.h>
 
 
 void serve_open(int socket, struct nipc_open *request) {
     printf("SEEEEEEEEEEEEEEEEE!!!!!!!!!");
-    nipc_send(socket,request->serialize(request));
+    nipc_send(socket, request->serialize(request));
     printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType,
             request->flags);
     // FIXME: comprobar que pueda abrir el archivo
@@ -30,7 +31,8 @@ void serve_create(int newSocket, struct nipc_create *packet) {
 
 }
 
-void serveRequest(int socket) {
+void serveRequest(void *socketPointer) {
+    int socket = *(int *) socketPointer;
     // crear un nuevo thread en el que atender
     struct nipc_packet *request = nipc_receive(socket);
     switch (request->type) {
@@ -81,7 +83,11 @@ int32_t main(void) {
                 epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, &event);
             } else {
                 int querySocket = events[index].data.fd;
-                serveRequest(querySocket);
+                pthread_t threadID;
+                pthread_attr_t threadAttributes;
+                pthread_attr_init(&threadAttributes);
+                pthread_create(&threadID, &threadAttributes, &serveRequest,
+                        &querySocket);
             }
         }
     }
