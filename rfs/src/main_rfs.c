@@ -19,8 +19,9 @@
 
 void serve_open(int socket, struct nipc_open *request) {
     printf("SEEEEEEEEEEEEEEEEE!!!!!!!!!");
-    //socket_send(socket,request);
-    printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType, request->flags);
+    nipc_send(socket,request->serialize(request));
+    printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType,
+            request->flags);
     // FIXME: comprobar que pueda abrir el archivo
     // devuelve 0 si esta OK, sino devuelve -1
 }
@@ -29,50 +30,64 @@ void serve_create(int newSocket, struct nipc_create *packet) {
 
 }
 
+void serveRequest(int socket) {
+    // crear un nuevo thread en el que atender
+    struct nipc_packet *request = nipc_receive(socket);
+    switch (request->type) {
+    case nipc_open:
+        serve_open(socket, deserialize_open(request));
+        break;
+    case nipc_create:
+        serve_create(socket, deserialize_create(request));
+        break;
+        // FIXME: etc...
+    default:
+        // FIXME: Boom! no reconocimos el tipo de paquete
+        printf("Me llego un tipo de paquete que no conozco: %d", request->type);
+        break;
+    }
+}
+
 int32_t main(void) {
-    int socketDescriptor = socket_binded(3087); // FIXME: parametrizar
+    int listeningSocket = socket_binded(3087); // FIXME: parametrizar
 #define MAX_CONNECTIONS 4
 #define MAX_EVENTS 64 // FIXME: no tengo idea de por que este numero
     struct sockaddr_in address;
     socklen_t addressLength = sizeof address;
 
-    listen(socketDescriptor, MAX_CONNECTIONS);
+    listen(listeningSocket, MAX_CONNECTIONS);
 
-//    int epoll = epoll_create1(EPOLL_CLOEXEC);
-//
-//    struct epoll_event event;
-//    event.data.fd = socketDescriptor;
-//    event.events = EPOLLIN | EPOLLET;
-//
-//    epoll_ctl(epoll, EPOLL_CTL_ADD, socketDescriptor, &event);
-//
-//    struct epoll_event *events = calloc (MAX_CONNECTIONS, sizeof event);
-//
-//    while(1) { // roll, baby roll (8)
-//        int n = epoll_wait(epoll, events, MAX_EVENTS, -1);
-//
-//    }
+    int epoll = epoll_create1(EPOLL_CLOEXEC);
 
+    struct epoll_event event;
+    event.data.fd = listeningSocket;
+    event.events = EPOLLIN;
 
-    while(1) { // FIXME: aca iria el select o lo que pinte :)
-        int newSocket = accept(socketDescriptor, (struct sockaddr *)&address, &addressLength);
-        struct nipc_packet *request = nipc_receive(newSocket);
-        switch(request->type) {
-            case nipc_open:
-                serve_open(newSocket, deserialize_open(request));
-                break;
-            case nipc_create:
-                serve_create(newSocket, deserialize_create(request));
-                break;
-            // FIXME: etc...
-            default:
-                // FIXME: Boom! no reconocimos el tipo de paquete
-                printf("Me llego un tipo de paquete que no conozco: %d", request->type);
-                break;
+    epoll_ctl(epoll, EPOLL_CTL_ADD, listeningSocket, &event);
+
+    struct epoll_event *events = calloc(MAX_CONNECTIONS, sizeof event);
+
+    while (1) { // roll, baby roll (8)
+        int readySocketsCount = epoll_wait(epoll, events, MAX_EVENTS, -1);
+        int index;
+        for (index = 0; index < readySocketsCount; ++index) {
+            if (events[index].data.fd == listeningSocket) {
+                // nueva conexion entrante: la acepto y meto el nuevo descriptor en el poll
+                int querySocket = accept(listeningSocket,
+                        (struct sockaddr *) &address, &addressLength);
+                // FIXME: setnonblocking(querySocket);
+                event.events = EPOLLIN | EPOLLET;
+                event.data.fd = querySocket;
+                epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, &event);
+            } else {
+                int querySocket = events[index].data.fd;
+                serveRequest(querySocket);
+            }
         }
     }
+
     return 0;
-	mapear_archivo();
+    mapear_archivo();
 
 //	read_superblock();
 
