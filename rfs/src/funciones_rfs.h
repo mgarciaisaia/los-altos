@@ -11,10 +11,11 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <src/commons/collections/list.h>
 #include <src/commons/collections/queue.h>
 //#include <commons/collections/queue.h>
 
-
+#define EXT2_INODE_HAS_MODE_FLAG(inode, flag)	((inode->mode & 0xF000) == flag)
 
 	struct Superblock
 	{
@@ -88,36 +89,57 @@
 	    uint32_t reserved2[4];
 	};
 
+	struct DirEntry
+	{
+	    uint32_t inode;
+	    uint16_t entry_len;
+	    uint8_t name_len;
+	    uint8_t type;
+	    char name[];
+	};
+
 	void mapear_archivo();
 	struct Superblock *read_superblock();
 
-	uint32_t cantidadDeGrupos(uint32_t,uint32_t);
+	uint32_t cantidadDeGrupos();
 	void leerLosGroupDescriptor(uint32_t,uint32_t);
 
 	struct GroupDesc * leerGroupDescriptor(uint32_t);
 
 
 //	char esPotenciaDe(uint32_t grupo);
-	uint8_t *dir_inicioDeGrupo (uint32_t grupo);
+	uint8_t *dir_inicioDeGrupo (uint32_t);
 
 	void leerBitmapDeBloque(uint32_t);
 	void leerBitmapDeInodos(uint32_t);
 
 	int nroBloqueInicioDeGrupo(uint32_t);
-	void leerTablaDeInodos(uint32_t nroGrupo);
+	void leerTablaDeInodos(uint32_t);
 	t_queue * buscarBloquesLibres(uint32_t);
 	void buscarBloquesLibresBitmaps(t_queue *,uint32_t,uint32_t);
 	t_queue * buscarInodosLibres(uint32_t);
 	void buscarInodosLibresBitmaps(t_queue *,uint32_t,uint32_t);
-	int nroInodoInicioDeGrupo(uint32_t nro_grupo);
+	int nroInodoInicioDeGrupo(uint32_t);
 
 	struct INode * getInodo(uint32_t);
-	uint8_t * posicionarInicioBloque(uint32_t nroBloque);
+	uint8_t * posicionarInicioBloque(uint32_t);
 
-	void bloquesOcupados(struct INode *);
+	void leerBloquesInodos(struct INode *);
 	void leerBloquesDirectos(struct INode *);
 	void leerIndireccionSimple(uint32_t);
 	void leerIndireccionDoble(uint32_t);
 	void leerIndireccionTriple(uint32_t);
+
+
+	bool esInodoDirectorio(uint32_t nroInodo);
+	struct INode * buscarInodoQueGestiona(struct INode * inodoDeBusqueda,char * ruta);
+	void leerDirectorio(char *);
+	t_queue * buscarDirectorios(void);
+	void buscarInodosDirectorio(t_queue *,uint32_t);
+
+	void leerArchivo(char *);
+//	uint32_t buscarInodoEnDirectorio(uint32_t nroInodo,char * unDir);
+//	uint32_t compararConEntradasDirectorio(struct INode * ,char *);
+//	void recorrerArchivo(struct INode * inodoArchivo);
 
 #endif /* FUNCIONES_RFS_H_ */
