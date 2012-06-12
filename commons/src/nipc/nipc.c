@@ -519,8 +519,10 @@ size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket) {
     *rawPacket = malloc(packetSize);
     memcpy(*rawPacket, &packet->type, typeLenght);
     memcpy(*rawPacket + typeLenght, &packet->data_length, dataLengthLength);
-    memcpy(*rawPacket + typeLenght + dataLengthLength, packet->data,
+    if(packet->data_length) {
+        memcpy(*rawPacket + typeLenght + dataLengthLength, packet->data,
             packet->data_length);
+    }
     free(packet);
     return packetSize;
 }
@@ -530,7 +532,11 @@ struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize) {
     memcpy(&packet->type, rawPacket, sizeof(packet->type));
     memcpy(&packet->data_length, rawPacket + sizeof(packet->type), sizeof(packet->data_length));
     packet->data = malloc(packet->data_length);
-    memcpy(packet->data, rawPacket + sizeof(packet->type) + sizeof(packet->data_length), packet->data_length);
+    if(packet->data_length) {
+        memcpy(packet->data, rawPacket + sizeof(packet->type) + sizeof(packet->data_length), packet->data_length);
+    } else {
+        packet->data = NULL;
+    }
     free(rawPacket);
     return packet;
 }
