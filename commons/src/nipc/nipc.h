@@ -14,13 +14,17 @@ enum tipo_nipc {
     nipc_readdir,
     nipc_getattr,
     nipc_truncate,
-    nipc_error
+    nipc_error,
+    nipc_ok,
+    nipc_read_response,
+    nipc_readdir_response,
+    nipc_getattr_response
 };
 
 struct nipc_packet {
     enum tipo_nipc type;
     u_int16_t data_length;
-    char* data;
+    void* data;
 } __attribute__ ((__packed__));
 
 struct nipc_create {
@@ -219,5 +223,26 @@ size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket);
 struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize);
 
 struct nipc_packet* new_nipc_error(char *errorMessage);
+
+struct nipc_packet* new_nipc_ok();
+
+
+
+
+
+struct nipc_read_response {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_read_response*);
+    void *data;
+    size_t dataLength;
+};
+
+struct nipc_read_response *deserialize_read_response(struct nipc_packet *packet);
+
+struct nipc_read_response *empty_nipc_read_response();
+
+struct nipc_read_response *new_nipc_read_response(void *data, size_t dataLength);
+
+
 
 #endif /* NIPC_H_ */

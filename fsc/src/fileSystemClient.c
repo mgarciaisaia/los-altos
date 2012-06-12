@@ -14,6 +14,33 @@
 #define fileSystemIP "127.0.0.1"
 #define fileSystemPort 3087
 
+
+/**
+ * FIXME: falta hacer free() a todos los response
+ * FIXME: falta hacer free() a todos los response
+ * FIXME: falta hacer free() a todos los response
+ * FIXME: falta hacer free() a todos los response
+ * FIXME: falta hacer free() a todos los response
+ * FIXME: falta hacer free() a todos los response
+ * FIXME: falta hacer free() a todos los response
+ */
+int check_error(const char *operation, const char *path, struct nipc_packet *response) {
+    if(response->type == nipc_error) {
+        printf("%s %s: %s", operation, path, (char*)response->data);
+        return -1;
+    } else {
+        printf("%s %s: Paquete invalido (%d)", operation, path, response->type);
+        return -1;
+    }
+}
+
+int check_ok_error(const char *operation, const char *path, struct nipc_packet *response) {
+    if(response->type != nipc_ok) {
+        return check_error(operation, path, response);
+    }
+    return 0;
+}
+
 /**
  * Create and open a file
  *
@@ -27,13 +54,10 @@
  * Introduced in version 2.5
  */
 int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
-    printf("%d, %d, %s\n", nipc_create, mode, path);
     struct nipc_create* createData = new_nipc_create(path, mode);
     struct nipc_packet* packet = createData->serialize(createData);
-    struct nipc_create* deserialized = deserialize_create(packet);
-    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->fileMode, deserialized->path);
-	//FIXME: implementar
-	return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("create", path, response);
 }
 
 /** File open operation
@@ -58,14 +82,10 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
-    printf("%d, %d, %s\n", nipc_open, fileInfo->flags, path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    struct nipc_open* deserialized = deserialize_open(response);
-    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
-	//FIXME: implementar
-	return 0;
+    return check_ok_error("open", path, response);
 }
 
 /** Read data from an open file
@@ -98,14 +118,17 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
  * return       output      amount of bytes read, or negated error number on error
  */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("%d, %zd, %lu, %s\n", nipc_read, size, offset, path);
     struct nipc_read* readData = new_nipc_read(path, size, offset);
     struct nipc_packet* packet = readData->serialize(readData);
-    struct nipc_read* deserialized = deserialize_read(packet);
-    printf("%d, %zd, %lu, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path);
-    //FIXME: implementar
-    strcpy(output, "Trabajo muy duro, como un esclavo :)");
-    return strlen("Trabajo muy duro, como un esclavo :)");
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    if(response->type == nipc_read_response) {
+        struct nipc_read_response *readData = deserialize_read_response(response);
+        size_t readBytes = (readData->dataLength < size) ? readData->dataLength : size;
+        memcpy(output, readData->data, readBytes);
+        return readBytes;
+    } else {
+        return check_error("read", path, response);
+    }
 }
 
 /** Write data to an open file
@@ -119,13 +142,15 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("%d, %zd, %lu, %s, %s\n", nipc_write, size, offset, path, input);
     struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
     struct nipc_packet* packet = writeData->serialize(writeData);
-    struct nipc_write* deserialized = deserialize_write(packet);
-    printf("%d, %zd, %lu, %s, %s\n", deserialized->nipcType, deserialized->size, deserialized->offset, deserialized->path, deserialized->data);
-    //FIXME: implementar
-	return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    int failed = check_ok_error("write", path, response);
+    if(failed) {
+        return failed;
+    } else {
+        return size;
+    }
 }
 
 /** Release an open file
@@ -143,12 +168,10 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
-    printf("%d, %d, %s\n", nipc_release, fileInfo->flags, path);
     struct nipc_release* releaseData = new_nipc_release(path, fileInfo->flags);
     struct nipc_packet* packet = releaseData->serialize(releaseData);
-    struct nipc_release* deserialized = deserialize_release(packet);
-    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->flags, deserialized->path);
-	return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("release", path, response);
 }
 
 /** Remove a file */
@@ -156,10 +179,8 @@ int remote_unlink(const char *path) {
     printf("%d, %s\n", nipc_unlink, path);
     struct nipc_unlink* unlinkData = new_nipc_unlink(path);
     struct nipc_packet* packet = unlinkData->serialize(unlinkData);
-    struct nipc_unlink* deserialized = deserialize_unlink(packet);
-    printf("%d, %s\n", deserialized->nipcType, deserialized->path);
-    //FIXME: implementar
-	return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("unlink", path, response);
 }
 
 /** Create a directory */
@@ -167,10 +188,8 @@ int remote_mkdir(const char *path, mode_t mode) {
     printf("%d, %d, %s\n", nipc_mkdir, mode, path);
     struct nipc_mkdir* mkdirData = new_nipc_mkdir(path, mode);
     struct nipc_packet* packet = mkdirData->serialize(mkdirData);
-    struct nipc_mkdir* deserialized = deserialize_mkdir(packet);
-    printf("%d, %d, %s\n", deserialized->nipcType, deserialized->fileMode, deserialized->path);
-	//FIXME: implementar
-	return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("mkdir", path, response);
 }
 
 /** Read directory
@@ -211,22 +230,27 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
     printf("%d, %s, %lu\n", nipc_readdir, path, offset);
     struct nipc_readdir* readdirData = new_nipc_readdir(path, offset);
     struct nipc_packet* packet = readdirData->serialize(readdirData);
-    struct nipc_readdir* deserialized = deserialize_readdir(packet);
-    printf("%d, %s, %lu\n", deserialized->nipcType, deserialized->path, deserialized->offset);
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    if(response->type == nipc_readdir_response) {
+        // FIXME: implementar
+        // FIXME: implementar
+        // FIXME: implementar
 
-	//FIXME: implementar
-    filler(output, ".", NULL, 0);
-    filler(output, "..", NULL, 0);
-    struct stat stats;
-    stats.st_mode = S_IFREG | 0755;
-    stats.st_size = 304325;
-    filler(output, "bb", &stats, 0);
+        filler(output, ".", NULL, 0);
+        filler(output, "..", NULL, 0);
+        struct stat stats;
+        stats.st_mode = S_IFREG | 0755;
+        stats.st_size = 304325;
+        filler(output, "bb", &stats, 0);
 
-    stats.st_mode = S_IFDIR | 0755;
-    stats.st_nlink = 2;
-    filler(output, "aa", &stats, 0);
+        stats.st_mode = S_IFDIR | 0755;
+        stats.st_nlink = 2;
+        filler(output, "aa", &stats, 0);
 
-    return 0;
+        return 0;
+    } else {
+        return check_error("readdir", path, response);
+    }
 }
 
 /** Remove a directory */
@@ -234,10 +258,8 @@ int remote_rmdir(const char *path) {
     printf("%d, %s\n", nipc_rmdir, path);
     struct nipc_rmdir* rmdirData = new_nipc_rmdir(path);
     struct nipc_packet* packet = rmdirData->serialize(rmdirData);
-    struct nipc_rmdir* deserialized = deserialize_rmdir(packet);
-    printf("%d, %s\n", deserialized->nipcType, deserialized->path);
-	//FIXME: implementar
-	return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("rmdir", path, response);
 }
 
 /** Get file attributes.
@@ -261,23 +283,29 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     printf("%d, %s\n", nipc_getattr, path);
     struct nipc_getattr* getattrData = new_nipc_getattr(path);
     struct nipc_packet* packet = getattrData->serialize(getattrData);
-    struct nipc_getattr* deserialized = deserialize_getattr(packet);
-    printf("%d, %s\n", deserialized->nipcType, deserialized->path);
-	//FIXME: implementar
-    if (strcmp(path, "/") == 0) {
-        statbuf->st_mode = S_IFDIR | 0755;
-        statbuf->st_nlink = 2;
-    } else if(strcmp(path, "/nueva") == 0) {
-        return -ENOENT;
-    } else if (strcmp(path, "/aa") == 0) {
-        statbuf->st_mode = S_IFDIR | 0755;
-        statbuf->st_nlink = 2;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    if(response->type == nipc_getattr_response) {
+        // FIXME: implementar
+        // FIXME: implementar
+        // FIXME: implementar
+
+        if (strcmp(path, "/") == 0) {
+            statbuf->st_mode = S_IFDIR | 0755;
+            statbuf->st_nlink = 2;
+        } else if(strcmp(path, "/nueva") == 0) {
+            return -ENOENT;
+        } else if (strcmp(path, "/aa") == 0) {
+            statbuf->st_mode = S_IFDIR | 0755;
+            statbuf->st_nlink = 2;
+        } else {
+            statbuf->st_mode = S_IFREG | 0755;
+            statbuf->st_nlink = 1;
+            statbuf->st_size = 32350;
+        }
+        return 0;
     } else {
-        statbuf->st_mode = S_IFREG | 0755;
-        statbuf->st_nlink = 1;
-        statbuf->st_size = 32350;
+        return check_error("getattr", path, response);
     }
-    return 0;
 }
 
 /**
@@ -287,10 +315,8 @@ int remote_truncate(const char * path, off_t offset) {
     printf("%d, %s, %lu\n", nipc_truncate, path, offset);
     struct nipc_truncate* truncateData = new_nipc_truncate(path, offset);
     struct nipc_packet* packet = truncateData->serialize(truncateData);
-    struct nipc_truncate* deserialized = deserialize_truncate(packet);
-    printf("%d, %s, %lu\n", deserialized->nipcType, deserialized->path, deserialized->offset);
-    // FIXME: implementar
-    return 0;
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("truncate", path, response);
 }
 
 /**

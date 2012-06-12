@@ -16,24 +16,118 @@
 #include "src/nipc/nipc.h"
 #include <sys/epoll.h>
 #include <pthread.h>
+#include <unistd.h>
+#include "src/nipc/nipc.h"
 
 
+
+void send_ok(int socket) {
+    struct nipc_packet *ok = new_nipc_ok();
+    nipc_send(socket, ok);
+    free(ok);
+}
+
+/**
+ * Si el path puede abrirse, manda un nipc_ok, sino un nipc_error
+ */
 void serve_open(int socket, struct nipc_open *request) {
     printf("SEEEEEEEEEEEEEEEEE!!!!!!!!!");
     nipc_send(socket, request->serialize(request));
     printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType,
             request->flags);
-    // FIXME: comprobar que pueda abrir el archivo
-    // devuelve 0 si esta OK, sino devuelve -1
+    // FIXME: contestar si puede o no abrir el archivo
+    send_ok(socket);
 }
 
-void serve_create(int newSocket, struct nipc_create *packet) {
+/**
+ * Si se creo el archivo, manda un nipc_ok, sino un nipc_error
+ */
+void serve_create(int socket, struct nipc_create *request) {
 
 }
 
-void serveRequest(void *socketPointer) {
+/**
+ * Contesta un nipc_read_response con los datos leidos, o nipc_error
+ */
+void serve_read(int socket, struct nipc_read *request) {
+
+//    strcpy(output, "Trabajo muy duro, como un esclavo :)");
+//    return strlen("Trabajo muy duro, como un esclavo :)");
+}
+
+/**
+ * Manda un nipc_ok si pudo grabar, o un nipc_error
+ */
+void serve_write(int socket, struct nipc_write *request) {
+
+}
+
+/**
+ * Manda un nipc_ok si pudo hace release, o nipc_error
+ * NOTA: FUSE dice ignorar el valor de retorno, si se complica contestar
+ * contestemos cualquiera
+ */
+void serve_release(int socket, struct nipc_release *request) {
+
+}
+
+/**
+ * Manda un nipc_ok si pudo hacer unlink, o nipc_error
+ */
+void serve_unlink(int socket, struct nipc_unlink *request) {
+
+}
+
+/**
+ * nipc_ok, o nipc_error
+ */
+void serve_mkdir(int socket, struct nipc_mkdir *request) {
+
+}
+
+/**
+ * Manda un nipc_readdir_response, o nipc_error
+ */
+void serve_readdir(int socket, struct nipc_readdir *request) {
+    // FIXME:  THIS IS SPARTAAAAAAAA!!!!!!
+    /**
+     * La fruleada de aca tiene que tener una lista de entries del directorio
+     * Cada entry tiene el nombre/ruta relativa y los atributos (modo y size, como mínimo)
+     */
+}
+
+/**
+ * nipc_ok, o nipc_error
+ */
+void serve_rmdir(int socket, struct nipc_rmdir *request) {
+
+}
+
+/**
+ * Manda un nipc_attr, o nipc_error
+ */
+void serve_getattr(int socket, struct nipc_getattr *request) {
+
+}
+
+/**
+ * nipc_ok, o nipc_error
+ */
+void serve_truncate(int socket, struct nipc_truncate *request) {
+
+}
+
+/**
+ * Manda un nipc_error porque no reconocimos el tipo
+ */
+void serve_unknown(int socket, struct nipc_packet *request) {
+    printf("Me llego un tipo de paquete que no conozco: %d", request->type);
+    struct nipc_packet *error = new_nipc_error("Paquete desconocido");
+    nipc_send(socket, error);
+}
+
+void *serveRequest(void *socketPointer) {
     int socket = *(int *) socketPointer;
-    // crear un nuevo thread en el que atender
     struct nipc_packet *request = nipc_receive(socket);
     switch (request->type) {
     case nipc_open:
@@ -42,12 +136,39 @@ void serveRequest(void *socketPointer) {
     case nipc_create:
         serve_create(socket, deserialize_create(request));
         break;
-        // FIXME: etc...
+    case nipc_read:
+        serve_read(socket, deserialize_read(request));
+        break;
+    case nipc_write:
+        serve_write(socket, deserialize_write(request));
+        break;
+    case nipc_release:
+        serve_release(socket, deserialize_release(request));
+        break;
+    case nipc_unlink:
+        serve_unlink(socket, deserialize_unlink(request));
+        break;
+    case nipc_mkdir:
+        serve_mkdir(socket, deserialize_mkdir(request));
+        break;
+    case nipc_readdir:
+        serve_readdir(socket, deserialize_readdir(request));
+        break;
+    case nipc_rmdir:
+        serve_rmdir(socket, deserialize_rmdir(request));
+        break;
+    case nipc_getattr:
+        serve_getattr(socket, deserialize_getattr(request));
+        break;
+    case nipc_truncate:
+        serve_truncate(socket, deserialize_truncate(request));
+        break;
     default:
-        // FIXME: Boom! no reconocimos el tipo de paquete
-        printf("Me llego un tipo de paquete que no conozco: %d", request->type);
+        serve_unknown(socket, request);
         break;
     }
+    close(socket);
+    return NULL;
 }
 
 int32_t main(void) {
@@ -86,8 +207,7 @@ int32_t main(void) {
                 pthread_t threadID;
                 pthread_attr_t threadAttributes;
                 pthread_attr_init(&threadAttributes);
-                pthread_create(&threadID, &threadAttributes, &serveRequest,
-                        &querySocket);
+                pthread_create(&threadID, &threadAttributes, &serveRequest, &querySocket);
             }
         }
     }
