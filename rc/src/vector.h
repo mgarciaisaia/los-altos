@@ -4,6 +4,20 @@
  *  Created on: 26/05/2012
  *      Author: utnso
  */
+/*
+#include <pthread.h>
+static pthread_mutex_t keyVector = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t posicion = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_lock(&keyVector);
+pthread_mutex_unlock(&keyVector);
+pthread_mutex_lock(&posicion);
+pthread_mutex_unlock(&posicion);
+
+static pthread_rwlock_t posicion = pthread_rwlock_init;
+static pthread_rwlock_t keyVector = pthread_rwlock_init;
+
+*/
+
 
 #include "our_engine.h"
 

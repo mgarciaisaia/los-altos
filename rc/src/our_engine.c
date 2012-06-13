@@ -88,6 +88,7 @@ key_element *key_vector;
 void *cache;
 char *keys_space;
 size_t cache_size;
+size_t part_minima;
 int32_t ultima_posicion;
 t_config* config;
 
@@ -206,6 +207,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 				cache = malloc(engine->config.cache_max_size);
 
 				cache_size = engine->config.cache_max_size;
+				part_minima = engine->config.chunk_size;
 				ultima_posicion = 0;
 
 				vector_inicializar(keys_space,cache,cache_size);
