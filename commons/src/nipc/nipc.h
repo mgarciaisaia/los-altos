@@ -245,4 +245,26 @@ struct nipc_read_response *new_nipc_read_response(void *data, size_t dataLength)
 
 
 
+struct readdir_entry {
+    char *path;
+    __mode_t mode;
+    __off_t size;
+    __nlink_t n_link;
+};
+
+struct nipc_readdir_response {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_readdir_response*);
+    u_int32_t entriesLength;
+    struct readdir_entry *entries;
+};
+
+struct nipc_readdir_response* deserialize_readdir_response(struct nipc_packet* packet);
+
+struct nipc_readdir_response* empty_nipc_readdir_response();
+
+struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength, struct readdir_entry *entries);
+
+
+
 #endif /* NIPC_H_ */

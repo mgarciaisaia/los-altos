@@ -26,10 +26,10 @@
  */
 int check_error(const char *operation, const char *path, struct nipc_packet *response) {
     if(response->type == nipc_error) {
-        printf("%s %s: %s", operation, path, (char*)response->data);
+        printf("%s %s: %s\n", operation, path, (char*)response->data);
         return -1;
     } else {
-        printf("%s %s: Paquete invalido (%d)", operation, path, response->type);
+        printf("%s %s: Paquete invalido (%d)\n", operation, path, response->type);
         return -1;
     }
 }
@@ -232,9 +232,29 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
     struct nipc_packet* packet = readdirData->serialize(readdirData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
     if(response->type == nipc_readdir_response) {
-        // FIXME: implementar
-        // FIXME: implementar
-        // FIXME: implementar
+        struct nipc_readdir_response *readdirData = deserialize_readdir_response(response);
+        int index;
+        int bufferIsFull = 0;
+
+        for(index = 0; index < readdirData->entriesLength && !bufferIsFull; index++) {
+            struct readdir_entry *entry = &(readdirData->entries[index]);
+            struct stat stats;
+            stats.st_nlink = entry->n_link;
+            stats.st_mode = entry->mode;
+            stats.st_size = entry->size;
+            bufferIsFull = filler(output, entry->path, &stats, 0);
+        }
+
+        if(bufferIsFull) {
+            return -1;
+        }
+
+        return 0;
+
+
+        // FIXME: sacar esto
+        // FIXME: sacar esto
+        // FIXME: sacar esto
 
         filler(output, ".", NULL, 0);
         filler(output, "..", NULL, 0);
@@ -280,6 +300,20 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
+    if (strcmp(path, "/") == 0) {
+        statbuf->st_mode = S_IFDIR | 0755;
+        statbuf->st_nlink = 2;
+    } else if(strcmp(path, "/nueva") == 0) {
+        return -ENOENT;
+    } else if (strcmp(path, "/aa") == 0) {
+        statbuf->st_mode = S_IFDIR | 0755;
+        statbuf->st_nlink = 2;
+    } else {
+        statbuf->st_mode = S_IFREG | 0755;
+        statbuf->st_nlink = 1;
+        statbuf->st_size = 32350;
+    }
+    return 0;
     printf("%d, %s\n", nipc_getattr, path);
     struct nipc_getattr* getattrData = new_nipc_getattr(path);
     struct nipc_packet* packet = getattrData->serialize(getattrData);
@@ -304,6 +338,24 @@ int remote_getattr(const char *path, struct stat *statbuf) {
         }
         return 0;
     } else {
+        // FIXME: sacar
+                // FIXME: sacar
+                // FIXME: sacar
+
+                if (strcmp(path, "/") == 0) {
+                    statbuf->st_mode = S_IFDIR | 0755;
+                    statbuf->st_nlink = 2;
+                } else if(strcmp(path, "/nueva") == 0) {
+                    return -ENOENT;
+                } else if (strcmp(path, "/aa") == 0) {
+                    statbuf->st_mode = S_IFDIR | 0755;
+                    statbuf->st_nlink = 2;
+                } else {
+                    statbuf->st_mode = S_IFREG | 0755;
+                    statbuf->st_nlink = 1;
+                    statbuf->st_size = 32350;
+                }
+                return 0;
         return check_error("getattr", path, response);
     }
 }

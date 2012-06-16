@@ -48,10 +48,10 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
     struct nipc_packet* packet = NULL;
     size_t headerSize = sizeof(packet->type) + sizeof(packet->data_length);
 
-    char header[headerSize];
+    void *header = malloc(headerSize);
     int receivedHeaderLenght = 0;
     while (receivedHeaderLenght < headerSize) {
-        int received = recv(socketDescriptor, &header, headerSize, MSG_PEEK);
+        int received = recv(socketDescriptor, header, headerSize, MSG_PEEK);
         if (received < 0) {
             return new_nipc_error("Error recibiendo cabecera");
         } else if(received == 0) {
@@ -60,8 +60,10 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         receivedHeaderLenght += received;
     }
 
-    uint16_t messageSize = headerSize
-            + ((uint16_t) header[sizeof(packet->type)]);
+
+    u_int16_t messageSize = headerSize
+            + *(u_int16_t *) (header + sizeof(packet->type));
+    free(header);
     void *message = malloc(messageSize);
     int receivedBytes = 0;
     while (receivedBytes < messageSize) {
@@ -91,6 +93,7 @@ struct nipc_packet *nipc_query(struct nipc_packet *request, char *remoteIP, uint
 }
 
 int socket_binded(uint16_t port) {
+    // FIXME: manejar errores!
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
     const struct sockaddr_in *address = socket_address(INADDR_ANY, port);
     bind(socketDescriptor, (struct sockaddr*) address,

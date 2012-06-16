@@ -18,13 +18,14 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "src/nipc/nipc.h"
+#include <fcntl.h>
+#include <sys/types.h>
 
 
 
 void send_ok(int socket) {
     struct nipc_packet *ok = new_nipc_ok();
     nipc_send(socket, ok);
-    free(ok);
 }
 
 /**
@@ -94,6 +95,34 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
      * La fruleada de aca tiene que tener una lista de entries del directorio
      * Cada entry tiene el nombre/ruta relativa y los atributos (modo y size, como mínimo)
      */
+    int index = 0;
+    struct readdir_entry *entries = calloc(4, sizeof(struct readdir_entry));
+
+    entries[index].path = ".";
+    entries[index].mode = -1;
+    entries[index].n_link = -1;
+    entries[index].size = -1;
+
+    entries[++index].path = "..";
+    entries[index].mode = -1;
+    entries[index].n_link = -1;
+    entries[index].size = -1;
+
+
+    entries[++index].path = "bb";
+    entries[index].mode = S_IFREG | 0755;
+    entries[index].n_link = -1;
+    entries[index].size = 304325;
+
+
+    entries[++index].path = "aa";
+    entries[index].mode = S_IFDIR | 0755;
+    entries[index].n_link = 2;
+    entries[index].size = -1;
+
+
+    struct nipc_readdir_response *response = new_nipc_readdir_response(4, entries);
+    nipc_send(socket, response->serialize(response));
 }
 
 /**
@@ -198,7 +227,16 @@ int32_t main(void) {
                 // nueva conexion entrante: la acepto y meto el nuevo descriptor en el poll
                 int querySocket = accept(listeningSocket,
                         (struct sockaddr *) &address, &addressLength);
-                // FIXME: setnonblocking(querySocket);
+                // FIXME:
+                // setnonblocking(querySocket);
+//                int flags = fcntl(querySocket, F_GETFL, 0);
+//                if(flags < 0) {
+//                    flags = 0;
+//                }
+//                if(fcntl(querySocket, F_SETFD, flags | O_NONBLOCK)) {
+//                   perror("fcntl");
+//                   return -1;
+//                }
                 event.events = EPOLLIN | EPOLLET;
                 event.data.fd = querySocket;
                 epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, &event);
