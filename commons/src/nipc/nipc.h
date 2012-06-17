@@ -230,18 +230,7 @@ struct nipc_packet* new_nipc_ok();
 
 
 
-struct nipc_read_response {
-    enum tipo_nipc nipcType;
-    struct nipc_packet* (*serialize)(struct nipc_read_response*);
-    void *data;
-    size_t dataLength;
-};
-
-struct nipc_read_response *deserialize_read_response(struct nipc_packet *packet);
-
-struct nipc_read_response *empty_nipc_read_response();
-
-struct nipc_read_response *new_nipc_read_response(void *data, size_t dataLength);
+struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength);
 
 
 

@@ -122,9 +122,8 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
     struct nipc_packet* packet = readData->serialize(readData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
     if(response->type == nipc_read_response) {
-        struct nipc_read_response *readData = deserialize_read_response(response);
-        size_t readBytes = (readData->dataLength < size) ? readData->dataLength : size;
-        memcpy(output, readData->data, readBytes);
+        size_t readBytes = (response->data_length < size) ? response->data_length : size;
+        memcpy(output, response->data, readBytes);
         return readBytes;
     } else {
         return check_error("read", path, response);
@@ -246,26 +245,10 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
         }
 
         if(bufferIsFull) {
+            perror("Buffer de readdir lleno");
+            // FIXME: aca devuelvo -1 o como se maneja el buffer lleno?
             return -1;
         }
-
-        return 0;
-
-
-        // FIXME: sacar esto
-        // FIXME: sacar esto
-        // FIXME: sacar esto
-
-        filler(output, ".", NULL, 0);
-        filler(output, "..", NULL, 0);
-        struct stat stats;
-        stats.st_mode = S_IFREG | 0755;
-        stats.st_size = 304325;
-        filler(output, "bb", &stats, 0);
-
-        stats.st_mode = S_IFDIR | 0755;
-        stats.st_nlink = 2;
-        filler(output, "aa", &stats, 0);
 
         return 0;
     } else {

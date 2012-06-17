@@ -33,7 +33,6 @@ void send_ok(int socket) {
  */
 void serve_open(int socket, struct nipc_open *request) {
     printf("SEEEEEEEEEEEEEEEEE!!!!!!!!!");
-    nipc_send(socket, request->serialize(request));
     printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType,
             request->flags);
     // FIXME: contestar si puede o no abrir el archivo
@@ -44,23 +43,31 @@ void serve_open(int socket, struct nipc_open *request) {
  * Si se creo el archivo, manda un nipc_ok, sino un nipc_error
  */
 void serve_create(int socket, struct nipc_create *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**
  * Contesta un nipc_read_response con los datos leidos, o nipc_error
  */
 void serve_read(int socket, struct nipc_read *request) {
+    // FIXME: leer el archivo
+    char *saludo = "Trabajo muy duro, como un esclavo :)";
 
-//    strcpy(output, "Trabajo muy duro, como un esclavo :)");
-//    return strlen("Trabajo muy duro, como un esclavo :)");
+    size_t tamanioMensaje = strlen("Trabajo muy duro, como un esclavo :)");
+    char *mensaje = malloc(tamanioMensaje);
+    memcpy(mensaje, saludo, tamanioMensaje);
+
+    struct nipc_packet *response = new_nipc_read_response(mensaje, tamanioMensaje);
+    nipc_send(socket, response);
 }
 
 /**
  * Manda un nipc_ok si pudo grabar, o un nipc_error
  */
 void serve_write(int socket, struct nipc_write *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**
@@ -69,21 +76,24 @@ void serve_write(int socket, struct nipc_write *request) {
  * contestemos cualquiera
  */
 void serve_release(int socket, struct nipc_release *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**
  * Manda un nipc_ok si pudo hacer unlink, o nipc_error
  */
 void serve_unlink(int socket, struct nipc_unlink *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**
  * nipc_ok, o nipc_error
  */
 void serve_mkdir(int socket, struct nipc_mkdir *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**
@@ -129,21 +139,23 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
  * nipc_ok, o nipc_error
  */
 void serve_rmdir(int socket, struct nipc_rmdir *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**
  * Manda un nipc_attr, o nipc_error
  */
 void serve_getattr(int socket, struct nipc_getattr *request) {
-
+    // FIXME: Implementar. Va a ser algo heavy como el serve_readdir, pero no tanto
 }
 
 /**
  * nipc_ok, o nipc_error
  */
 void serve_truncate(int socket, struct nipc_truncate *request) {
-
+    // FIXME: implementar
+    send_ok(socket);
 }
 
 /**

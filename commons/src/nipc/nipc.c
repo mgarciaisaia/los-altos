@@ -563,42 +563,11 @@ struct nipc_packet* new_nipc_ok() {
 
 
 
-static struct nipc_packet* serialize_read_response(struct nipc_read_response* payload) {
-    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
-    packet->type = payload->nipcType;
-    packet->data_length = payload->dataLength + sizeof(payload->dataLength);
-    packet->data = malloc(packet->data_length);
-    memcpy(packet->data, &(payload->dataLength), sizeof(payload->dataLength));
-    memcpy(packet->data + sizeof(payload->dataLength), &(payload->data), payload->dataLength);
-
-    free(payload);
-
-    return packet;
-}
-
-struct nipc_read_response *deserialize_read_response(struct nipc_packet *packet) {
-    if (packet->type != nipc_read_response) {
-        perror("Error desearilzando paquete - tipo invalido");
-    }
-    struct nipc_read_response *instance = empty_nipc_read_response();
-    memcpy(&(instance->dataLength), packet->data, sizeof(instance->dataLength));
-    instance->data = malloc(instance->dataLength);
-    free(packet->data);
-    free(packet);
-    return instance;
-}
-
-struct nipc_read_response *empty_nipc_read_response() {
-    struct nipc_read_response *instance = malloc(sizeof(struct nipc_read_response));
-    instance->nipcType = nipc_read_response;
-    instance->serialize = &serialize_read_response;
-    return instance;
-}
-
-struct nipc_read_response *new_nipc_read_response(void *data, size_t dataLength) {
-    struct nipc_read_response *instance = empty_nipc_read_response();
+struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength) {
+    struct nipc_packet *instance = malloc(sizeof(struct nipc_packet));
+    instance->type = nipc_read_response;
     instance->data = data;
-    instance->dataLength = dataLength;
+    instance->data_length = dataLength;
     return instance;
 }
 
