@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "../nipc/nipc.h"
 
 struct sockaddr_in *socket_address(in_addr_t ip, uint16_t port) {
@@ -93,10 +94,17 @@ struct nipc_packet *nipc_query(struct nipc_packet *request, char *remoteIP, uint
 }
 
 int socket_binded(uint16_t port) {
-    // FIXME: manejar errores!
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    if(socketDescriptor < 0) {
+        perror("socket");
+        return -1;
+    }
     const struct sockaddr_in *address = socket_address(INADDR_ANY, port);
-    bind(socketDescriptor, (struct sockaddr*) address,
-            sizeof(struct sockaddr_in));
+    if(bind(socketDescriptor, (struct sockaddr*) address,
+            sizeof(struct sockaddr_in))) {
+        perror("bind");
+        close(socketDescriptor);
+        return -1;
+    }
     return socketDescriptor;
 }

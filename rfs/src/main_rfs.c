@@ -219,7 +219,11 @@ int32_t main(void) {
     struct sockaddr_in address;
     socklen_t addressLength = sizeof address;
 
-    listen(listeningSocket, MAX_CONNECTIONS);
+    if(listen(listeningSocket, MAX_CONNECTIONS)) {
+        perror("listen");
+        close(listeningSocket);
+        return -1;
+    }
 
     int epoll = epoll_create1(EPOLL_CLOEXEC);
 
