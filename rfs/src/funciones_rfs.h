@@ -98,6 +98,16 @@
 	    char name[];
 	};
 
+	typedef struct readdir_stat
+	{
+	    uint16_t mode;
+	    uint16_t nlink;
+	    uint16_t uid;
+	    uint16_t gid;
+//	    __dev_t st_rdev;
+		char * name;
+	} t_readdir_stat;
+
 	void mapear_archivo();
 	struct Superblock *read_superblock();
 
@@ -133,13 +143,30 @@
 
 	bool esInodoDirectorio(uint32_t nroInodo);
 	struct INode * buscarInodoQueGestiona(struct INode * inodoDeBusqueda,char * ruta);
-	void leerDirectorio(char *);
+
+	t_list * leerDirectorio(char *);
+	t_list * cargarEntradasDirectorioALista(struct INode *);
+
+
 	t_queue * buscarDirectorios(void);
 	void buscarInodosDirectorio(t_queue *,uint32_t);
 
-	void leerArchivo(char *);
-//	uint32_t buscarInodoEnDirectorio(uint32_t nroInodo,char * unDir);
-//	uint32_t compararConEntradasDirectorio(struct INode * ,char *);
-//	void recorrerArchivo(struct INode * inodoArchivo);
+//	t_list * leerArchivo(char *);
+//	void leerArchivoHasta(ptr,size);
+//	void guardarDatosArchivos(struct INode *);
+
+	uint32_t nroBloqueDentroDelInodo(uint32_t offset);
+	uint32_t desplazamientoDentroDelBloque(uint32_t offset);
+
+	void * posicionarme(struct INode * inodo,uint32_t nroBloqueLogico,uint32_t desplazamiento);
+	void * desplazarme(uint32_t nroBloqueDeDato,uint32_t desplazamiento);
+
+	int esBloqueDirecto(uint32_t nroBloque);
+	int esIndireccionSimple(uint32_t nroBloque);
+	int esIndireccionDoble(uint32_t nroBloque);
+
+	void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size);
+	void leerArchivo(char * path,uint32_t offset,uint32_t size);
+
 
 #endif /* FUNCIONES_RFS_H_ */
