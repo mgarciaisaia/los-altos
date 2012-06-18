@@ -24,7 +24,6 @@
 #include <src/commons/config.h>
 #include <stdio.h>
 
-#define MAX_KEY 41
 #define PATH_CONFIG "/home/utnso/Desarrollo/configuracion"
 
 /*
@@ -89,7 +88,6 @@ void *cache;
 char *keys_space;
 size_t cache_size;
 size_t part_minima;
-int32_t ultima_posicion;
 t_config* config;
 
 /*
@@ -138,22 +136,6 @@ t_config* config;
 	 */
 	*handle = (ENGINE_HANDLE*) engine;
 
-	/* creo la cache de almacenamiento --- > esto lo hago dsp
-
-	 void _cache_item_destroy(void *item) {
-	 // La variable item es un elemento que esta
-	 // dentro del dictionary, el cual es un
-	 // t_dummy_ng_item. Este solo puede ser borrado
-	 // si no esta "storeado"
-
-	 ((key_element*) item)->stored = false;
-
-	 dummy_ng_item_release(NULL, NULL, item);
-	 }
-
-	 // hacer esta funcion
-	 cache = vector_create(_cache_item_destroy);
-	 */
 	return ENGINE_SUCCESS;
 }
 
@@ -191,42 +173,66 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		config = config_create(PATH_CONFIG);
 
-		//elegimos el algoritmo a usar
+		cache_size = engine->config.cache_max_size;
+		part_minima = engine->config.chunk_size;
+//		double worstCase = cache_size / part_minima;
 
+		//inicializo los semáforos
+		init_semaforos();
+
+		//elegimos el algoritmo a usar
 		bool valor = config_has_property(config, "ESQUEMA");
 		if (valor == 1) {
 			char *string = config_get_string_value(config, "ESQUEMA");
-			if (strcmp(string, "PART_DINAM") == 0) {
-				//hago la tabla de keys y apuntar a la fn ng_store que corresponda
 
-				double worstCase = engine->config.cache_max_size
-						/ engine->config.chunk_size;
-
-				key_vector = alocate_keysDinam(worstCase);
-				keys_space = alocate_keys_space(worstCase);
-				cache = malloc(engine->config.cache_max_size);
-
-				cache_size = engine->config.cache_max_size;
-				part_minima = engine->config.chunk_size;
-				ultima_posicion = 0;
-
-				vector_inicializar(keys_space,cache,cache_size);
-
+			//la cache y la particion minima deben ser potencias de 2, sino se rechazan
+			if ((strcmp(string, "BUDDY") == 0)
+					&& (!(esPotenciaDe(cache_size))
+							|| !(esPotenciaDe(part_minima)))) {
+				//rechazar
+				printf("El tamaño debe ser potencia de 2");
+				return ENGINE_FAILED;
 			} else {
+				// ver si aca tengo que verificar que sea BUDDY o PART_DINAM o con que entre cualquier caso esta bien
+				key_vector = alocate_vector();
+				keys_space = alocate_keys_space();
+				cache = malloc(cache_size);
 
-				if (strcmp(string, "BUDDY") == 0) {
-					//apuntar a la fn y hacer las cuentas para buddy
-					alocate_buddy();
-				}
+				vector_inicializar(keys_space, cache, cache_size);
 			}
+			/*		if (strcmp(string, "PART_DINAM") == 0) {
+			 //hago la tabla de keys y apuntar a la fn ng_store que corresponda
+
+			 double worstCase = engine->config.cache_max_size
+			 / engine->config.chunk_size;
+
+			 key_vector = alocate_vector(worstCase);
+			 keys_space = alocate_keys_space(worstCase);
+			 cache = malloc(engine->config.cache_max_size);
+
+			 cache_size = engine->config.cache_max_size;
+			 part_minima = engine->config.chunk_size;
+			 ultima_posicion = 0;
+
+			 vector_inicializar(keys_space,cache,cache_size);
+
+			 } else {
+
+			 if (strcmp(string, "BUDDY") == 0) {
+			 //apuntar a la fn y hacer las cuentas para buddy
+			 alocate_buddy();
+			 }
+			 }
+			 */
 
 		} else
 			printf("no existe la clave");
 
+
 		//aca ya aloque lo del vector de keys y la cache.
 		void mtrace(void);
 
-		int lock = mlock(cache, engine->config.block_size_max);
+		int lock = mlock(cache, cache_size);
 		if (lock == -1)
 			perror("Error locking the cache");
 
@@ -246,6 +252,12 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
  * Esta función es la que se llama cuando el engine es destruido
  */
 static void dummy_ng_destroy(ENGINE_HANDLE* handle, const bool force) {
+
+	destroy_semaforos();
+	config_destroy(config);
+	free(cache);
+	free(keys_space);
+	free(key_vector);
 	free(handle);
 }
 
@@ -273,16 +285,34 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		const void* cookie, item **item, const void* key, const size_t nkey,
 		const size_t nbytes, const int flags, const rel_time_t exptime) {
 
-//	key_element *it = buscar un lugar para guardarlo!;
+	key_element* (*vector_search)(uint32_t);
 
-	key_element *it = vector_search(cache, nbytes);
+	char *string = config_get_string_value(config, "ESQUEMA");
 
-		if (it == NULL) {
+	if (strcmp(string, "BUDDY") == 0)
+
+		vector_search = &buscarLibreBuddy;
+
+	else {
+		char *string2 = config_get_string_value(config, "PARTICION");
+
+		if (strcmp(string2, "NEXT") == 0)
+			vector_search = &buscarLibreNext;
+		else
+			vector_search = &buscarLibreWorst;
+	}
+
+//buscar un lugar para guardarlo de acuerdo al algoritmo;
+	key_element *it = vector_search(nbytes);
+
+	if (it == NULL) {
 		return ENGINE_ENOMEM;
 	}
-		struct timespec tp;
-		clock_gettime(0, &tp);
+	struct timespec tp;
+	clock_gettime(0, &tp);
 
+// aca necesito semaforo? porque en realidad no uso el vector pero si
+// modifico la direccion que tiene ahi
 	it->flags = flags;
 	it->exptime = 0;
 	it->nkey = nkey;
@@ -348,21 +378,21 @@ static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
 static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 		item** item, const void* key, const int nkey, uint16_t vbucket) {
 
-	// transformamos  la variable key a string
+// transformamos  la variable key a string
 	char strkey[nkey + 1];
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
 
-	// buscamos y obtenemos el item
+// buscamos y obtenemos el item
 	key_element *it = vector_get(strkey);
 
 	if (it == NULL) {
 		return ENGINE_NOT_STORED;
 	}
-	//pregunta el modo FIFO o LRU.
+//pregunta el modo FIFO o LRU.
 	actualizar_key(it);
 
-	//retornamos el item
+//retornamos el item
 	*item = it;
 
 	return ENGINE_SUCCESS;
@@ -391,7 +421,7 @@ static ENGINE_ERROR_CODE dummy_ng_flush(ENGINE_HANDLE* handle,
 		const void* cookie, time_t when) {
 
 //inicializo el vector como al principio
-	vector_inicializar(keys_space,cache,cache_size);
+	vector_inicializar(keys_space, cache, cache_size);
 
 	return ENGINE_SUCCESS;
 }
@@ -414,7 +444,6 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	if (item == NULL) {
 		return ENGINE_KEY_ENOENT;
 	}
-
 
 	dummy_ng_item_release(handle, NULL, item);
 

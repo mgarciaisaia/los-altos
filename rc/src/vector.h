@@ -4,20 +4,6 @@
  *  Created on: 26/05/2012
  *      Author: utnso
  */
-/*
-#include <pthread.h>
-static pthread_mutex_t keyVector = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t posicion = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_lock(&keyVector);
-pthread_mutex_unlock(&keyVector);
-pthread_mutex_lock(&posicion);
-pthread_mutex_unlock(&posicion);
-
-static pthread_rwlock_t posicion = pthread_rwlock_init;
-static pthread_rwlock_t keyVector = pthread_rwlock_init;
-
-*/
-
 
 #include "our_engine.h"
 
@@ -40,8 +26,12 @@ key_element *vector_get(char *key);
 void actualizar_key(key_element *it);
 
 // aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
-key_element *vector_search(void *cache, size_t nbytes);
+key_element *buscarLibreBuddy(size_t nbytes);
+key_element *buscarLibreNext(size_t nbytes);
+key_element *buscarLibreWorst(size_t nbytes);
 
 void vector_clean(void);
+void init_semaforos(void);
+void destroy_semaforos(void);
 
 #endif /* VECTOR_H_ */

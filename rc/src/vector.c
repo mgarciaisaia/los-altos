@@ -7,26 +7,47 @@
 
 #include <src/commons/config.h>
 #include "vector.h"
-#include "our_engine.h"
+#include "manage.h"
 #include <string.h>
-#include <math.h>
-
-#define MAX_KEY 41
+#include <pthread.h>
+#include <stdio.h>
 
 extern key_element *key_vector;
-extern int32_t ultima_posicion;
 extern t_config* config;
 extern uint32_t cantRegistros;
 extern size_t part_minima;
 
+int32_t ultima_posicion;
+//static pthread_rwlock_t *posicion;
+//static pthread_rwlock_t *keyVector;
+
+void init_semaforos(void) {
+	// pthread_rwlockattr_t * attr;
+//	attr->__align = PTHREAD_PROCESS_SHARED;
+//	attr->__size = sizeof(// pthread_rwlockattr_t);
+
+// pthread_rwlockattr_init(attr);
+
+	//	// pthread_rwlockattr_
+	// pthread_rwlockattr_setpshared(attr, (int)PTHREAD_PROCESS_SHARED);
+
+	// pthread_rwlock_init(posicion,attr);
+	// pthread_rwlock_init(keyVector,attr);
+}
+
+void destroy_semaforos(void) {
+	// pthread_rwlock_destroy(posicion);
+	// pthread_rwlock_destroy(keyVector);
+}
 
 // fragmentacionI = espacio inutilizable
-
 //uint32_t fragmentacionI;
 
 int32_t buscarPosLibre(void) {
-
+//analizar si aca conviene buscar a partir de donde quede para no recorrer todo siempre
 	int32_t i = 0;
+
+	// pthread_rwlock_rdlock(keyVector);
 
 	while ((key_vector[i].data_size != 0) && (i < cantRegistros)) {
 		i++;
@@ -35,21 +56,28 @@ int32_t buscarPosLibre(void) {
 	if (i == cantRegistros)
 		i = -1;
 
+	// pthread_rwlock_unlock(keyVector);
+
 	return i;
 
 }
 
 void cargarEnVector(char *keys, void *data, size_t ndata, bool libre,
 		uint32_t pos) {
+	// pthread_rwlock_wrlock(keyVector);
 
 	key_vector[pos].key = keys;
 	key_vector[pos].data = data;
 	key_vector[pos].libre = libre;
 	key_vector[pos].data_size = ndata;
 
+	// pthread_rwlock_unlock(keyVector);
 }
 
 uint32_t borrar(void) {
+
+	// pthread_rwlock_rdlock(keyVector);
+
 	uint32_t resultado, i;
 
 	struct timespec tp;
@@ -68,6 +96,8 @@ uint32_t borrar(void) {
 		}
 	}
 
+	// pthread_rwlock_unlock(keyVector);
+
 	return resultado;
 }
 
@@ -80,11 +110,15 @@ uint32_t borrar(void) {
 void actualizar_key(key_element *it) {
 	struct timespec tp;
 
+	// pthread_rwlock_wrlock(keyVector);
+
 	char *string = config_get_string_value(config, "VICTIM");
 	if (strcmp(string, "LRU") == 0) {
 		clock_gettime(0, &tp);
 		it->tp = tp;
 	}
+	// pthread_rwlock_unlock(keyVector);
+
 }
 
 // Me sirve para los 2 algoritmos
@@ -94,8 +128,12 @@ uint32_t eliminar_particion(void) {
 
 	resultado = borrar();
 
+	// pthread_rwlock_wrlock(keyVector);
+
 	key_vector[resultado].libre = true;
 	key_vector[resultado].stored = false;
+
+	// pthread_rwlock_unlock(keyVector);
 
 	return resultado;
 }
@@ -104,47 +142,62 @@ void compactarDinam(void) {
 
 }
 
+void compactarBuddy(void) {
+
+}
+
 void vector_inicializar(char *keys_space, void *cache, size_t cache_size) {
 	uint32_t i;
 //	fragmentacionI = 0;
-
+	ultima_posicion = 0;
 	cargarEnVector(keys_space, cache, cache_size, true, 0);
+
+//	// pthread_rwlock_wrlock(keyVector);
 
 	for (i = 1; i < cantRegistros; i++) {
 		key_vector[i].libre = true;
 		key_vector[i].stored = false;
 		key_vector[i].data_size = 0;
 	}
+//	// pthread_rwlock_unlock(keyVector);
 
 }
 
-uint32_t buscarLibreNext(void *cache, size_t espacio) {
+key_element *buscarLibreNext(size_t espacio) {
 
+	key_element *resultado;
 	int16_t busquedas_fallidas = 0;
+//	// pthread_rwlock_wrlock(posicion);
+
 	uint32_t i = ultima_posicion;
 	char encontrado = 0;
 
 	// calcula si va a haber fragmentacion
 	int32_t resto = espacio % part_minima;
-//	int32_t cociente = espacio / part_minima;
+	int32_t diferencia = part_minima - resto;
 
+	// pthread_rwlock_rdlock(keyVector);
+// aca dentro hay funciones que usan el bloqueo de escritura,
+// eso no me afecta?
 	while (encontrado == 0) {
 
 		while (!(key_vector[i].libre) && i < cantRegistros) {
 			i++;
 		}
-		if (i == cantRegistros)
+		if (i == cantRegistros) {
 			i = 0;
-		else {
+		} else {
 			if (key_vector[i].data_size >= espacio) {
 				encontrado = 1;
 			}
 		}
-		while (!(key_vector[i].libre) && i < ultima_posicion) {
+		while ((encontrado != 1)
+				&& (!(key_vector[i].libre) && i < ultima_posicion)) {
 			i++;
 		}
-		if (i == ultima_posicion) {
+		if ((i == ultima_posicion) && (encontrado != 1)) {
 
+			// si freq = -1 indica compactar cuando elimine todas
 			int32_t frecuencia = config_get_int_value(config, "FREQ");
 			busquedas_fallidas++;
 
@@ -152,7 +205,7 @@ uint32_t buscarLibreNext(void *cache, size_t espacio) {
 			 * compactar, sino preguntar si es FIFO o LRU y borrar
 			 * una FREQ*/
 
-			if (busquedas_fallidas < frecuencia) {
+			if ((busquedas_fallidas < frecuencia) || (frecuencia = -1)) {
 
 				//eliminar una particion segun esquema
 				uint32_t particion = eliminar_particion();
@@ -168,39 +221,43 @@ uint32_t buscarLibreNext(void *cache, size_t espacio) {
 				encontrado = 1;
 		}
 	}
+	// pthread_rwlock_unlock(keyVector);
+
+//	// pthread_rwlock_wrlock(posicion);
 
 	if ((i + 1) < cantRegistros)
 		ultima_posicion = i + 1;
 	else
 		ultima_posicion = 0;
 
-	/* actualizo la cantidad de fragmentacion que hay*/
-
-/*	if (resto > 0) {
-		fragmentacionI += resto;
-}
-*/
+	// pthread_rwlock_unlock(posicion);
 
 	/* Creo la particion sgte libre si corresponde */
-/* le digo a la sgt pos que tiene menos espacio del q realmente tiene, por efecto de la fragmentacion.
-Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
-porque ahora hago como q no existe
-*/
-	if ((key_vector[i].data_size - espacio - resto) > 0) {
+	/* le digo a la sgt pos que tiene menos espacio del q realmente tiene, por efecto de la fragmentacion.
+	 Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
+	 porque ahora hago como q no existe
+	 */
+	//como ya sincronice las fn aca no pongo semaforos
+	if ((key_vector[i].data_size - espacio - diferencia) > 0) {
 		int32_t posicion = buscarPosLibre();
 		if (posicion != -1) {
+			int32_t MAX_KEY = config_get_int_value(config, "MAX_KEY");
 			cargarEnVector((key_vector[i].key + MAX_KEY),
-					key_vector[i].data + espacio + resto,
-					key_vector[i].data_size - espacio - resto, false, posicion);
+					key_vector[i].data + espacio + diferencia,
+					key_vector[i].data_size - espacio - diferencia, true,
+					posicion);
 		} else
 			printf("No hay posiciones libres en el vector");
 	}
 
-	return i;
+	resultado = &key_vector[i];
+	return resultado;
+
 }
 
-uint32_t buscarLibreWorst(size_t espacio) {
+key_element *buscarLibreWorst(size_t espacio) {
 
+	key_element *resultado;
 	int16_t busquedas_fallidas = 0;
 	uint32_t i = 0;
 	uint32_t pos_mayor_tamano = 0;
@@ -208,15 +265,15 @@ uint32_t buscarLibreWorst(size_t espacio) {
 	char encontrado = 0;
 
 	// calcula si va a haber fragmentacion
-		int32_t resto = espacio % part_minima;
-//		int32_t cociente = espacio / part_minima;
+	int32_t resto = espacio % part_minima;
+	int32_t diferencia = part_minima - resto;
 
-	while (encontrado == 0) {
+	// pthread_rwlock_rdlock(keyVector);
 
-		while (!(key_vector[i].libre) && i < cantRegistros) {
-			i++;
-		}
-		if (i == cantRegistros) {
+	while (((encontrado == 0) || (key_vector[i].data_size > 0))
+			&& (i < cantRegistros)) {
+
+		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
 
 			if (mayor_tamano == 0) {
 
@@ -229,11 +286,10 @@ uint32_t buscarLibreWorst(size_t espacio) {
 				 * compactar, sino preguntar si es FIFO o LRU y borrar
 				 * una FREQ*/
 
-				if (busquedas_fallidas < frecuencia){
+				if ((busquedas_fallidas < frecuencia) || (frecuencia = -1)) {
 					//eliminar una particion segun esquema
 					i = eliminar_particion();
-				}
-				else{
+				} else {
 					// compactar
 					compactarDinam();
 //				fragmentacionI = 0;
@@ -246,9 +302,8 @@ uint32_t buscarLibreWorst(size_t espacio) {
 				} else
 					encontrado = 0;
 			} else {
+				//si llegue al final pero habia encontrado algo
 				encontrado = 1;
-//				uint32_t pos_mayor_tamano = i;
-//				uint32_t mayor_tamano = key_vector[i].data_size;
 			}
 		} else {
 			if ((key_vector[i].data_size >= espacio)
@@ -260,31 +315,32 @@ uint32_t buscarLibreWorst(size_t espacio) {
 			}
 
 		}
+
+		i++;
+
 	}
 
-	/* actualizo la cantidad de fragmentacion que hay*/
-/*
-	if (resto > 0) {
-		fragmentacionI += resto;
-	}
-*/
+	// pthread_rwlock_unlock(keyVector);
+
 	/* Creo la particion sgte libre si corresponde */
 	/* le digo a la sgt pos que tiene menos espacio del q realmente tiene, por efecto de la fragmentacion.
-	Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
-	porque ahora hago como q no existe
-	*/
-	if ((key_vector[i].data_size - espacio - resto) > 0) {
-
+	 Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
+	 porque ahora hago como q no existe
+	 */
+	if ((key_vector[i].data_size - espacio - diferencia) > 0) {
 		int32_t posicion = buscarPosLibre();
 		if (posicion != -1) {
-			cargarEnVector((key_vector[i].key + MAX_KEY),
-					key_vector[i].data + espacio + resto,
-					key_vector[i].data_size - espacio - resto, false, posicion);
+			int32_t MAX_KEY = config_get_int_value(config, "MAX_KEY");
+			cargarEnVector((key_vector[pos_mayor_tamano].key + MAX_KEY),
+					key_vector[pos_mayor_tamano].data + espacio + diferencia,
+					key_vector[pos_mayor_tamano].data_size - espacio
+							- diferencia, true, posicion);
 		} else
 			printf("No hay posiciones libres en el vector");
 	}
-	return pos_mayor_tamano;
 
+	resultado = &key_vector[pos_mayor_tamano];
+	return resultado;
 }
 
 //busca el item con esa key y lo devuelve.
@@ -292,6 +348,8 @@ key_element *vector_get(char *key) {
 	key_element *resultado;
 	uint32_t i;
 	//buscar la key en el vector
+
+	// pthread_rwlock_rdlock(keyVector);
 
 	while ((strcmp(key_vector[i].key, key) != 0) && (i < cantRegistros)) {
 		i++;
@@ -306,48 +364,81 @@ key_element *vector_get(char *key) {
 		else
 			resultado = NULL;
 	}
+	// pthread_rwlock_unlock(keyVector);
+
 	return resultado;
 }
 
 // aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
-key_element *vector_search(void *cache, size_t nbytes) {
+key_element *buscarLibreBuddy(size_t espacio) {
 
 	key_element *resultado;
+	int16_t busquedas_fallidas = 0;
+	uint32_t i = 0;
+	char encontrado = 0;
 
-	uint32_t valor;
-	char *string = config_get_string_value(config, "PARTICION");
-	if (strcmp(string, "NEXT") == 0)
-		valor = buscarLibreNext(cache, nbytes);
-	else {
-		if (strcmp(string, "WORST") == 0)
-			valor = buscarLibreWorst(nbytes);
+	// calcula si va a haber fragmentacion
+	int32_t resto = espacio % part_minima;
+	int32_t diferencia = part_minima - resto;
+
+	// pthread_rwlock_rdlock(keyVector);
+
+	while (((encontrado == 0) || (key_vector[i].data_size > 0))
+			&& (i < cantRegistros)) {
+
+		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
+
+			//si llegue al final sin encontrar ninguno
+
+			int32_t frecuencia = config_get_int_value(config, "FREQ");
+			busquedas_fallidas++;
+
+			/* preguntar frecuencia de compactacion; si aplica,
+			 * compactar, sino preguntar si es FIFO o LRU y borrar
+			 * una FREQ*/
+
+			if ((busquedas_fallidas < frecuencia) || (frecuencia = -1)) {
+				//eliminar una particion segun esquema
+				i = eliminar_particion();
+			} else
+				// compactar
+				compactarBuddy();
+
+			if (key_vector[i].data_size >= espacio)
+				encontrado = 1;
+			else
+				encontrado = 0;
+
+		} else {
+			//si encontre algo
+
+			/* ver de encontrar el mejor lugar y sino partir la memoria hasta encontrarlo*/
+			encontrado = 1;
+		}
+
+		i++;
 	}
 
-	resultado = &key_vector[valor];
+	// pthread_rwlock_unlock(keyVector);
+
+	/* Creo la particion sgte libre si corresponde */
+	/* le digo a la sgt pos que tiene menos espacio del q realmente tiene, por efecto de la fragmentacion.
+	 Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
+	 porque ahora hago como q no existe
+	 *
+	 if ((key_vector[i].data_size - espacio - diferencia) > 0) {
+	 int32_t posicion = buscarPosLibre();
+	 if (posicion != -1) {
+	 int32_t MAX_KEY = config_get_int_value(config, "MAX_KEY");
+	 cargarEnVector((key_vector[pos_mayor_tamano].key + MAX_KEY),
+	 key_vector[pos_mayor_tamano].data + espacio + diferencia,
+	 key_vector[pos_mayor_tamano].data_size - espacio - diferencia, true, posicion);
+	 } else
+	 printf("No hay posiciones libres en el vector");
+	 }
+
+	 */
+	resultado = &key_vector[i];
 	return resultado;
 }
 
-/*void vector_clean(void) {
-
- //	INICIALIZARLO COMO AL PRINCIPIO
- // como traigo el tamaño de la cache?
- uint32_t i;
-
- for (i = 1; i < cantRegistros; i++) {
- key_vector[i].libre = true;
- key_vector[i].stored = false;
- key_vector[i].data_size = 0;
- }
-
- }*/
-
-//devuelve los datos que estaban en esa key y la libera
-/*void *vector_remove(char *key) {
-
- key_element *resultado = vector_get(key);
-
- resultado->libre = true;
- resultado->stored = false;
-
- return resultado->data;
- }*/

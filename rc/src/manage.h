@@ -9,8 +9,8 @@
 #ifndef MANAGE_H_
 #define MANAGE_H_
 
-key_element *alocate_keysDinam(double worstCase);
-char *alocate_keys_space(double worstCase);
-void alocate_buddy(void);
+key_element *alocate_vector(void);
+char *alocate_keys_space(void);
+bool esPotenciaDe(uint32_t valor);
 
 #endif /* MANAGE_H_ */
