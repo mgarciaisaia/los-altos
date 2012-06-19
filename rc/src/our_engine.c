@@ -437,7 +437,8 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
 
-//	void *item = vector_remove(strkey);
+//	Aca tengo que preguntar si para buddy cuando elimino algo
+//	tengo que ir compactando.
 
 	key_element *item = vector_get(strkey);
 
