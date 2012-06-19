@@ -147,7 +147,25 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
  * Manda un nipc_attr, o nipc_error
  */
 void serve_getattr(int socket, struct nipc_getattr *request) {
+    char *path = request->path;
+    struct readdir_entry *attributes = malloc(sizeof(struct readdir_entry));
     // FIXME: Implementar. Va a ser algo heavy como el serve_readdir, pero no tanto
+    if (strcmp(path, "/") == 0) {
+        attributes->mode = S_IFDIR | 0755;
+        attributes->n_link = 2;
+    } else if(strcmp(path, "/nueva") == 0) {
+        // FIXME: error
+        //return -ENOENT;
+    } else if (strcmp(path, "/aa") == 0) {
+        attributes->mode = S_IFDIR | 0755;
+        attributes->n_link = 2;
+    } else {
+        attributes->mode = S_IFREG | 0755;
+        attributes->n_link = 1;
+        attributes->size = 32350;
+    }
+    struct nipc_getattr_response *response = new_nipc_getattr_response(attributes);
+    nipc_send(socket, response->serialize(response));
 }
 
 /**

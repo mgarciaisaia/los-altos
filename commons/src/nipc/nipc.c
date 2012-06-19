@@ -574,8 +574,12 @@ struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength) {
 
 
 
-
 static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_response *payload) {
+    /**
+     * Cuando escribi esto, solo Dios y yo lo entendiamos.
+     *
+     * Ahora es solo el.
+     */
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
 
     int index;
@@ -590,7 +594,6 @@ static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_respon
         serializedEntry = malloc(entrySize);
         serializedEntries[index] = serializedEntry;
 
-        // FIXME: chequear que se esten haciendo bien estos +=
         memcpy(serializedEntry, &entrySize, sizeof(entrySize));
         serializedEntry += sizeof(entrySize);
         memcpy(serializedEntry, &entry->mode, sizeof(entry->mode));
@@ -671,4 +674,67 @@ struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength,
     instance->entriesLength = entriesLength;
     instance->entries = entries;
     return instance;
+}
+
+
+
+
+
+static struct nipc_packet* serialize_getattr_response(struct nipc_getattr_response *payload) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+    packet->type = payload->nipcType;
+
+    packet->data_length = sizeof(payload->entry->mode) + sizeof(payload->entry->n_link) + sizeof(payload->entry->size);
+    packet->data = malloc(packet->data_length);
+
+    void *data = packet->data;
+
+    memcpy(data, &(payload->entry->mode), sizeof(payload->entry->mode));
+    data += sizeof(payload->entry->mode);
+
+    memcpy(data, &(payload->entry->n_link), sizeof(payload->entry->n_link));
+    data += sizeof(payload->entry->n_link);
+
+    memcpy(data, &(payload->entry->size), sizeof(payload->entry->n_link));
+
+    free(payload->entry);
+    free(payload);
+
+    return packet;
+}
+
+struct nipc_getattr_response* empty_nipc_getattr_response() {
+    struct nipc_getattr_response *instance = malloc(sizeof(struct nipc_getattr_response));
+    instance->nipcType = nipc_getattr_response;
+    instance->serialize = &serialize_getattr_response;
+    return instance;
+}
+
+struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* packet) {
+    if (packet->type != nipc_getattr_response) {
+        // FIXME: agregar todos los return nipc_error() despues de perror
+        perror("Error desearilzando paquete - tipo invalido");
+    }
+    struct nipc_getattr_response* instance = empty_nipc_getattr_response();
+    instance->entry = malloc(sizeof(struct readdir_entry));
+    void *data = packet->data;
+
+    memcpy(&(instance->entry->mode), data, sizeof(instance->entry->mode));
+    data += sizeof(instance->entry->mode);
+
+    memcpy(&(instance->entry->n_link), data, sizeof(instance->entry->n_link));
+    data += sizeof(instance->entry->n_link);
+
+    memcpy(&(instance->entry->size), data, sizeof(instance->entry->size));
+
+    free(packet->data);
+    free(packet);
+
+    return instance;
+}
+
+struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry) {
+    struct nipc_getattr_response *response = empty_nipc_getattr_response();
+    response->entry = entry;
+    return response;
 }

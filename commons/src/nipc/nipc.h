@@ -256,4 +256,14 @@ struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength,
 
 
 
+struct nipc_getattr_response {
+    enum tipo_nipc nipcType;
+    struct nipc_packet* (*serialize)(struct nipc_getattr_response*);
+    struct readdir_entry *entry;
+};
+
+struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* packet);
+
+struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry);
+
 #endif /* NIPC_H_ */

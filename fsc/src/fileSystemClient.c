@@ -283,62 +283,20 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
-    if (strcmp(path, "/") == 0) {
-        statbuf->st_mode = S_IFDIR | 0755;
-        statbuf->st_nlink = 2;
-    } else if(strcmp(path, "/nueva") == 0) {
-        return -ENOENT;
-    } else if (strcmp(path, "/aa") == 0) {
-        statbuf->st_mode = S_IFDIR | 0755;
-        statbuf->st_nlink = 2;
-    } else {
-        statbuf->st_mode = S_IFREG | 0755;
-        statbuf->st_nlink = 1;
-        statbuf->st_size = 32350;
-    }
-    return 0;
     printf("%d, %s\n", nipc_getattr, path);
     struct nipc_getattr* getattrData = new_nipc_getattr(path);
     struct nipc_packet* packet = getattrData->serialize(getattrData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
     if(response->type == nipc_getattr_response) {
-        // FIXME: implementar
-        // FIXME: implementar
-        // FIXME: implementar
+        struct nipc_getattr_response *getattr = deserialize_getattr_response(response);
 
-        if (strcmp(path, "/") == 0) {
-            statbuf->st_mode = S_IFDIR | 0755;
-            statbuf->st_nlink = 2;
-        } else if(strcmp(path, "/nueva") == 0) {
-            return -ENOENT;
-        } else if (strcmp(path, "/aa") == 0) {
-            statbuf->st_mode = S_IFDIR | 0755;
-            statbuf->st_nlink = 2;
-        } else {
-            statbuf->st_mode = S_IFREG | 0755;
-            statbuf->st_nlink = 1;
-            statbuf->st_size = 32350;
-        }
+        statbuf->st_mode = getattr->entry->mode;
+        statbuf->st_nlink = getattr->entry->n_link;
+        statbuf->st_size = getattr->entry->size;
+
         return 0;
     } else {
-        // FIXME: sacar
-                // FIXME: sacar
-                // FIXME: sacar
-
-                if (strcmp(path, "/") == 0) {
-                    statbuf->st_mode = S_IFDIR | 0755;
-                    statbuf->st_nlink = 2;
-                } else if(strcmp(path, "/nueva") == 0) {
-                    return -ENOENT;
-                } else if (strcmp(path, "/aa") == 0) {
-                    statbuf->st_mode = S_IFDIR | 0755;
-                    statbuf->st_nlink = 2;
-                } else {
-                    statbuf->st_mode = S_IFREG | 0755;
-                    statbuf->st_nlink = 1;
-                    statbuf->st_size = 32350;
-                }
-                return 0;
+        // FIXME: ENOENT y esos?
         return check_error("getattr", path, response);
     }
 }
