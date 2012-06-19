@@ -295,8 +295,9 @@ int remote_getattr(const char *path, struct stat *statbuf) {
         statbuf->st_size = getattr->entry->size;
 
         return 0;
+    } else if(response->type == nipc_getattr_error) {
+        return *(int*)response->data;
     } else {
-        // FIXME: ENOENT y esos?
         return check_error("getattr", path, response);
     }
 }

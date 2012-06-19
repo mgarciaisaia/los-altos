@@ -18,7 +18,8 @@ enum tipo_nipc {
     nipc_ok,
     nipc_read_response,
     nipc_readdir_response,
-    nipc_getattr_response
+    nipc_getattr_response,
+    nipc_getattr_error
 };
 
 struct nipc_packet {
@@ -265,5 +266,7 @@ struct nipc_getattr_response {
 struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* packet);
 
 struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry);
+
+struct nipc_packet *new_getattr_error(int errorNumber);
 
 #endif /* NIPC_H_ */

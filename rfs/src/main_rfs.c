@@ -20,6 +20,7 @@
 #include "src/nipc/nipc.h"
 #include <fcntl.h>
 #include <sys/types.h>
+#include <errno.h>
 
 
 
@@ -32,9 +33,6 @@ void send_ok(int socket) {
  * Si el path puede abrirse, manda un nipc_ok, sino un nipc_error
  */
 void serve_open(int socket, struct nipc_open *request) {
-    printf("SEEEEEEEEEEEEEEEEE!!!!!!!!!");
-    printf("Path: %s\nType: %d\nFlags: %d\n", request->path, request->nipcType,
-            request->flags);
     // FIXME: contestar si puede o no abrir el archivo
     send_ok(socket);
 }
@@ -154,8 +152,8 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
         attributes->mode = S_IFDIR | 0755;
         attributes->n_link = 2;
     } else if(strcmp(path, "/nueva") == 0) {
-        // FIXME: error
-        //return -ENOENT;
+        nipc_send(socket, new_getattr_error(-ENOENT));
+        return;
     } else if (strcmp(path, "/aa") == 0) {
         attributes->mode = S_IFDIR | 0755;
         attributes->n_link = 2;

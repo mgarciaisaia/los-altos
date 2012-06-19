@@ -738,3 +738,15 @@ struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *en
     response->entry = entry;
     return response;
 }
+
+struct nipc_packet *new_getattr_error(int errorNumber) {
+    struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
+
+    packet->type = nipc_getattr_error;
+    packet->data_length = sizeof(errorNumber);
+    packet->data = malloc(packet->data_length);
+
+    memcpy(packet->data, &errorNumber, sizeof(errorNumber));
+
+    return packet;
+}
