@@ -239,3 +239,19 @@ static void string_do(char *text, void (*closure)(char* c)){
 		i++;
 	}
 }
+//todo : mover a otro archivo
+int size_array_before_split(char *text, char *separator) {
+	int size = 0;
+
+	char *text_to_iterate = string_duplicate(text);
+	char *token = NULL, *next = NULL;
+	token = strtok_r(text_to_iterate, separator, &next);
+
+	while (token != NULL) {
+		size++;
+		token = strtok_r(NULL, separator, &next);
+	}
+
+	free(text_to_iterate);
+	return size;
+}

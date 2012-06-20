@@ -39,4 +39,6 @@
 
 	void 	string_iterate_lines(char ** strings, void (*closure)(char *));
 
+	int size_array_before_split(char *text, char *separator);
+
 #endif /* STRING_H_ */
