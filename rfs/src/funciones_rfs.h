@@ -142,9 +142,9 @@
 
 
 	bool esInodoDirectorio(uint32_t nroInodo);
-	struct INode * buscarInodoQueGestiona(struct INode * inodoDeBusqueda,char * ruta);
+	struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
 
-	t_list * leerDirectorio(char *);
+	t_list * listarDirectorio(char *);
 	t_list * cargarEntradasDirectorioALista(struct INode *);
 
 
@@ -168,5 +168,9 @@
 	void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size);
 	void leerArchivo(char * path,uint32_t offset,uint32_t size);
 
+	struct INode * getInodoDeLaDireccionDelPath(char * path);
+	void truncarArchivo(char * path,uint32_t offset);
+	uint32_t getNroBloqueDeDato(struct INode * inodo,uint32_t nroBloqueLogico);
+	void liberarDeBitMapDeBloques(uint32_t nroBloqueDeDatos);
 
 #endif /* FUNCIONES_RFS_H_ */

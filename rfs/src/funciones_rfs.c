@@ -328,6 +328,7 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 	return ptr_arch + nroBloque * tamanio_bloque;
 }
 
+//todo: deprecated
 void leerBloquesInodos(struct INode * inodo){
 
 	leerBloquesDirectos(inodo);
@@ -337,12 +338,14 @@ void leerBloquesInodos(struct INode * inodo){
 
 }
 
+// todo: deprecated
 void leerBloquesDirectos(struct INode * inodo){
 	int i;
 	for(i = 0;i < 12;i++)
 		printf("bloque directo: %d %u\n",i+1,inodo->blocks[i]);
 }
 
+// todo: deprecated
 void leerIndireccionSimple(uint32_t iblock){
 
 	uint8_t * inicio = posicionarInicioBloque(iblock);
@@ -356,6 +359,7 @@ void leerIndireccionSimple(uint32_t iblock){
 
 }
 
+// todo: deprecated
 void leerIndireccionDoble(uint32_t iiblock){
 
 	uint8_t * inicio = posicionarInicioBloque(iiblock);
@@ -369,6 +373,7 @@ void leerIndireccionDoble(uint32_t iiblock){
 
 }
 
+// todo: deprecated
 void leerIndireccionTriple(uint32_t iiiblock){
 
 	uint8_t * inicio = posicionarInicioBloque(iiiblock);
@@ -382,22 +387,13 @@ void leerIndireccionTriple(uint32_t iiiblock){
 
 }
 
-t_list * leerDirectorio(char * path){
-//	leerBloquesDeDatosHasta(inodoArchivo->size);
-	char * separador = "/";
-	char ** ruta_separada = string_split(path,separador);
-	int tamanio_ruta_separada = size_array_before_split(path,separador);
-	struct INode * inodoDeBusqueda = getInodo(2); // el inodo 2 es el directorio raíz
-	int i;
-	for(i = 0;i < tamanio_ruta_separada;i++){
-		printf("inodo size: %u\n",inodoDeBusqueda->size);
-		inodoDeBusqueda = buscarInodoQueGestiona(inodoDeBusqueda,ruta_separada[i]);
-	}
+t_list * listarDirectorio(char * path){
+	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
 	// todo: cargar en las estructuras
 	return cargarEntradasDirectorioALista(inodoDeBusqueda);
 }
 
-struct INode * buscarInodoQueGestiona(struct INode * inodoDeBusqueda,char * ruta){
+struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta){
 
 	struct INode * inodoBuscado = NULL;
 	uint32_t tamanio_directorio = inodoDeBusqueda->size;
@@ -460,30 +456,18 @@ t_list * cargarEntradasDirectorioALista(struct INode * inodo){
 		}
 
 	}
-
 	return lista;
 }
 
 void leerArchivo(char * path,uint32_t offset,uint32_t size){
 
-	char * separador = "/";
-	char ** ruta_separada = string_split(path,separador);
-	int tamanio_ruta_separada = size_array_before_split(path,separador);
-	struct INode * inodoDeBusqueda = getInodo(2); // el inodo 2 es el directorio raíz
-	int i;
-	for(i = 0;i < tamanio_ruta_separada;i++){
-		printf("inodo size: %u\n",inodoDeBusqueda->size);
-		inodoDeBusqueda = buscarInodoQueGestiona(inodoDeBusqueda,ruta_separada[i]);
-	}
-	if(inodoDeBusqueda->size < offset + size)
+	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+	if((size <= 0) || (inodoDeBusqueda->size <= offset + size))
 		perror("no es posible realizar la lectura");
 	guardarDatosArchivos(inodoDeBusqueda,offset,size);
 }
 
 void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size){
-//	inodo->size;
-	printf("inodo_size: %u\n",inodo->size);
-
 	while(size > 0){
 		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
@@ -505,8 +489,6 @@ void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size){
 		}
 		printf("%s\n",string_archivo);
 	}
-
-//	return ptr;
 }
 
 uint32_t nroBloqueDentroDelInodo(uint32_t offset){
@@ -582,6 +564,61 @@ uint32_t posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroB
 
 void * posicionarme(struct INode * inodo,uint32_t nroBloqueLogico,uint32_t desplazamiento){
 	void * ptr;
+	uint32_t nroBloqueDeDato = getNroBloqueDeDato(inodo,nroBloqueLogico);
+	printf("nroBloqueDeDato %u\n",nroBloqueDeDato);
+	ptr = desplazarme(nroBloqueDeDato, desplazamiento);
+	return ptr;
+}
+
+void * desplazarme(uint32_t nroBloqueDeDato,uint32_t desplazamiento){
+	uint8_t * inicio = posicionarInicioBloque(nroBloqueDeDato);
+	return inicio += desplazamiento;
+}
+
+/*
+ * Desc: me devuelve el inodo que maneja la ultima ruta del path
+ * Ej: si le paso path = "carpeta/archivo", me da el inodo que gestiona a 'archivo'
+ */
+struct INode * getInodoDeLaDireccionDelPath(char * path){
+	char * separador = "/";
+	char ** ruta_separada = string_split(path,separador);
+	int tamanio_ruta_separada = size_array_before_split(path,separador);
+	struct INode * inodoDeBusqueda = getInodo(2); // el inodo 2 es el directorio raíz
+	int i;
+	for(i = 0;i < tamanio_ruta_separada;i++){
+		printf("inodo size: %u\n",inodoDeBusqueda->size);
+		inodoDeBusqueda = buscarInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
+	}
+	return inodoDeBusqueda;
+}
+
+//void truncarArchivo(char * path,uint32_t size){
+//	struct INode * inodoPath = getInodoDeLaDireccionDelPath(path);
+//	if(size == 0)
+//		printf("no hay cambio");
+//	uint32_t offsetEOF = inodoPath->size - 1;
+//
+//	if(size < 0)
+//		if(offsetEOF < abs(size)) // si el size es negativo y es mayor en valor absoluto que el tamanio del archivo: error
+//			perror("truncamiento invalido");
+//		else
+//			while(size < 0){
+//				if(offsetEOF > tamanio_bloque){
+//					uint32_t resto = desplazamientoDentroDelBloque(offsetEOF);
+//					uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF);
+//					size += resto;
+//					offsetEOF -= resto;
+//					uint32_t nroBloqueDeDato = getNroBloqueDeDato(inodoPath,nroBloqueLogico);
+//					liberarDeBitMapDeBloques(nroBloqueDeDato);
+//				}
+//			}
+//}
+
+/*
+ * Desc: mediante el inodo y un número de bloque lógico, me devuelve el número de bloque de dato que
+ * esta en el numero de bloque lógico
+ */
+uint32_t getNroBloqueDeDato(struct INode * inodo,uint32_t nroBloqueLogico){
 	uint32_t nroBloqueDeDato;
 	if (esBloqueDirecto(nroBloqueLogico)){
 		nroBloqueDeDato = inodo->blocks[nroBloqueLogico];
@@ -592,12 +629,24 @@ void * posicionarme(struct INode * inodo,uint32_t nroBloqueLogico,uint32_t despl
 	} else if (esIndireccionTriple(nroBloqueLogico)){
 		nroBloqueDeDato = posicionarIndireccionTriple(inodo->iiiblock, nroBloqueLogico);
 	}
-	printf("nroBloqueDeDato %u\n",nroBloqueDeDato);
-	ptr = desplazarme(nroBloqueDeDato, desplazamiento);
-	return ptr;
+	return nroBloqueDeDato;
 }
 
-void * desplazarme(uint32_t nroBloqueDeDato,uint32_t desplazamiento){
-	uint8_t * inicio = posicionarInicioBloque(nroBloqueDeDato);
-	return inicio += desplazamiento;
-}
+/*
+ * Marca como libre al numero de bloque de dato pasado por parametro
+ */
+//void liberarDeBitMapDeBloques(uint32_t nroBloqueDeDatos){
+//	struct Superblock *sb = read_superblock();
+//	//todo : ver si funca para todos los casos
+//	uint32_t nroGrupo = (nroBloqueDeDatos - 1) / sb->blocks_per_group;
+//	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
+//	uint32_t nroBlockBitmap = grupo->block_bitmap;
+//	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
+//	int cantBytes = sb->blocks_per_group / 8;
+//	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
+//	while(nroBloqueDeDatos > sb->blocks_per_group)
+//		nroBloqueDeDatos -= sb->blocks_per_group;
+//	(grupo->free_blocks_count)++;
+//	(sb->free_blocks)++;
+//	bitarray_clean_bit(ptrBit,nroBloqueDeDatos - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos es >= 1
+//}
