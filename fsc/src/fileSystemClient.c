@@ -330,7 +330,25 @@ static struct fuse_operations remote_operations = {
 		.truncate = remote_truncate
 };
 
+int remote_handshake() {
+    struct nipc_packet* response = nipc_query(new_nipc_handshake_hello(), fileSystemIP, fileSystemPort);
+    if(response->type == nipc_handshake) {
+        if(strcmp(response->data, HANDSHAKE_OK)) {
+            printf("handshake: respuesta no reconocida\n");
+            return -1;
+        } else {
+            printf("handshake: ok");
+            return 0;
+        }
+    } else {
+        return check_error("handshake", "", response);
+    }
+}
+
 int main(int argc, char *argv[]) {
-    // deberia conectarme con el RFS antes del fuse_main
+    // FIXME: parametros de configuracion
+    if(remote_handshake()) {
+        return -1;
+    }
 	return fuse_main(argc, argv, &remote_operations, NULL);
 }

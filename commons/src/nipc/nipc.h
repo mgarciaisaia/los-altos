@@ -2,6 +2,9 @@
 #define NIPC_H_
 #include <sys/types.h>
 
+#define HANDSHAKE_HELLO "Estan listos?"
+#define HANDSHAKE_OK "Si capitan!"
+
 enum tipo_nipc {
     nipc_create,
     nipc_open,
@@ -19,7 +22,8 @@ enum tipo_nipc {
     nipc_read_response,
     nipc_readdir_response,
     nipc_getattr_response,
-    nipc_getattr_error
+    nipc_getattr_error,
+    nipc_handshake
 };
 
 struct nipc_packet {
@@ -268,5 +272,9 @@ struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* p
 struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry);
 
 struct nipc_packet *new_getattr_error(int errorNumber);
+
+struct nipc_packet *new_nipc_handshake_hello();
+
+struct nipc_packet *new_nipc_handshake_ok();
 
 #endif /* NIPC_H_ */

@@ -750,3 +750,20 @@ struct nipc_packet *new_getattr_error(int errorNumber) {
 
     return packet;
 }
+
+struct nipc_packet *new_nipc_handshake(char *message) {
+    struct nipc_packet *packet = malloc(sizeof(struct nipc_packet));
+    packet->type = nipc_handshake;
+    packet->data_length = strlen(message);
+    packet->data = malloc(packet->data_length);
+    strcpy(packet->data, message);
+    return packet;
+}
+
+struct nipc_packet *new_nipc_handshake_hello() {
+    return new_nipc_handshake(HANDSHAKE_HELLO);
+}
+
+struct nipc_packet *new_nipc_handshake_ok() {
+    return new_nipc_handshake(HANDSHAKE_OK);
+}

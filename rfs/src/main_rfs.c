@@ -183,6 +183,14 @@ void serve_unknown(int socket, struct nipc_packet *request) {
     nipc_send(socket, error);
 }
 
+void serve_handshake(int socket, struct nipc_packet *request) {
+    if(!strcmp(request->data, HANDSHAKE_HELLO)) {
+        nipc_send(socket, new_nipc_handshake_ok());
+    } else {
+        printf("handshake: HELLO no reconocido (%d)", request->type);
+    }
+}
+
 void *serveRequest(void *socketPointer) {
     int socket = *(int *) socketPointer;
     struct nipc_packet *request = nipc_receive(socket);
@@ -219,6 +227,9 @@ void *serveRequest(void *socketPointer) {
         break;
     case nipc_truncate:
         serve_truncate(socket, deserialize_truncate(request));
+        break;
+    case nipc_handshake:
+        serve_handshake(socket, request);
         break;
     default:
         serve_unknown(socket, request);
