@@ -9,10 +9,13 @@
 #include "src/sockets/sockets.h"
 #include <errno.h>
 #include <string.h>
+#include "src/commons/log.h"
 
-//FIXME: parametrizar
+// FIXME: parametrizar
 #define fileSystemIP "127.0.0.1"
 #define fileSystemPort 3087
+
+t_log *logger;
 
 
 /**
@@ -24,6 +27,16 @@
  * FIXME: falta hacer free() a todos los response
  * FIXME: falta hacer free() a todos los response
  */
+void logger_operation(const char *operation, const char *path) {
+    // FIXME: sincronizar con un mutex
+    log_debug(logger, "Operacion recibida: %s en %s", operation, path);
+}
+
+void logger_operation_read_write(const char *operation, const char *path, size_t size, off_t offset) {
+    // FIXME: sincronizar con un mutex
+    log_debug(logger, "Operacion recibida: %s en %s (@%lu, %lu bytes)", operation, path, offset, size);
+}
+
 int check_error(const char *operation, const char *path, struct nipc_packet *response) {
     if(response->type == nipc_error) {
         printf("%s %s: %s\n", operation, path, (char*)response->data);
@@ -54,6 +67,7 @@ int check_ok_error(const char *operation, const char *path, struct nipc_packet *
  * Introduced in version 2.5
  */
 int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
+    logger_operation("create", path);
     struct nipc_create* createData = new_nipc_create(path, mode);
     struct nipc_packet* packet = createData->serialize(createData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -82,6 +96,7 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
+    logger_operation("open", path);
     struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
     struct nipc_packet* packet = openData->serialize(openData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -118,6 +133,7 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
  * return       output      amount of bytes read, or negated error number on error
  */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
+    logger_operation_read_write("read", path, size, offset);
     struct nipc_read* readData = new_nipc_read(path, size, offset);
     struct nipc_packet* packet = readData->serialize(readData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -141,6 +157,7 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
+    logger_operation_read_write("write", path, size, offset);
     struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
     struct nipc_packet* packet = writeData->serialize(writeData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -167,6 +184,7 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
+    logger_operation("release", path);
     struct nipc_release* releaseData = new_nipc_release(path, fileInfo->flags);
     struct nipc_packet* packet = releaseData->serialize(releaseData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -175,7 +193,7 @@ int remote_release(const char *path, struct fuse_file_info *fileInfo) {
 
 /** Remove a file */
 int remote_unlink(const char *path) {
-    printf("%d, %s\n", nipc_unlink, path);
+    logger_operation("unlink", path);
     struct nipc_unlink* unlinkData = new_nipc_unlink(path);
     struct nipc_packet* packet = unlinkData->serialize(unlinkData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -184,7 +202,7 @@ int remote_unlink(const char *path) {
 
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
-    printf("%d, %d, %s\n", nipc_mkdir, mode, path);
+    logger_operation("mkdir", path);
     struct nipc_mkdir* mkdirData = new_nipc_mkdir(path, mode);
     struct nipc_packet* packet = mkdirData->serialize(mkdirData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -226,7 +244,7 @@ int remote_mkdir(const char *path, mode_t mode) {
  * return     output    negated error number, or 0 if everything went OK
  */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
-    printf("%d, %s, %lu\n", nipc_readdir, path, offset);
+    logger_operation("readdir", path);
     struct nipc_readdir* readdirData = new_nipc_readdir(path, offset);
     struct nipc_packet* packet = readdirData->serialize(readdirData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -258,7 +276,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
 
 /** Remove a directory */
 int remote_rmdir(const char *path) {
-    printf("%d, %s\n", nipc_rmdir, path);
+    logger_operation("rmdir", path);
     struct nipc_rmdir* rmdirData = new_nipc_rmdir(path);
     struct nipc_packet* packet = rmdirData->serialize(rmdirData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -283,7 +301,7 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
-    printf("%d, %s\n", nipc_getattr, path);
+    logger_operation("getattr", path);
     struct nipc_getattr* getattrData = new_nipc_getattr(path);
     struct nipc_packet* packet = getattrData->serialize(getattrData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -306,7 +324,7 @@ int remote_getattr(const char *path, struct stat *statbuf) {
  * Change the size of a file
  */
 int remote_truncate(const char * path, off_t offset) {
-    printf("%d, %s, %lu\n", nipc_truncate, path, offset);
+    logger_operation("truncate", path);
     struct nipc_truncate* truncateData = new_nipc_truncate(path, offset);
     struct nipc_packet* packet = truncateData->serialize(truncateData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -347,8 +365,16 @@ int remote_handshake() {
 
 int main(int argc, char *argv[]) {
     // FIXME: parametros de configuracion
+#define LOG_LEVEL "DEBUG"
     if(remote_handshake()) {
         return -1;
     }
-	return fuse_main(argc, argv, &remote_operations, NULL);
+    logger = log_create("fsc.log", "FSC", 1, log_level_from_string(LOG_LEVEL));
+    if(logger == NULL) {
+        perror("No hay logger");
+        return -1;
+    }
+	int fuseReturn = fuse_main(argc, argv, &remote_operations, NULL);
+    log_destroy(logger);
+    return fuseReturn;
 }
