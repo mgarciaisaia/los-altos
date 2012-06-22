@@ -18,6 +18,7 @@ struct key_element {
 	size_t nkey;
 	bool stored;
 	size_t data_size;
+	size_t data_unuse;
 	void *data;
 	int32_t flags;
 	bool libre;

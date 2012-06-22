@@ -285,6 +285,10 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		const void* cookie, item **item, const void* key, const size_t nkey,
 		const size_t nbytes, const int flags, const rel_time_t exptime) {
 
+	char strkey[nkey + 1];
+	memcpy(strkey, key, nkey);
+	strkey[nkey] = '\0';
+
 	key_element* (*vector_search)(uint32_t);
 
 	char *string = config_get_string_value(config, "ESQUEMA");
@@ -303,7 +307,22 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	}
 
 //buscar un lugar para guardarlo de acuerdo al algoritmo;
-	key_element *it = vector_search(nbytes);
+
+	key_element *it;
+
+	key_element *almacenada = vector_get(strkey);
+	if (almacenada != NULL){
+		//si la clave estaba ya la libero y pregunto si mis datos entran ahi
+		almacenada->libre = true;
+		almacenada->stored = false;
+
+		if(almacenada->data_size >= nbytes)
+			it = almacenada;
+		else
+			it = vector_search(nbytes);
+	}else
+		it = vector_search(nbytes);
+
 
 	if (it == NULL) {
 		return ENGINE_ENOMEM;
@@ -442,6 +461,17 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 
 	key_element *item = vector_get(strkey);
 
+/*Falta arreglar esto para pasarle a elmina_buddy la posicion en el vector
+ *
+	char *string = config_get_string_value(config, "ESQUEMA");
+
+	if (strcmp(string, "BUDDY") == 0){
+
+	size_t new_data_size = elimina_buddy(&item);
+	item->data_size = new_data_size;
+
+	}
+*/
 	if (item == NULL) {
 		return ENGINE_KEY_ENOENT;
 	}
@@ -450,7 +480,6 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 
 	return ENGINE_SUCCESS;
 }
-
 /*
  * ************************************* Funciones Dummy *************************************
  */
