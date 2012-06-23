@@ -19,11 +19,13 @@ void vector_inicializar(char*, void*, size_t);
 void cargarEnVector(char *keys, void *data, size_t ndata, bool libre,
 		uint32_t pos);
 
-//busca la clave en el vector
-key_element *vector_get(char *key);
+//busca la clave en el vector y devuelve la posicion en donde esta
+int32_t vector_get(char *key);
 
 //si es lru actualiza la hora del elemento, si no no.
 void actualizar_key(key_element *it);
+//si es buddy cuando elimina uno, ademas lo va compactando
+uint32_t elimina_buddy(uint32_t posicion_org);
 
 // aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
 key_element *buscarLibreBuddy(size_t nbytes);

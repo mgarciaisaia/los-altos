@@ -24,7 +24,7 @@
 #include <src/commons/config.h>
 #include <stdio.h>
 
-#define PATH_CONFIG "/home/utnso/Desarrollo/configuracion"
+#define PATH_CONFIG "/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/configuracion"
 
 /*
  * Estas son las funciones estaticas necesarias para que el engine funcione
@@ -265,7 +265,7 @@ static void dummy_ng_destroy(ENGINE_HANDLE* handle, const bool force) {
  * Esto retorna algo de información la cual se muestra en la consola
  */
 static const engine_info* dummy_ng_get_info(ENGINE_HANDLE* handle) {
-	static engine_info info = { .description = "Dummy Engine v0.1",
+	static engine_info info = { .description = "Our Engine SO",
 			.num_features = 0, .features = { [0].feature = ENGINE_FEATURE_LRU,
 					[0].description = "No hay soporte de LRU" } };
 
@@ -310,14 +310,14 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 
 	key_element *it;
 
-	key_element *almacenada = vector_get(strkey);
-	if (almacenada != NULL){
-		//si la clave estaba ya la libero y pregunto si mis datos entran ahi
-		almacenada->libre = true;
-		almacenada->stored = false;
+	int32_t almacenada = vector_get(strkey);
+	if (almacenada > 0){
+	//si la clave estaba ya la libero y pregunto si mis datos entran ahi
+		key_vector[almacenada].libre = true;
+		key_vector[almacenada].stored = false;
 
-		if(almacenada->data_size >= nbytes)
-			it = almacenada;
+		if(key_vector[almacenada].data_size >= nbytes)
+			it = &key_vector[almacenada];
 		else
 			it = vector_search(nbytes);
 	}else
@@ -403,11 +403,13 @@ static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 	strkey[nkey] = '\0';
 
 // buscamos y obtenemos el item
-	key_element *it = vector_get(strkey);
+	int32_t res = vector_get(strkey);
 
-	if (it == NULL) {
+	if (res < 0) {
 		return ENGINE_NOT_STORED;
 	}
+	key_element *it = &key_vector[res];
+
 //pregunta el modo FIFO o LRU.
 	actualizar_key(it);
 
@@ -456,25 +458,28 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
 
-//	Aca tengo que preguntar si para buddy cuando elimino algo
-//	tengo que ir compactando.
+	// buscamos y obtenemos el item
+		int32_t res = vector_get(strkey);
 
-	key_element *item = vector_get(strkey);
+		if (res < 0) {
+
+					return ENGINE_KEY_ENOENT;
+				}
+			key_element *item = &key_vector[res];
 
 /*Falta arreglar esto para pasarle a elmina_buddy la posicion en el vector
- *
+ */
 	char *string = config_get_string_value(config, "ESQUEMA");
 
 	if (strcmp(string, "BUDDY") == 0){
 
-	size_t new_data_size = elimina_buddy(&item);
-	item->data_size = new_data_size;
+//Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
+
+	size_t new_pos = elimina_buddy(res);
+	item = &key_vector[new_pos];
 
 	}
-*/
-	if (item == NULL) {
-		return ENGINE_KEY_ENOENT;
-	}
+
 
 	dummy_ng_item_release(handle, NULL, item);
 

@@ -1,0 +1,15 @@
+# Administracion de memoria : PART_DINAM O BUDDY
+ESQUEMA=PART_DINAM
+
+# Eleccion de particion libre : NEXT O WORST
+PARTICION=WORST
+
+# Eleccion de victima : LRU O FIFO
+VICTIM=FIFO
+
+# Frecuencia de compactación
+FREQ=5
+
+#Valor maximo de la key
+MAX_KEY=40
+
