@@ -34,6 +34,7 @@ static const int tamanio_bloque = 1024;
 uint8_t *ptr_arch;
 
 void mapear_archivo() {
+	// todo: revisar el archivo de configuracion
 //	t_config * config = config_create(PATH_CONFIG);
 //	char * path_a = config_get_string_value(config,"path_disco");
 	uint32_t archivo = open(PATH, O_RDWR);
@@ -88,36 +89,6 @@ uint32_t cantidadDeGrupos() {
 	int cantidadDeGrupos = inodos / inodosPorGrupo;
 	return (resto != 0) ? cantidadDeGrupos + 1 : cantidadDeGrupos;
 }
-
-//void leerLosGroupDescriptor(uint32_t inodosTotales,uint32_t inodosPorGrupo) {
-//
-//	uint32_t cantDeGrupos = cantidadDeGrupos(inodosTotales,inodosPorGrupo);
-//
-//	struct GroupDesc * grupo;
-//
-//	uint16_t posInicialGD = 2048;
-//	int32_t tamanioGrupo = sizeof(struct GroupDesc);
-//	printf("Bytes de un grupo: %d\n", tamanioGrupo);
-//	uint8_t *posActual;
-//
-//	uint32_t i;
-//		posActual = ptr_arch+posInicialGD;
-//		for(i=0;i < cantDeGrupos;i++) {
-//
-//		grupo = (struct GroupDesc*) posActual;
-//
-//		printf("Group Descriptor Nro %d\n",i);
-//		printf("block_bitmap: %d\n",grupo->block_bitmap);
-//		printf("inode_bitmap: %d\n",grupo->inode_bitmap);
-//		printf("inode_table: %d\n",grupo->inode_table);
-//		printf("free_blocks_count: %d\n",grupo->free_blocks_count);
-//		printf("free_inodes_count: %d\n",grupo->free_inodes_count);
-//		printf("used_dirs_count: %d\n\n",grupo->used_dirs_count);
-//
-//		posActual += tamanioGrupo;
-//
-//		}
-//}
 
 // todo: modificar la asignación a posInicialGD
 struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
@@ -328,65 +299,6 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 	return ptr_arch + nroBloque * tamanio_bloque;
 }
 
-//todo: deprecated
-void leerBloquesInodos(struct INode * inodo){
-
-	leerBloquesDirectos(inodo);
-	leerIndireccionSimple(inodo->iblock);
-//	leerIndireccionDoble(inodo->iiblock);
-//	leerIndireccionTriple(inodo->iiiblock);
-
-}
-
-// todo: deprecated
-void leerBloquesDirectos(struct INode * inodo){
-	int i;
-	for(i = 0;i < 12;i++)
-		printf("bloque directo: %d %u\n",i+1,inodo->blocks[i]);
-}
-
-// todo: deprecated
-void leerIndireccionSimple(uint32_t iblock){
-
-	uint8_t * inicio = posicionarInicioBloque(iblock);
-	uint32_t cantidadPunteros = tamanio_bloque / sizeof(uint32_t);
-	uint32_t * nroBloque;
-	int i;
-	for(i = 0;i < cantidadPunteros;i++){
-		nroBloque = (uint32_t *)(inicio + i * 4);
-		printf("nro de bloque: %u\n",*nroBloque);
-	}
-
-}
-
-// todo: deprecated
-void leerIndireccionDoble(uint32_t iiblock){
-
-	uint8_t * inicio = posicionarInicioBloque(iiblock);
-	uint32_t cantidadPunteros = tamanio_bloque / sizeof(uint32_t);
-	uint32_t * nroBloque;
-	int i;
-	for(i = 0;i < cantidadPunteros;i++){
-		nroBloque = (uint32_t *)(inicio + i * 4);
-		leerIndireccionSimple(*nroBloque);
-	}
-
-}
-
-// todo: deprecated
-void leerIndireccionTriple(uint32_t iiiblock){
-
-	uint8_t * inicio = posicionarInicioBloque(iiiblock);
-	uint32_t cantidadPunteros = tamanio_bloque / sizeof(uint32_t);
-	uint32_t * nroBloque;
-	int i;
-	for(i = 0;i < cantidadPunteros;i++){
-		nroBloque = (uint32_t *)(inicio + i * 4);
-		leerIndireccionDoble(*nroBloque);
-	}
-
-}
-
 t_list * listarDirectorio(char * path){
 	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
 	// todo: cargar en las estructuras
@@ -399,7 +311,8 @@ struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,ch
 	uint32_t tamanio_directorio = inodoDeBusqueda->size;
 	uint32_t offset;
 	for(offset = 0;inodoBuscado == NULL && offset < tamanio_directorio;offset += tamanio_bloque){
-		void * ptr = posicionarme(inodoDeBusqueda,offset,0);
+		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+		void * ptr = posicionarme(inodoDeBusqueda,nroBloqueLogico,0);
 
 		uint16_t cantidad = 0;
 		int i = 0;
@@ -434,7 +347,8 @@ t_list * cargarEntradasDirectorioALista(struct INode * inodo){
 	uint32_t tamanio_directorio = inodo->size;
 	uint32_t offset;
 	for(offset = 0;offset < tamanio_directorio;offset += tamanio_bloque){
-		void * ptr = posicionarme(inodo,offset,0);
+		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
 		uint16_t cantidad = 0;
 		while(tamanio_bloque > cantidad){
 			// todo: ver si carga bien los datos a la estructura
@@ -508,7 +422,7 @@ int esIndireccionSimple(uint32_t nroBloqueLogico) {
 	return nroBloqueLogico < 12 + cantBloquesPorIndireccion;
 }
 
-uint32_t posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico) {
+uint32_t * posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico) {
 	uint8_t* inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t* ptrBloque;
 	int i;
@@ -517,7 +431,7 @@ uint32_t posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nroB
 	for (i = 0; i < nroBloqueLogico; i++);
 	ptrBloque = (uint32_t*) (inicio + i * 4);
 	printf("nro de bloque: %u\n", *ptrBloque);
-	return *ptrBloque;
+	return ptrBloque;
 }
 
 int esIndireccionDoble(uint32_t nroBloqueLogico){
@@ -525,7 +439,7 @@ int esIndireccionDoble(uint32_t nroBloqueLogico){
 	return nroBloqueLogico < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2);
 }
 
-uint32_t posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
+uint32_t * posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
 	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t *);
@@ -536,7 +450,7 @@ uint32_t posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nroBl
 	ptrBloque = (uint32_t*) (inicio + i * 4);	// me ubico en la indireccion doble que contiene el bloque logico que busco
 	inicio = posicionarInicioBloque(*ptrBloque);
 	ptrBloque = (uint32_t *) (inicio + nroBloqueLogico * 4); // dentro de la indireccion doble, me ubico en la indireccion simple
-	return *ptrBloque;
+	return ptrBloque;
 }
 
 int esIndireccionTriple(uint32_t nroBloque){
@@ -545,7 +459,7 @@ int esIndireccionTriple(uint32_t nroBloque){
 			+ pow(cantBloquesPorIndireccion,3);
 }
 
-uint32_t posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
+uint32_t * posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
 	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t *);
@@ -559,17 +473,23 @@ uint32_t posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroB
 	ptrBloque = (uint32_t*) (inicio + j * 4);	// me ubico en la indireccion doble que contiene el bloque logico que busco
 	inicio = posicionarInicioBloque(*ptrBloque);
 	ptrBloque = (uint32_t *) (inicio + nroBloqueLogico * 4); // dentro de la indireccion doble, me ubico en la indireccion simple
-	return *ptrBloque;
+	return ptrBloque;
 }
 
+/*
+ * Me posiciono dentro del número lógico de bloque dentro del inodo y me desplazo dentro de éste
+ */
 void * posicionarme(struct INode * inodo,uint32_t nroBloqueLogico,uint32_t desplazamiento){
 	void * ptr;
-	uint32_t nroBloqueDeDato = getNroBloqueDeDato(inodo,nroBloqueLogico);
-	printf("nroBloqueDeDato %u\n",nroBloqueDeDato);
-	ptr = desplazarme(nroBloqueDeDato, desplazamiento);
+	uint32_t * ptrNroBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodo,nroBloqueLogico);
+	printf("nroBloqueDeDato %u\n",*ptrNroBloqueLogico);
+	ptr = desplazarme(*ptrNroBloqueLogico, desplazamiento);
 	return ptr;
 }
 
+/*
+ * Dentro de un bloque de dato, me desplazo para poder posicionarme correctamente
+ */
 void * desplazarme(uint32_t nroBloqueDeDato,uint32_t desplazamiento){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueDeDato);
 	return inicio += desplazamiento;
@@ -592,61 +512,172 @@ struct INode * getInodoDeLaDireccionDelPath(char * path){
 	return inodoDeBusqueda;
 }
 
-//void truncarArchivo(char * path,uint32_t size){
-//	struct INode * inodoPath = getInodoDeLaDireccionDelPath(path);
-//	if(size == 0)
-//		printf("no hay cambio");
-//	uint32_t offsetEOF = inodoPath->size - 1;
-//
-//	if(size < 0)
-//		if(offsetEOF < abs(size)) // si el size es negativo y es mayor en valor absoluto que el tamanio del archivo: error
-//			perror("truncamiento invalido");
-//		else
-//			while(size < 0){
-//				if(offsetEOF > tamanio_bloque){
-//					uint32_t resto = desplazamientoDentroDelBloque(offsetEOF);
-//					uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF);
-//					size += resto;
-//					offsetEOF -= resto;
-//					uint32_t nroBloqueDeDato = getNroBloqueDeDato(inodoPath,nroBloqueLogico);
-//					liberarDeBitMapDeBloques(nroBloqueDeDato);
-//				}
-//			}
-//}
+void truncarArchivo(char * path,uint32_t offset){
+	if(offset < 0){
+		perror("error: el offset debe ser >= 0");
+	} else {
+		struct INode * inodoPath = getInodoDeLaDireccionDelPath(path);
+		uint32_t offsetEOF = inodoPath->size; // el -1 es para sacarle el EOF cuando trabajo con un archivo creado externamente
+		int32_t size = offset - offsetEOF;
+		if(size == 0)
+			printf("no hay cambio");
+		if(size < 0){
+			if(offsetEOF < abs(size)) // si el size es negativo y es mayor en valor absoluto que el tamanio del archivo: error
+				perror("truncamiento invalido");
+			else{
+				// achicar archivo
+				while(size < 0){
+					uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF - 1);	//el -1 es por el EOF
+					uint32_t desplazamiento = desplazamientoDentroDelBloque(offsetEOF - 1) + 1;	//para que cuando me den un offset multiplo de tamanio_bloque, el desplazamiento me devuelva tamanio_bloque
+					if(desplazamiento <= abs(size)){
+						uint32_t * ptrBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodoPath,nroBloqueLogico);
+						liberarBloque(ptrBloqueLogico);
+						offsetEOF -= desplazamiento;
+						size += desplazamiento;
+					} else {
+						offsetEOF += size;
+						size -= size;
+					}
+				}
+				inodoPath->size = offsetEOF;
+			}
+		} else {
+			//agrandar archivo
+			// todo: controlar si hay suficientes espacio
+			while(size > 0){
+				uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offsetEOF);
+				if(resto == tamanio_bloque){
+					uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF);
+					uint32_t nroBloqueDeDato = getBloqueLibre();
+					agregarAInodo(inodoPath,nroBloqueLogico,nroBloqueDeDato);
+				}
+				if(resto >= size){
+					completarBloque(inodoPath,offsetEOF,size);	// completar: se tiene que parar en el offset donde quiere escribir
+					offsetEOF += size;
+					size -= size;
+				} else {
+					completarBloque(inodoPath,offsetEOF,resto);
+					offsetEOF += resto;
+					size -= resto;
+				}
+			}
+			inodoPath->size = offsetEOF;
+		}
+	}
+}
 
 /*
- * Desc: mediante el inodo y un número de bloque lógico, me devuelve el número de bloque de dato que
- * esta en el numero de bloque lógico
+ * Desc: mediante el inodo y un número de bloque lógico, me devuelve un puntero al número
+ * 		 de bloque lógico dentro del inodo
  */
-uint32_t getNroBloqueDeDato(struct INode * inodo,uint32_t nroBloqueLogico){
-	uint32_t nroBloqueDeDato;
+uint32_t * getPtrNroBloqueLogicoDentroInodo(struct INode * inodo,uint32_t nroBloqueLogico){
+	uint32_t * ptrNroBloqueLogico;
 	if (esBloqueDirecto(nroBloqueLogico)){
-		nroBloqueDeDato = inodo->blocks[nroBloqueLogico];
+		ptrNroBloqueLogico = &(inodo->blocks[nroBloqueLogico]);
 	} else if (esIndireccionSimple(nroBloqueLogico)) {
-		nroBloqueDeDato = posicionarIndireccionSimple(inodo->iblock, nroBloqueLogico);
+		ptrNroBloqueLogico = posicionarIndireccionSimple(inodo->iblock, nroBloqueLogico);
 	} else if (esIndireccionDoble(nroBloqueLogico)){
-		nroBloqueDeDato = posicionarIndireccionDoble(inodo->iiblock, nroBloqueLogico);
+		ptrNroBloqueLogico = posicionarIndireccionDoble(inodo->iiblock, nroBloqueLogico);
 	} else if (esIndireccionTriple(nroBloqueLogico)){
-		nroBloqueDeDato = posicionarIndireccionTriple(inodo->iiiblock, nroBloqueLogico);
+		ptrNroBloqueLogico = posicionarIndireccionTriple(inodo->iiiblock, nroBloqueLogico);
+	}
+	return ptrNroBloqueLogico;
+}
+
+/*
+ * Libero el bloque de dato
+ */
+void liberarBloque(uint32_t * ptrBloqueDeDato){
+	uint32_t nroBloque = 0;
+	uint32_t * ptrNroBloque = &nroBloque;
+	uint32_t nroBloqueDeDato = *ptrBloqueDeDato;
+	struct Superblock *sb = read_superblock();
+	//todo : ver si funca para todos los casos
+	uint32_t nroGrupo = (nroBloqueDeDato - 1) / sb->blocks_per_group;
+	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+	uint32_t nroBlockBitmap = grupo->block_bitmap;
+	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
+	int cantBytes = sb->blocks_per_group / 8;
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
+	while(nroBloqueDeDato > sb->blocks_per_group)
+		nroBloqueDeDato -= sb->blocks_per_group;
+	//marco como libre el bloque en el bitmap de bloques
+	bitarray_clean_bit(ptrBit,nroBloqueDeDato - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos puede ser >= 1
+	// Pongo en cero al número de bloque relativo dentro del inodo
+	memcpy(ptrBloqueDeDato,ptrNroBloque,sizeof(uint32_t));
+	(grupo->free_blocks_count)++;	//aumento la cantidad de bloques libres en el group descriptor
+	(sb->free_blocks)++;			//aumento la cantidad de bloques libres en el superbloque
+}
+
+uint32_t getBloqueLibre(){
+	struct Superblock *sb = read_superblock();
+	if(sb->free_blocks == 0)
+		perror("error: No hay bloques disponibles");
+	uint32_t nroBloqueDeDato = 0;
+	uint32_t nro_grupo;
+	for(nro_grupo = 0;nroBloqueDeDato == 0;nro_grupo++)
+		nroBloqueDeDato = getBloqueLibreDelBitmap(nro_grupo);
+	return nroBloqueDeDato;
+}
+
+uint32_t getBloqueLibreDelBitmap(uint32_t nro_grupo){
+	uint32_t nroBloqueDeDato = 0;
+	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
+	uint32_t inicioBB = grupo->block_bitmap;
+	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
+	struct Superblock *bloque = read_superblock();
+	int cantBloques = bloque->blocks_per_group;
+	int cantBytes = cantBloques / 8;
+	uint32_t nroPrimerBloqueDelGrupo;
+	nroPrimerBloqueDelGrupo =  nroBloqueInicioDeGrupo(nro_grupo);
+	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+	int i;
+	for(i = 0;i < cantBloques;i++){
+		bool valor = bitarray_test_bit(ptrBit, i);
+		if(valor == 0){
+			nroBloqueDeDato = nroPrimerBloqueDelGrupo + i;
+			break;
+		}
 	}
 	return nroBloqueDeDato;
 }
 
-/*
- * Marca como libre al numero de bloque de dato pasado por parametro
- */
-//void liberarDeBitMapDeBloques(uint32_t nroBloqueDeDatos){
-//	struct Superblock *sb = read_superblock();
-//	//todo : ver si funca para todos los casos
-//	uint32_t nroGrupo = (nroBloqueDeDatos - 1) / sb->blocks_per_group;
-//	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-//	uint32_t nroBlockBitmap = grupo->block_bitmap;
-//	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
-//	int cantBytes = sb->blocks_per_group / 8;
-//	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
-//	while(nroBloqueDeDatos > sb->blocks_per_group)
-//		nroBloqueDeDatos -= sb->blocks_per_group;
-//	(grupo->free_blocks_count)++;
-//	(sb->free_blocks)++;
-//	bitarray_clean_bit(ptrBit,nroBloqueDeDatos - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos es >= 1
-//}
+void agregarAInodo(struct INode * inodoPath,uint32_t nroBloqueLogico,uint32_t nroBloqueDeDato){
+	// todo: encapsular comportamiento, ver con liberarbloque()
+	// marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
+	struct Superblock *sb = read_superblock();
+	//todo : ver si funca para todos los casos(ej. con bloques de 2k, 4k)
+	uint32_t nroGrupo = (nroBloqueDeDato - 1) / sb->blocks_per_group;
+	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+	uint32_t nroBlockBitmap = grupo->block_bitmap;
+	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
+	int cantBytes = sb->blocks_per_group / 8;
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
+	while(nroBloqueDeDato > sb->blocks_per_group)
+		nroBloqueDeDato -= sb->blocks_per_group;
+	bitarray_set_bit(ptrBit,nroBloqueDeDato - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos puede ser >= 1
+	// Fin - marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
+	// le asigno el número de bloque de dato nuevo, al número de bloque lógico dentro del inodo
+	uint32_t * ptrBloque = getPtrNroBloqueLogicoDentroInodo(inodoPath,nroBloqueLogico);
+
+	// Le asigno al número de bloque relativo del inodo, el número de bloque de dato libre
+	uint32_t * ptrNroBloqueDeDato = &nroBloqueDeDato;
+	memcpy(ptrBloque,ptrNroBloqueDeDato,sizeof(uint32_t));
+
+	(sb->free_blocks)--;	// Actualizando el free_blocks del superbloque
+	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
+}
+
+void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size){
+	uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+	uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
+	void * ptr = posicionarme(inodo,nroBloqueLogico,desplazamiento);
+	escribirBloque(ptr,size);
+}
+
+void escribirBloque(void * posicionPtr,uint32_t size){
+	uint32_t i;
+	char * dato = "C";
+	for(i = 0;i < size;i++,posicionPtr++)
+		memcpy(posicionPtr,dato,1);
+}

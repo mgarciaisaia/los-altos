@@ -140,20 +140,14 @@
 	void leerIndireccionDoble(uint32_t);
 	void leerIndireccionTriple(uint32_t);
 
-
 	bool esInodoDirectorio(uint32_t nroInodo);
 	struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
 
 	t_list * listarDirectorio(char *);
 	t_list * cargarEntradasDirectorioALista(struct INode *);
 
-
 	t_queue * buscarDirectorios(void);
 	void buscarInodosDirectorio(t_queue *,uint32_t);
-
-//	t_list * leerArchivo(char *);
-//	void leerArchivoHasta(ptr,size);
-//	void guardarDatosArchivos(struct INode *);
 
 	uint32_t nroBloqueDentroDelInodo(uint32_t offset);
 	uint32_t desplazamientoDentroDelBloque(uint32_t offset);
@@ -170,7 +164,16 @@
 
 	struct INode * getInodoDeLaDireccionDelPath(char * path);
 	void truncarArchivo(char * path,uint32_t offset);
-	uint32_t getNroBloqueDeDato(struct INode * inodo,uint32_t nroBloqueLogico);
-	void liberarDeBitMapDeBloques(uint32_t nroBloqueDeDatos);
+	uint32_t * getPtrNroBloqueLogicoDentroInodo(struct INode * inodo,uint32_t nroBloqueLogico);
+	void liberarBloque(uint32_t * ptrBloqueDeDatos);
+
+	uint32_t getBloqueLibre(void);
+	uint32_t getBloqueLibreDelBitmap(uint32_t nro_grupo);
+	void agregarAInodo(struct INode *,uint32_t ,uint32_t);
+
+	void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size);
+	void escribirBloque(void *, uint32_t);
+	void agregar_EOF(struct INode * inodo,uint32_t offset);
+	void agregarCaracterFinCadena(struct INode * inodo,uint32_t offset);
 
 #endif /* FUNCIONES_RFS_H_ */
