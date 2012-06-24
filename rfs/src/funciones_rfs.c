@@ -681,3 +681,38 @@ void escribirBloque(void * posicionPtr,uint32_t size){
 	for(i = 0;i < size;i++,posicionPtr++)
 		memcpy(posicionPtr,dato,1);
 }
+
+void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
+
+	// todo: hacer un control si hay espacio en el disco
+	struct INode * inodoPath = getInodoDeLaDireccionDelPath(path);
+	if(inodoPath->size < size + offset){
+		uint32_t truncar = size + offset;
+		truncarArchivo(path,truncar);
+	}
+
+	while(size > 0){
+		uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offset);
+		if(resto >= size){
+			escribir(inodoPath,input,size,offset);
+			offset += size;
+			size -= size;
+		} else {
+			escribir(inodoPath,input,resto,offset);
+			offset += resto;
+			size -= resto;
+		}
+	}
+
+}
+
+void escribir(struct INode * inodo, char * input,uint32_t size,uint32_t offset){
+	uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+	uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
+	void * ptr = posicionarme(inodo,nroBloqueLogico,desplazamiento);
+	char * subString = malloc(size);
+	strncpy(subString,input,size);
+	input += size;
+	memcpy(ptr,subString,size);
+	free(subString);
+}

@@ -176,4 +176,7 @@
 	void agregar_EOF(struct INode * inodo,uint32_t offset);
 	void agregarCaracterFinCadena(struct INode * inodo,uint32_t offset);
 
+	void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
+	void escribir(struct INode * inodo, char * input,uint32_t size,uint32_t offset);
+
 #endif /* FUNCIONES_RFS_H_ */
