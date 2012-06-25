@@ -754,7 +754,7 @@ struct nipc_packet *new_getattr_error(int errorNumber) {
 struct nipc_packet *new_nipc_handshake(char *message) {
     struct nipc_packet *packet = malloc(sizeof(struct nipc_packet));
     packet->type = nipc_handshake;
-    packet->data_length = strlen(message);
+    packet->data_length = strlen(message) + 1;
     packet->data = malloc(packet->data_length);
     strcpy(packet->data, message);
     return packet;
@@ -766,4 +766,13 @@ struct nipc_packet *new_nipc_handshake_hello() {
 
 struct nipc_packet *new_nipc_handshake_ok() {
     return new_nipc_handshake(HANDSHAKE_OK);
+}
+
+
+struct nipc_packet *new_nipc_disconnected() {
+    struct nipc_packet *packet = malloc(sizeof(struct nipc_packet));
+    packet->type = nipc_disconnected;
+    packet->data_length = 0;
+    packet->data = NULL;
+    return packet;
 }

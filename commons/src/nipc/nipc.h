@@ -23,7 +23,8 @@ enum tipo_nipc {
     nipc_readdir_response,
     nipc_getattr_response,
     nipc_getattr_error,
-    nipc_handshake
+    nipc_handshake,
+    nipc_disconnected
 };
 
 struct nipc_packet {
@@ -276,5 +277,7 @@ struct nipc_packet *new_getattr_error(int errorNumber);
 struct nipc_packet *new_nipc_handshake_hello();
 
 struct nipc_packet *new_nipc_handshake_ok();
+
+struct nipc_packet *new_nipc_disconnected();
 
 #endif /* NIPC_H_ */

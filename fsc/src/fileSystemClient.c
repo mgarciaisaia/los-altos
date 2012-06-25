@@ -39,10 +39,10 @@ void logger_operation_read_write(const char *operation, const char *path, size_t
 
 int check_error(const char *operation, const char *path, struct nipc_packet *response) {
     if(response->type == nipc_error) {
-        printf("%s %s: %s\n", operation, path, (char*)response->data);
+        log_error(logger, "%s en %s: %s", operation, path, (char*)response->data);
         return -1;
     } else {
-        printf("%s %s: Paquete invalido (%d)\n", operation, path, response->type);
+        log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path, response->type);
         return -1;
     }
 }
@@ -263,7 +263,8 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
         }
 
         if(bufferIsFull) {
-            perror("Buffer de readdir lleno");
+            // FIXME: error o info?
+            log_error(logger, "readdir: buffer lleno");
             // FIXME: aca devuelvo -1 o como se maneja el buffer lleno?
             return -1;
         }
@@ -352,10 +353,14 @@ int remote_handshake() {
     struct nipc_packet* response = nipc_query(new_nipc_handshake_hello(), fileSystemIP, fileSystemPort);
     if(response->type == nipc_handshake) {
         if(strcmp(response->data, HANDSHAKE_OK)) {
-            printf("handshake: respuesta no reconocida\n");
+            log_error(logger, "handshake: respuesta no reconocida");
+            void *validData = malloc(response->data_length);
+            strncpy(validData, response->data, response->data_length);
+            log_debug(logger, "hanshake: %d bytes %s", response->data_length, response->data);
+            free(validData);
             return -1;
         } else {
-            printf("handshake: ok");
+            log_info(logger, "handshake: ok");
             return 0;
         }
     } else {
@@ -365,16 +370,20 @@ int remote_handshake() {
 
 int main(int argc, char *argv[]) {
     // FIXME: parametros de configuracion
-#define LOG_LEVEL "DEBUG"
-    if(remote_handshake()) {
-        return -1;
-    }
-    logger = log_create("fsc.log", "FSC", 1, log_level_from_string(LOG_LEVEL));
+#define LOG_LEVEL "LOG_LEVEL_TRACE"
+    logger = log_create("fsc.log", "FSC", 1, LOG_LEVEL_DEBUG);
+    socket_create_logger("FSC-SOCKET");
     if(logger == NULL) {
         perror("No hay logger");
         return -1;
     }
+    if(remote_handshake()) {
+        log_destroy(logger);
+        return -1;
+    }
+    log_debug(logger, "Corro fuse_main");
 	int fuseReturn = fuse_main(argc, argv, &remote_operations, NULL);
+	log_debug(logger, "Termina el fsc: %d - %s", fuseReturn, strerror(errno));
     log_destroy(logger);
     return fuseReturn;
 }

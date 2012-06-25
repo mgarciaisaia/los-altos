@@ -9,4 +9,6 @@ int nipc_send(int socketDescriptor, struct nipc_packet *request);
 int socket_connect(char *remoteIP, uint16_t port);
 int socket_binded(uint16_t port);
 
+int socket_create_logger(char *program);
+
 #endif /* SOCKETS_H_ */
