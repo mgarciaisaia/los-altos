@@ -281,6 +281,8 @@ void *serveRequest(void *socketPointer) {
 }
 
 int32_t main(void) {
+#define DISK_PATH "/home/utnso/Desarrollo/ext2.disk" // FIXME: parametrizar
+    mapear_archivo(DISK_PATH);
     int accepted = 0;
     // FIXME: parametros de configuracion
 #define LOG_LEVEL "LOG_LEVEL_TRACE"

@@ -25,19 +25,17 @@
 #include <src/commons/string.h>
 #include <src/commons/config.h>
 
-#define PATH "/home/utnso/Desarrollo/ext2.disk"
-#define BLOQUE 1024
 //#define PATH_CONFIG "home/utnso/archivo_configuracion";
 
 static const int tamanio_bloque = 1024;
 //uint32_t *ptr_arch;
 uint8_t *ptr_arch;
 
-void mapear_archivo() {
+void mapear_archivo(char *ruta_archivo) {
 	// todo: revisar el archivo de configuracion
 //	t_config * config = config_create(PATH_CONFIG);
 //	char * path_a = config_get_string_value(config,"path_disco");
-	uint32_t archivo = open(PATH, O_RDWR);
+	uint32_t archivo = open(ruta_archivo, O_RDWR);
 	if (archivo == -1) {
 		perror("Error opening file for reading");
 		exit(EXIT_FAILURE);
