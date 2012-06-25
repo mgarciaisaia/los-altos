@@ -169,22 +169,17 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
 void serve_getattr(int socket, struct nipc_getattr *request) {
     log_debug(logger, "getattr %s", request->path);
     char *path = request->path;
-    struct readdir_entry *attributes = malloc(sizeof(struct readdir_entry));
-    // FIXME: Implementar. Va a ser algo heavy como el serve_readdir, pero no tanto
-    if (strcmp(path, "/") == 0) {
-        attributes->mode = S_IFDIR | 0755;
-        attributes->n_link = 2;
-    } else if(strcmp(path, "/nueva") == 0) {
+    struct INode *inodo = getInodoDeLaDireccionDelPath(path);
+    if(inodo == NULL) {
         nipc_send(socket, new_getattr_error(-ENOENT));
         return;
-    } else if (strcmp(path, "/aa") == 0) {
-        attributes->mode = S_IFDIR | 0755;
-        attributes->n_link = 2;
-    } else {
-        attributes->mode = S_IFREG | 0755;
-        attributes->n_link = 1;
-        attributes->size = 32350;
     }
+    struct readdir_entry *attributes = malloc(sizeof(struct readdir_entry));
+
+    attributes->mode = inodo->mode;
+    attributes->n_link = inodo->links;
+    attributes->size = inodo->size;
+
     struct nipc_getattr_response *response = new_nipc_getattr_response(attributes);
     nipc_send(socket, response->serialize(response));
     log_debug(logger, "/getattr %s", request->path);
