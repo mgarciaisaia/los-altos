@@ -16,7 +16,9 @@
 extern key_element *key_vector;
 extern t_config* config;
 extern uint32_t cantRegistros;
-extern size_t part_minima;
+extern size_t part_minima, cache_size;
+extern char *keys_space;
+extern void *cache;
 
 int32_t ultima_posicion;
 static pthread_rwlock_t *posicion;
@@ -70,11 +72,11 @@ uint32_t borrar(void) {
 
 	pthread_rwlock_rdlock(keyVector);
 
-	uint32_t resultado;
+	uint32_t resultado = cantRegistros;
 	uint32_t i = 0;
 	struct timespec tp;
 
-	while (key_vector[i].libre) {
+	while ((key_vector[i].libre) && i < cantRegistros) {
 		i++;
 	}
 	tp = key_vector[i].tp;
@@ -129,19 +131,19 @@ uint32_t eliminar_particion(void) {
 
 	resultado = borrar();
 
-//	int32_t resto = key_vector[resultado].data_size % part_minima;
-//	int32_t diferencia = part_minima - resto;
-
+	if (resultado != cantRegistros) {
 //aca muere ¿porque? ya no hay semaforo de lectura.Solo para buddy no funciona
-	pthread_rwlock_wrlock(keyVector);
+		pthread_rwlock_wrlock(keyVector);
 
-	key_vector[resultado].data_size = key_vector[resultado].data_size
-			+ key_vector[resultado].data_unuse;
-	key_vector[resultado].libre = true;
-	key_vector[resultado].stored = false;
-	key_vector[resultado].data_unuse = 0;
+		key_vector[resultado].data_size = key_vector[resultado].data_size
+				+ key_vector[resultado].data_unuse;
+		key_vector[resultado].libre = true;
+		key_vector[resultado].stored = false;
+		key_vector[resultado].data_unuse = 0;
 
-	pthread_rwlock_unlock(keyVector);
+		pthread_rwlock_unlock(keyVector);
+	}
+	//no habia mas nada para borrar y devuelvo el res
 
 	return resultado;
 }
@@ -230,12 +232,95 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 	}
 	pthread_rwlock_unlock(keyVector);
 
-
 	return posicion_new;
 }
 
-void compactarDinam(void) {
+uint32_t compactarDinam(void) {
 
+	// como ordenar recive algo le mando cualquier posicion
+	int32_t posicion_new = ordenar_vector(0);
+	posicion_new = 1;
+	//empiezo desde cero y me fijo si esta vacio el siguiente
+	int32_t i = 0;
+
+	uint32_t ultimo_libre;
+	bool termine = false;
+
+	pthread_rwlock_wrlock(keyVector);
+
+	while ((i < cantRegistros) && !termine) {
+
+		// pregunto si en mi posicion hay datos, si hay pregunto por la pos sgte
+//			if (!key_vector[posicion_new].libre){
+
+//fixme : si esta libre que tmb entre y los junte!!!
+
+		//al reves, pregunto si en la siguiente hay datos,y dsp si habia en la anterior y los muevo
+		if (((posicion_new + i) < cantRegistros)
+				&& (key_vector[posicion_new + i].libre)) {
+
+			if ((key_vector[i].libre)
+					&& key_vector[posicion_new + i].data_size > 0) {
+
+				key_vector[i + posicion_new].data_size = key_vector[i
+						+ posicion_new].data_size + key_vector[i].data_size;
+				key_vector[i + posicion_new].data = key_vector[i].data;
+				key_vector[i].data = NULL;
+				key_vector[i].data_size = 0;
+
+				ultimo_libre = i + posicion_new;
+			}
+
+		}
+
+		//al reves, pregunto si en la siguiente hay datos,y dsp si habia en la anterior y los muevo
+		if (((posicion_new + i) < cantRegistros)
+				&& (!key_vector[posicion_new + i].libre)) {
+			//	&& key_vector[posicion_new + i].data_size > 0)) {
+
+			// si el sgte esta libre y y tiene espacio para datos compacto y dsp actualizo la referencia
+
+			if (key_vector[i].libre) {
+
+				//compacto
+				memmove(key_vector[i].data, key_vector[posicion_new + i].data,
+						key_vector[posicion_new + i].data_size);
+				//actualizo el vector
+				key_element aux;
+				aux.data_size = key_vector[i].data_size;
+				aux.data_unuse = key_vector[i].data_unuse;
+				aux.data = key_vector[i].data
+						+ key_vector[posicion_new + i].data_size;
+
+				key_vector[i] = key_vector[posicion_new + i];
+				key_vector[posicion_new + i].data_size = aux.data_size;
+				key_vector[posicion_new + i].data = aux.data;
+				key_vector[posicion_new + i].data_unuse = aux.data_unuse;
+
+				ultimo_libre = i + posicion_new;
+			}
+		} else {
+			if ((((posicion_new + i) == cantRegistros) && (i < cantRegistros))
+					&& key_vector[i].data_size > 0) {
+				if ((key_vector[i].libre)
+						&& key_vector[i - posicion_new].libre) {
+					//al ultimo valor agregarle el espacio q quedo
+					key_vector[i - posicion_new].data_size = key_vector[i
+							- posicion_new].data_size + key_vector[i].data_size;
+					key_vector[i].data_size = 0;
+
+					ultimo_libre = i - posicion_new;
+
+				}
+			} else if ((posicion_new + i) == cantRegistros)
+				termine = true;
+		}
+		i++;
+
+	}
+	pthread_rwlock_unlock(keyVector);
+
+	return ultimo_libre;
 }
 
 void vector_inicializar(char *keys_space, void *cache, size_t cache_size) {
@@ -262,12 +347,13 @@ key_element *buscarLibreNext(size_t espacio) {
 
 	key_element *resultado;
 	int16_t busquedas_fallidas = 0;
+	uint32_t particion;
 	pthread_rwlock_wrlock(posicion);
 
 	uint32_t i = ultima_posicion;
 	char encontrado = 0;
 
-	// calcula si va a haber fragmentacion
+// calcula si va a haber fragmentacion
 	int32_t resto = espacio % part_minima;
 	int32_t diferencia = part_minima - resto;
 
@@ -301,19 +387,25 @@ key_element *buscarLibreNext(size_t espacio) {
 			 * una FREQ*/
 			pthread_rwlock_unlock(keyVector);
 
-			// aca falta el tope de si elimine todoo que compacte, o sea que lo inicialice
 			if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
-
 				//eliminar una particion segun esquema
+				particion = eliminar_particion();
 
-				uint32_t particion = eliminar_particion();
-				i = particion;
+				if (particion == cantRegistros)
+					vector_inicializar(keys_space, cache, cache_size);
+				else
+					i = particion;
+
 			} else {
 				// compactar
-				compactarDinam();
+				i = compactarDinam();
 			}
 
 			pthread_rwlock_rdlock(keyVector);
+
+			if ((key_vector[i].data_size) >= espacio)
+				encontrado = 1;
+
 		} else {
 			if (key_vector[i].data_size >= espacio)
 				encontrado = 1;
@@ -337,7 +429,7 @@ key_element *buscarLibreNext(size_t espacio) {
 	 Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
 	 porque ahora hago como q no existe
 	 */
-	//como ya sincronice las fn aca no pongo semaforos, eso no pincharia?
+//como ya sincronice las fn aca no pongo semaforos, eso no pincharia?
 	if ((key_vector[i].data_size - espacio - diferencia) > 0) {
 		int32_t posicion = buscarPosLibre();
 		if (posicion != -1) {
@@ -364,8 +456,8 @@ key_element *buscarLibreWorst(size_t espacio) {
 	uint32_t pos_mayor_tamano = 0;
 	uint32_t mayor_tamano = 0;
 	char encontrado = 0;
-
-	// calcula si va a haber fragmentacion
+	uint32_t particion = 0;
+// calcula si va a haber fragmentacion
 	int32_t resto = espacio % part_minima;
 	int32_t diferencia = part_minima - resto;
 
@@ -390,11 +482,18 @@ key_element *buscarLibreWorst(size_t espacio) {
 
 				if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
 					//eliminar una particion segun esquema
-					i = eliminar_particion();
+					particion = eliminar_particion();
+
+					if (particion == cantRegistros)
+						vector_inicializar(keys_space, cache, cache_size);
+					else
+						i = particion;
+
 				} else {
 					// compactar
-					compactarDinam();
+					i = compactarDinam();
 				}
+
 				pthread_rwlock_rdlock(keyVector);
 
 				if ((key_vector[i].data_size) >= espacio) {
@@ -402,8 +501,12 @@ key_element *buscarLibreWorst(size_t espacio) {
 					mayor_tamano = key_vector[i].data_size;
 					encontrado = 1;
 
-				} else
-					i = 0;
+				} else {
+					/*	if (particion == cantRegistros)
+					 compactarDinam();
+					 else
+					 */i = 0;
+				}
 			} else {
 				//si llegue al final pero habia encontrado algo
 				encontrado = 1;
@@ -461,24 +564,26 @@ key_element *buscarLibreBuddy(size_t espacio) {
 
 		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
 
-			if ((lugares == 0) && (key_vector[lugares].data_size < espacio)) {
+			if (((lugares == 0) && (key_vector[lugares].data_size < espacio))
+					|| !key_vector[lugares].libre) {
 
 				// entra aca si no encontro espacio
-//				pthread_rwlock_unlock(keyVector);
+				//	pthread_rwlock_unlock(keyVector);
 
 				i = eliminar_particion();
 
 				//Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
 				uint32_t new_pos = elimina_buddy(i);
 				i = new_pos;
-//				pthread_rwlock_rdlock(keyVector);
+				//	pthread_rwlock_rdlock(keyVector);
 
-// pregunto si en el nuevo lugar entra
+				// pregunto si en el nuevo lugar entra
 				if ((key_vector[i].data_size > espacio)
-				//	&& (key_vector[i].data_size <= key_vector[lugares].data_size)
-						&& (key_vector[i].libre))
+						&& (key_vector[i].libre)) {
+					//	&& (key_vector[i].data_size <= key_vector[lugares].data_size)
 					lugares = i;
-				encontrado = 1;
+					encontrado = 1;
+				}
 			} else {
 				//si llegue al final pero habia encontrado algo
 				encontrado = 1;
@@ -506,7 +611,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			// actualizar las particiones
 			int32_t posicionn = buscarPosLibre();
 
-//			pthread_rwlock_unlock(keyVector);
+			//	pthread_rwlock_unlock(keyVector);
 
 			if (posicionn != -1) {
 
@@ -516,25 +621,26 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			} else
 				printf("No hay posiciones libres en el vector");
 
-//			pthread_rwlock_wrlock(keyVector);
+			//	pthread_rwlock_wrlock(keyVector);
 			key_vector[lugares].data_size = prox_espacio;
 			prox_particion = prox_espacio;
-//			pthread_rwlock_unlock(keyVector);
+			//	pthread_rwlock_unlock(keyVector);
 		} else {
 			/*ya no lo puedo partir mas o mi espacio es mayor a la particion que cree.*/
-
+			//	pthread_rwlock_wrlock(keyVector);
 			if (espacio > prox_particion)
 				key_vector[lugares].data_unuse = key_vector[lugares].data_size
 						- espacio;
 			else
 				key_vector[lugares].data_unuse = prox_particion - espacio;
 
+			//		pthread_rwlock_unlock(keyVector);
+
 			resultado = &key_vector[lugares];
 
 			verdad = true;
 		}
 	} while (!verdad);
-
 
 //	pthread_rwlock_unlock(keyVector);
 
@@ -547,7 +653,7 @@ int32_t vector_get(char *key) {
 	int32_t resultado;
 	uint32_t encontrado = 0;
 	uint32_t i = 0;
-	//buscar la key en el vector
+//buscar la key en el vector
 	size_t nkey = strlen(key);
 	pthread_rwlock_rdlock(keyVector);
 

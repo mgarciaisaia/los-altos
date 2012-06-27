@@ -171,10 +171,13 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		parse_config(config_str, items, NULL);
 
+		//aca ya aloque lo del vector de keys y la cache.
+		void mtrace(void);
+
 		config = config_create(PATH_CONFIG);
 
 		cache_size = engine->config.cache_max_size;
-		part_minima = engine->config.chunk_size;
+		part_minima = engine->config.block_size_max;
 //		double worstCase = cache_size / part_minima;
 
 		//inicializo los semáforos
@@ -229,9 +232,6 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 			printf("no existe la clave");
 
 
-		//aca ya aloque lo del vector de keys y la cache.
-		void mtrace(void);
-
 		int lock = mlock(cache, cache_size);
 		if (lock == -1)
 			perror("Error locking the cache");
@@ -253,6 +253,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
  */
 static void dummy_ng_destroy(ENGINE_HANDLE* handle, const bool force) {
 
+	muntrace();
 	destroy_semaforos();
 	config_destroy(config);
 	free(cache);
