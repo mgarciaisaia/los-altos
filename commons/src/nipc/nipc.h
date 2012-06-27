@@ -247,6 +247,8 @@ struct readdir_entry {
     __nlink_t n_link;
 };
 
+void readdir_entry_destroy(void *target);
+
 struct nipc_readdir_response {
     enum tipo_nipc nipcType;
     struct nipc_packet* (*serialize)(struct nipc_readdir_response*);

@@ -573,6 +573,12 @@ struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength) {
 
 
 
+void readdir_entry_destroy(void *target) {
+    struct readdir_entry *entry = (struct readdir_entry *)target;
+    free(entry->path);
+    free(entry);
+}
+
 
 static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_response *payload) {
     /**

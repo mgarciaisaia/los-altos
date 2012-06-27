@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <errno.h>
+#include "src/commons/collections/list.h"
 #include "src/commons/log.h"
 
 
@@ -117,9 +118,7 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
  */
 void serve_readdir(int socket, struct nipc_readdir *request) {
     log_debug(logger, "readdir %s", request->path);
-    // FIXME:  THIS IS SPARTAAAAAAAA!!!!!!
     t_list *entradas = listarDirectorio(request->path);
-
     /**
      * La fruleada de aca tiene que tener una lista de entries del directorio
      * Cada entry tiene el nombre/ruta relativa y los atributos (modo y size, como mínimo)
@@ -138,7 +137,7 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
     struct nipc_readdir_response *response = new_nipc_readdir_response(entradas->elements_count, entries);
     nipc_send(socket, response->serialize(response));
     log_debug(logger, "/readdir %s", request->path);
-    // FIXME: free de la lista
+    list_destroy_and_destroy_elements(entradas, &readdir_entry_destroy);
 }
 
 /**
