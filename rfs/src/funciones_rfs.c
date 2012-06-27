@@ -275,6 +275,9 @@ int nroInodoInicioDeGrupo(uint32_t nro_grupo){
 }
 
 struct INode * getInodo(uint32_t nroInodo){
+    if(nroInodo < 1) {
+        return NULL;
+    }
 
 	printf("nroInodo: %hu\n",nroInodo);
 	struct Superblock *sb = read_superblock();
@@ -361,8 +364,11 @@ t_list *cargarEntradasDirectorioALista(struct INode * directorio){
 		while(tamanio_bloque > cantidad){
 			// todo: ver si carga bien los datos a la estructura
 			struct DirEntry * entradaDirectorio = (struct DirEntry *) ptr;
-			struct INode *inodoEntradaDirectorio = getInodo(entradaDirectorio->inode);
-
+			struct INode * inodoEntradaDirectorio = getInodo(entradaDirectorio->inode);
+			if(inodoEntradaDirectorio == NULL) {
+			    break;
+			}
+			
 			struct readdir_entry *entrada = malloc(sizeof(struct readdir_entry));
 
 			entrada->path = calloc(1, entradaDirectorio->name_len + 1);
