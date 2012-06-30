@@ -2,8 +2,8 @@
 #define NIPC_H_
 #include <sys/types.h>
 
-#define HANDSHAKE_HELLO "Estan listos?"
-#define HANDSHAKE_OK "Si capitan!"
+#define HANDSHAKE_HELLO "Estan listos, chicos?"
+#define HANDSHAKE_OK "Si, mi capitan, estamos listos!"
 
 enum tipo_nipc {
     nipc_create,
