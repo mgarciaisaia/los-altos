@@ -147,7 +147,10 @@ int socket_binded(uint16_t port) {
     return socketDescriptor;
 }
 
-int socket_create_logger(char *program) {
-    logger_socket = log_create("sockets.log", program, false, LOG_LEVEL_DEBUG);
-    return logger_socket == NULL;
+void socket_set_logger(t_log *logger) {
+    logger_socket = logger;
+}
+
+void socket_destroy_logger() {
+    log_destroy(logger_socket);
 }

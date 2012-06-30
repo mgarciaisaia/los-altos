@@ -23,10 +23,16 @@
 #include <errno.h>
 #include "src/commons/collections/list.h"
 #include "src/commons/log.h"
+#include "src/commons/config.h"
 
+// FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
+#define PATH_CONFIG "conf/rfs.conf"
 
 t_log *logger;
 int epoll;
+u_int16_t listening_port;
+int max_connections;
+int max_events;
 
 
 void send_ok(int socket) {
@@ -258,26 +264,55 @@ void *serveRequest(void *socketPointer) {
     return NULL;
 }
 
+void initialize_configuration() {
+    t_config *config = config_create(PATH_CONFIG);
+
+    char *log_level = config_get_string_value(config, "logger.level");
+    char *log_file = config_get_string_value(config, "logger.file");
+    char *log_name = config_get_string_value(config, "logger.name");
+    int log_has_console = config_get_int_value(config, "logger.has_console");
+
+    logger = log_create(log_file, log_name, log_has_console, log_level_from_string(log_level));
+
+    log_info(logger, "Inicializado el logger en %s con nivel %s", log_file, log_level);
+
+    char *log_socket_level = config_get_string_value(config, "logger.sockets.level");
+    char *log_socket_file = config_get_string_value(config, "logger.sockets.file");
+    char *log_socket_name = config_get_string_value(config, "logger.sockets.name");
+    int log_socket_has_console = config_get_int_value(config, "logger.sockets.has_console");
+
+    socket_set_logger(log_create(log_socket_file, log_socket_name, log_socket_has_console, log_level_from_string(log_socket_level)));
+
+    log_info(logger, "Inicializado el logger de sockets en %s con nivel %s", log_socket_file, log_socket_level);
+
+
+    char *disk_path = config_get_string_value(config, "filesystem.disk");
+    mapear_archivo(disk_path);
+    log_info(logger, "Montado el disco ubicado en %s", disk_path);
+
+    listening_port = config_get_int_value(config, "connections.listen_port");
+
+    max_connections = config_get_int_value(config, "connections.max_connections");
+
+    max_events = config_get_int_value(config, "connections.max_events");
+
+    config_destroy(config);
+}
+
 int32_t main(void) {
-#define DISK_PATH "/home/utnso/Desarrollo/ext2.disk" // FIXME: parametrizar
-    mapear_archivo(DISK_PATH);
+    initialize_configuration();
+
     int accepted = 0;
-    // FIXME: parametros de configuracion
-#define LOG_LEVEL "LOG_LEVEL_TRACE"
-    logger = log_create("rfs.log", "RFS", 1, LOG_LEVEL_DEBUG);
-    socket_create_logger("RFS-SOCKET");
-    int listeningSocket = socket_binded(3087); // FIXME: parametrizar
-#define MAX_CONNECTIONS 4
-#define MAX_EVENTS 64 // FIXME: no tengo idea de por que este numero
+    int listeningSocket = socket_binded(listening_port);
     struct sockaddr_in address;
     socklen_t addressLength = sizeof address;
 
-    if(listen(listeningSocket, MAX_CONNECTIONS)) {
+    if(listen(listeningSocket, max_connections)) {
         perror("listen");
         close(listeningSocket);
         return -1;
     }
-    log_debug(logger, "Escuchando el puerto 3087");
+    log_debug(logger, "Escuchando el puerto %d", listening_port);
 
     epoll = epoll_create1(EPOLL_CLOEXEC);
 
@@ -287,10 +322,10 @@ int32_t main(void) {
 
     epoll_ctl(epoll, EPOLL_CTL_ADD, listeningSocket, &event);
 
-    struct epoll_event *events = calloc(MAX_CONNECTIONS, sizeof event);
+    struct epoll_event *events = calloc(max_connections, sizeof event);
 
     while (1) { // roll, baby roll (8)
-        int readySocketsCount = epoll_wait(epoll, events, MAX_EVENTS, -1);
+        int readySocketsCount = epoll_wait(epoll, events, max_events, -1);
         log_debug(logger, "Actividad del epoll");
         int index;
         for (index = 0; index < readySocketsCount; ++index) {
@@ -324,7 +359,6 @@ int32_t main(void) {
     }
 
     return 0;
-    mapear_archivo();
 
 //	read_superblock();
 

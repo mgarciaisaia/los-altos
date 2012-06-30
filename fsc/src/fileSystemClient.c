@@ -10,13 +10,15 @@
 #include <errno.h>
 #include <string.h>
 #include "src/commons/log.h"
+#include "src/commons/config.h"
 
-// FIXME: parametrizar
-#define fileSystemIP "127.0.0.1"
-#define fileSystemPort 3087
-#define MAXIMUM_READWRITE_SIZE 32 * 1024
+// FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
+#define PATH_CONFIG "conf/fsc.conf"
 
 t_log *logger;
+char *fileSystemIP;
+u_int16_t fileSystemPort;
+int maximumReadWriteSize = 32 * 1024;
 
 
 /**
@@ -133,8 +135,8 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
  */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     logger_operation_read_write("read", path, size, offset);
-    if(size > MAXIMUM_READWRITE_SIZE) {
-        size = MAXIMUM_READWRITE_SIZE;
+    if(size > maximumReadWriteSize) {
+        size = maximumReadWriteSize;
     }
     struct nipc_read* readData = new_nipc_read(path, size, offset);
     struct nipc_packet* packet = readData->serialize(readData);
@@ -160,8 +162,8 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     logger_operation_read_write("write", path, size, offset);
-    if(size > MAXIMUM_READWRITE_SIZE) {
-        size = MAXIMUM_READWRITE_SIZE;
+    if(size > maximumReadWriteSize) {
+        size = maximumReadWriteSize;
     }
     struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
     struct nipc_packet* packet = writeData->serialize(writeData);
@@ -373,22 +375,51 @@ int remote_handshake() {
     }
 }
 
+void initialize_configuration() {
+    t_config *config = config_create(PATH_CONFIG);
+
+    char *log_level = config_get_string_value(config, "logger.level");
+    char *log_file = config_get_string_value(config, "logger.file");
+    char *log_name = config_get_string_value(config, "logger.name");
+    int log_has_console = config_get_int_value(config, "logger.has_console");
+
+    logger = log_create(log_file, log_name, log_has_console, log_level_from_string(log_level));
+
+    log_info(logger, "Inicializado el logger en %s con nivel %s", log_file, log_level);
+
+    char *log_socket_level = config_get_string_value(config, "logger.sockets.level");
+    char *log_socket_file = config_get_string_value(config, "logger.sockets.file");
+    char *log_socket_name = config_get_string_value(config, "logger.sockets.name");
+    int log_socket_has_console = config_get_int_value(config, "logger.sockets.has_console");
+
+    socket_set_logger(log_create(log_socket_file, log_socket_name, log_socket_has_console, log_level_from_string(log_socket_level)));
+
+    log_info(logger, "Inicializado el logger de sockets en %s con nivel %s", log_socket_file, log_socket_level);
+
+    fileSystemIP = strdup(config_get_string_value(config, "filesystem.ip"));
+    fileSystemPort = config_get_int_value(config, "filesystem.port");
+
+    maximumReadWriteSize = config_get_int_value(config, "readwrite.maxsize") * 1024;
+
+    log_info(logger, "Ubicacion del FileSystem: %s:%u", fileSystemIP, fileSystemPort);
+    config_destroy(config);
+}
+
 int main(int argc, char *argv[]) {
-    // FIXME: parametros de configuracion
-#define LOG_LEVEL "LOG_LEVEL_TRACE"
-    logger = log_create("fsc.log", "FSC", 1, LOG_LEVEL_DEBUG);
-    socket_create_logger("FSC-SOCKET");
+    initialize_configuration();
     if(logger == NULL) {
         perror("No hay logger");
         return -1;
     }
     if(remote_handshake()) {
+        socket_destroy_logger();
         log_destroy(logger);
         return -1;
     }
     log_debug(logger, "Corro fuse_main");
 	int fuseReturn = fuse_main(argc, argv, &remote_operations, NULL);
 	log_debug(logger, "Termina el fsc: %d - %s", fuseReturn, strerror(errno));
+	socket_destroy_logger();
     log_destroy(logger);
     return fuseReturn;
 }
