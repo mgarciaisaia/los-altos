@@ -28,12 +28,10 @@ t_log *logger;
  * FIXME: falta hacer free() a todos los response
  */
 void logger_operation(const char *operation, const char *path) {
-    // FIXME: sincronizar con un mutex
     log_debug(logger, "Operacion recibida: %s en %s", operation, path);
 }
 
 void logger_operation_read_write(const char *operation, const char *path, size_t size, off_t offset) {
-    // FIXME: sincronizar con un mutex
     log_debug(logger, "Operacion recibida: %s en %s (@%lu, %lu bytes)", operation, path, offset, size);
 }
 
