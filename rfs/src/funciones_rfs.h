@@ -68,25 +68,25 @@
 	struct INode
 	{
 	    uint16_t mode;
-	    uint16_t uid;
+	    uint16_t uid;	// generar ??
 	    uint32_t size;
 	    uint32_t atime;
 	    uint32_t ctime;
 	    uint32_t mtime;
 	    uint32_t dtime;
-	    uint16_t gid;
+	    uint16_t gid;	// ??
 	    uint16_t links;
-	    uint32_t nr_blocks;
-	    uint32_t flags;
+	    uint32_t nr_blocks;	// ver que es
+	    uint32_t flags;	// ??
 	    uint32_t reserved1;
 	    uint32_t blocks[12];
 	    uint32_t iblock;
 	    uint32_t iiblock;
 	    uint32_t iiiblock;
-	    uint32_t generation;
-	    uint32_t file_acl;
-	    uint32_t size_hi;
-	    uint32_t reserved2[4];
+	    uint32_t generation;	// ??
+	    uint32_t file_acl;	// = 0
+	    uint32_t size_hi;	// ??
+	    uint32_t reserved2[4];	// ??
 	};
 
 	struct DirEntry
@@ -107,6 +107,11 @@
 //	    __dev_t st_rdev;
 		char * name;
 	} t_readdir_stat;
+
+	typedef struct ruta_separada{
+		char * ruta;
+		char * nombre;
+	} t_ruta_separada;
 
 	void mapear_archivo();
 	struct Superblock *read_superblock();
@@ -141,10 +146,17 @@
 	void leerIndireccionTriple(uint32_t);
 
 	bool esInodoDirectorio(uint32_t nroInodo);
-	struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
+//	struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
+	// de prueba
+	uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
 
-	t_list * listarDirectorio(char *);
-	t_list * cargarEntradasDirectorioALista(struct INode *);
+//	t_list * listarDirectorio(char *);
+	// de prueba
+	void listarDirectorio(char *);
+	// de prueba
+	void cargarEntradasDirectorioALista(struct INode *);
+
+//	t_list * cargarEntradasDirectorioALista(struct INode *);
 
 	t_queue * buscarDirectorios(void);
 	void buscarInodosDirectorio(t_queue *,uint32_t);
@@ -173,10 +185,34 @@
 
 	void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size);
 	void escribirBloque(void *, uint32_t);
-	void agregar_EOF(struct INode * inodo,uint32_t offset);
-	void agregarCaracterFinCadena(struct INode * inodo,uint32_t offset);
 
 	void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
 	void escribir(struct INode * inodo, char * input,uint32_t size,uint32_t offset);
+
+//	void crearDirectorio(char * path, mode_t mode);
+	// fixme: de prueba
+	void crearDirectorio(char * path);
+	t_ruta_separada * separarPathParaNewDirEntry(char * path);
+	// de prueba
+	t_ruta_separada * separarPathParaNewDirEntry(char * path);
+	void agregarEntradaDirectorio(struct INode * inodo,char * nombre);
+	uint32_t agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
+	uint32_t tamanioMinEntradaDirectorio(char * nombre);
+	uint32_t getInodoLibre(void);
+	void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo);
+	uint32_t getInodoLibreDelBitmap(uint32_t nro_grupo);
+
+	void inicializarEntradasNuevoDir(struct INode * inodo, uint32_t offset, uint32_t nroInodoEntradaNueva, uint32_t nroInodoRuta);
+
+	uint32_t getNroInodoDeLaDireccionDelPath(char * path);
+	void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato);
+
+	void eliminarDirectorio(char * path);
+	void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada);
+	void liberarInodo(uint32_t nroInodoDirectorio);
+	int directorioVacio(uint32_t nroInodoDirectorio);
+
+	void crearArchivo(char * path, uint32_t mode);
+	void setearInodo(struct INode * inodoArchivo, uint32_t mode);
 
 #endif /* FUNCIONES_RFS_H_ */

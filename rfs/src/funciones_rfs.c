@@ -90,7 +90,7 @@ uint32_t cantidadDeGrupos() {
 	return (resto != 0) ? cantidadDeGrupos + 1 : cantidadDeGrupos;
 }
 
-// todo: modificar la asignación a posInicialGD
+// todo: modificar la asignación a posInicialGD de acuerdo al tamaño de bloque
 struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
 	struct GroupDesc *gd;
 	uint16_t posInicialGD = 2048;
@@ -299,18 +299,25 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 	return ptr_arch + nroBloque * tamanio_bloque;
 }
 
-t_list * listarDirectorio(char * path){
+//t_list * listarDirectorio(char * path){
+//	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+//	// todo: cargar en las estructuras
+//	return cargarEntradasDirectorioALista(inodoDeBusqueda);
+//
+//}
+
+// de prueba todo: controlar que el path es un directorio
+void listarDirectorio(char * path){
 	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-	// todo: cargar en las estructuras
-	return cargarEntradasDirectorioALista(inodoDeBusqueda);
+	cargarEntradasDirectorioALista(inodoDeBusqueda);
 }
 
-struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta){
+uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta){
 
-	struct INode * inodoBuscado = NULL;
+	uint32_t nroInodoBuscado = 0;
 	uint32_t tamanio_directorio = inodoDeBusqueda->size;
 	uint32_t offset;
-	for(offset = 0;inodoBuscado == NULL && offset < tamanio_directorio;offset += tamanio_bloque){
+	for(offset = 0;nroInodoBuscado == 0 && offset < tamanio_directorio;offset += tamanio_bloque){
 		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		void * ptr = posicionarme(inodoDeBusqueda,nroBloqueLogico,0);
 
@@ -328,7 +335,8 @@ struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,ch
 			printf("name: %s\n", nombre);
 			if(string_equals_ignore_case(nombre,ruta)){
 				printf("nro de inodo que gestiona %s es %u\n",ruta,directorio->inode);
-				inodoBuscado = getInodo(directorio->inode);
+//				inodoBuscado = getInodo(directorio->inode);
+				nroInodoBuscado = directorio->inode;
 				break;
 			}
 			cantidad += directorio->entry_len;
@@ -337,13 +345,13 @@ struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,ch
 
 	}
 
-	return inodoBuscado;
+	return nroInodoBuscado;
 }
 
-t_list * cargarEntradasDirectorioALista(struct INode * inodo){
-	t_list * lista = list_create();
 
-	struct INode * inodoEntradaDirectorioActual;
+// de prueba
+void cargarEntradasDirectorioALista(struct INode * inodo){
+
 	uint32_t tamanio_directorio = inodo->size;
 	uint32_t offset;
 	for(offset = 0;offset < tamanio_directorio;offset += tamanio_bloque){
@@ -353,32 +361,66 @@ t_list * cargarEntradasDirectorioALista(struct INode * inodo){
 		while(tamanio_bloque > cantidad){
 			// todo: ver si carga bien los datos a la estructura
 			struct DirEntry * directorio = (struct DirEntry *) ptr;
-			printf("nombre %s\n",directorio->name);
 			char* nombre = calloc(1, directorio->name_len + 1);
 			memcpy(nombre, directorio->name, directorio->name_len);
-			inodoEntradaDirectorioActual = getInodo(directorio->inode);
-			t_readdir_stat * readdirStats = malloc(sizeof(t_readdir_stat));
-			readdirStats->mode = inodoEntradaDirectorioActual->mode;
-			readdirStats->gid = inodoEntradaDirectorioActual->gid;
-			readdirStats->nlink = inodoEntradaDirectorioActual->links;
-			readdirStats->uid = inodoEntradaDirectorioActual->uid;
-			readdirStats->name = nombre;
-			list_add(lista,inodoEntradaDirectorioActual);
-
+//			inodoEntradaDirectorioActual = getInodo(directorio->inode);
+			printf("nombre: %s\n",nombre);
+			printf("entry_len: %d\n",directorio->entry_len);
+			printf("inode: %d\n",directorio->inode);
+//			printf("type: %hu\n",directorio->type);
+			printf("name_len: %hu\n\n",directorio->name_len);
 			cantidad += directorio->entry_len;
 			ptr += directorio->entry_len;
 		}
-
 	}
-	return lista;
 }
+
+
+//t_list * cargarEntradasDirectorioALista(struct INode * inodo){
+//	t_list * lista = list_create();
+//
+//	struct INode * inodoEntradaDirectorioActual;
+//	uint32_t tamanio_directorio = inodo->size;
+//	uint32_t offset;
+//	for(offset = 0;offset < tamanio_directorio;offset += tamanio_bloque){
+//		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+//		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
+//		uint16_t cantidad = 0;
+//		while(tamanio_bloque > cantidad){
+//			// todo: ver si carga bien los datos a la estructura
+//			struct DirEntry * directorio = (struct DirEntry *) ptr;
+//			printf("nombre %s\n",directorio->name);
+//			char* nombre = calloc(1, directorio->name_len + 1);
+//			memcpy(nombre, directorio->name, directorio->name_len);
+//			inodoEntradaDirectorioActual = getInodo(directorio->inode);
+//			t_readdir_stat * readdirStats = malloc(sizeof(t_readdir_stat));
+//			readdirStats->mode = inodoEntradaDirectorioActual->mode;
+//			readdirStats->gid = inodoEntradaDirectorioActual->gid;
+//			readdirStats->nlink = inodoEntradaDirectorioActual->links;
+//			readdirStats->uid = inodoEntradaDirectorioActual->uid;
+//			readdirStats->name = nombre;
+//			list_add(lista,inodoEntradaDirectorioActual);
+//
+//			cantidad += directorio->entry_len;
+//			ptr += directorio->entry_len;
+//		}
+//
+//	}
+//	return lista;
+//}
 
 void leerArchivo(char * path,uint32_t offset,uint32_t size){
 
-	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-	if((size <= 0) || (inodoDeBusqueda->size <= offset + size))
-		perror("no es posible realizar la lectura");
-	guardarDatosArchivos(inodoDeBusqueda,offset,size);
+	uint32_t nroInodoDeBusqueda = getNroInodoDeLaDireccionDelPath(path);
+	if(nroInodoDeBusqueda == 0){
+		printf("no existe el archivo");
+	} else {
+		struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+		if((size <= 0) || (inodoDeBusqueda->size <= offset + size))
+			perror("no es posible realizar la lectura");
+		else
+			guardarDatosArchivos(inodoDeBusqueda,offset,size);
+	}
 }
 
 void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size){
@@ -418,8 +460,9 @@ int esBloqueDirecto(uint32_t nroBloque) {
 }
 
 int esIndireccionSimple(uint32_t nroBloqueLogico) {
-	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t *);
-	return nroBloqueLogico < 12 + cantBloquesPorIndireccion;
+	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t);
+	return (12 <= nroBloqueLogico) && (nroBloqueLogico < 12 + cantBloquesPorIndireccion);
+//	return nroBloqueLogico < 12 + cantBloquesPorIndireccion;
 }
 
 uint32_t * posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico) {
@@ -435,15 +478,17 @@ uint32_t * posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nr
 }
 
 int esIndireccionDoble(uint32_t nroBloqueLogico){
-	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t *);
-	return nroBloqueLogico < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2);
+	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t);
+	return (12 + cantBloquesPorIndireccion <= nroBloqueLogico) && (nroBloqueLogico < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2));
+//	return nroBloqueLogico < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2);
 }
 
 uint32_t * posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
-	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t *);
+	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
 	int i;
+	// puede romper aca, sino probar con 268
 	uint32_t cantBloquesYaRecorridos = 267;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
 	for (i = 0; cantBloquesPorIndireccionSimple <= nroBloqueLogico; i++, nroBloqueLogico -= cantBloquesPorIndireccionSimple);
@@ -454,15 +499,18 @@ uint32_t * posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nro
 }
 
 int esIndireccionTriple(uint32_t nroBloque){
-	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t *);
-	return nroBloque < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2)
-			+ pow(cantBloquesPorIndireccion,3);
+	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t);
+	return (12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2) <= nroBloque) && (nroBloque < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2)
+			+ pow(cantBloquesPorIndireccion,3));
+//	return nroBloque < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2)
+//			+ pow(cantBloquesPorIndireccion,3);
+
 }
 
 uint32_t * posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
-	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t *);
+	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
 	uint32_t cantBloquesPorIndireccionDoble = pow(cantBloquesPorIndireccionSimple,2);
 	uint32_t cantBloquesYaRecorridos = 65803;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
@@ -503,11 +551,16 @@ struct INode * getInodoDeLaDireccionDelPath(char * path){
 	char * separador = "/";
 	char ** ruta_separada = string_split(path,separador);
 	int tamanio_ruta_separada = size_array_before_split(path,separador);
-	struct INode * inodoDeBusqueda = getInodo(2); // el inodo 2 es el directorio raíz
+	uint32_t nroInodoDeBusqueda = 2;	// el inodo 2 es el directorio raiz
+	struct INode * inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
 	int i;
 	for(i = 0;i < tamanio_ruta_separada;i++){
-		printf("inodo size: %u\n",inodoDeBusqueda->size);
-		inodoDeBusqueda = buscarInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
+		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
+		if(nroInodoDeBusqueda == 0){
+			printf("error: no existe la ruta");
+			break;
+		}
+		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
 	}
 	return inodoDeBusqueda;
 }
@@ -543,12 +596,42 @@ void truncarArchivo(char * path,uint32_t offset){
 			}
 		} else {
 			//agrandar archivo
-			// todo: controlar si hay suficientes espacio
+			// todo: controlar si hay suficientes espacio en disco
 			while(size > 0){
 				uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offsetEOF);
 				if(resto == tamanio_bloque){
 					uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF);
 					uint32_t nroBloqueDeDato = getBloqueLibre();
+
+// manejo de la asignación de bloques para indirecciones simples, dobles y triples
+					uint32_t cantPtrEnBloque = tamanio_bloque / sizeof(uint32_t);
+					if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12)
+							inodoPath->iblock = getBloqueLibre();
+					if(esIndireccionDoble(nroBloqueLogico)){
+						if(nroBloqueLogico == 268){
+							inodoPath->iiblock = getBloqueLibre();
+						}
+						// el 12 es por los bloques que ya recorrio
+						if((nroBloqueLogico - 12) % cantPtrEnBloque == 0){
+							uint32_t posDentroIndireccionDoble = (nroBloqueLogico - 12) / cantPtrEnBloque;
+							void * ptrBloque = desplazarme(inodoPath->iiblock,posDentroIndireccionDoble * 4);
+							uint32_t * nroBloqueLibre = getBloqueLibre();
+							memcpy(ptrBloque,nroBloqueLibre,sizeof(uint32_t));
+						}
+					}
+					if(esIndireccionTriple(nroBloqueLogico)){
+						if(nroBloqueLogico == 65804){
+							inodoPath->iiiblock = getBloqueLibre();
+						}
+						if(nroBloqueLogico - (12 + cantPtrEnBloque) % cantPtrEnBloque == 0){
+							uint32_t posDentroIndireccionDoble = (nroBloqueLogico - (12 + cantPtrEnBloque)) / cantPtrEnBloque;
+							void * ptrBloque = desplazarme(inodoPath->iiblock,posDentroIndireccionDoble * 4);
+							uint32_t * nroBloqueLibre = getBloqueLibre();
+							memcpy(ptrBloque,nroBloqueLibre,sizeof(uint32_t));
+						}
+					}
+// Fin - manejo de la asignación de bloques para indirecciones simples, dobles y triples
+
 					agregarAInodo(inodoPath,nroBloqueLogico,nroBloqueDeDato);
 				}
 				if(resto >= size){
@@ -617,6 +700,7 @@ uint32_t getBloqueLibre(){
 	uint32_t nro_grupo;
 	for(nro_grupo = 0;nroBloqueDeDato == 0;nro_grupo++)
 		nroBloqueDeDato = getBloqueLibreDelBitmap(nro_grupo);
+	actualizarEstructurasCuandoPidoBloque(nroBloqueDeDato);
 	return nroBloqueDeDato;
 }
 
@@ -643,29 +727,11 @@ uint32_t getBloqueLibreDelBitmap(uint32_t nro_grupo){
 }
 
 void agregarAInodo(struct INode * inodoPath,uint32_t nroBloqueLogico,uint32_t nroBloqueDeDato){
-	// todo: encapsular comportamiento, ver con liberarbloque()
-	// marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
-	struct Superblock *sb = read_superblock();
-	//todo : ver si funca para todos los casos(ej. con bloques de 2k, 4k)
-	uint32_t nroGrupo = (nroBloqueDeDato - 1) / sb->blocks_per_group;
-	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
-	uint32_t nroBlockBitmap = grupo->block_bitmap;
-	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
-	int cantBytes = sb->blocks_per_group / 8;
-	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
-	while(nroBloqueDeDato > sb->blocks_per_group)
-		nroBloqueDeDato -= sb->blocks_per_group;
-	bitarray_set_bit(ptrBit,nroBloqueDeDato - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos puede ser >= 1
-	// Fin - marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
-	// le asigno el número de bloque de dato nuevo, al número de bloque lógico dentro del inodo
+	// me posiciono en el nro de bloque relativo al inodo
 	uint32_t * ptrBloque = getPtrNroBloqueLogicoDentroInodo(inodoPath,nroBloqueLogico);
-
 	// Le asigno al número de bloque relativo del inodo, el número de bloque de dato libre
 	uint32_t * ptrNroBloqueDeDato = &nroBloqueDeDato;
 	memcpy(ptrBloque,ptrNroBloqueDeDato,sizeof(uint32_t));
-
-	(sb->free_blocks)--;	// Actualizando el free_blocks del superbloque
-	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
 }
 
 void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size){
@@ -677,7 +743,7 @@ void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size){
 
 void escribirBloque(void * posicionPtr,uint32_t size){
 	uint32_t i;
-	char * dato = "C";
+	char * dato = "";
 	for(i = 0;i < size;i++,posicionPtr++)
 		memcpy(posicionPtr,dato,1);
 }
@@ -685,22 +751,27 @@ void escribirBloque(void * posicionPtr,uint32_t size){
 void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 
 	// todo: hacer un control si hay espacio en el disco
-	struct INode * inodoPath = getInodoDeLaDireccionDelPath(path);
-	if(inodoPath->size < size + offset){
-		uint32_t truncar = size + offset;
-		truncarArchivo(path,truncar);
-	}
+	uint32_t nroInodoPath = getNroInodoDeLaDireccionDelPath(path);
+	if(nroInodoPath == 0){
+		printf("no existe el archivo");
+	} else{
+		struct INode * inodoPath = getInodo(nroInodoPath);
+		if(inodoPath->size < size + offset){
+			uint32_t truncar = size + offset;
+			truncarArchivo(path,truncar);
+		}
 
-	while(size > 0){
-		uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offset);
-		if(resto >= size){
-			escribir(inodoPath,input,size,offset);
-			offset += size;
-			size -= size;
-		} else {
-			escribir(inodoPath,input,resto,offset);
-			offset += resto;
-			size -= resto;
+		while(size > 0){
+			uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offset);
+			if(resto >= size){
+				escribir(inodoPath,input,size,offset);
+				offset += size;
+				size -= size;
+			} else {
+				escribir(inodoPath,input,resto,offset);
+				offset += resto;
+				size -= resto;
+			}
 		}
 	}
 
@@ -716,3 +787,441 @@ void escribir(struct INode * inodo, char * input,uint32_t size,uint32_t offset){
 	memcpy(ptr,subString,size);
 	free(subString);
 }
+
+// todo: ver manejo de errores, agregar el mode para asignarle al inodo de la nueva entrada
+void crearDirectorio(char * path){
+	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
+	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+	struct INode * inodoRuta = getInodo(nroInodoRuta);
+	if(nroInodoRuta != 0)
+		if(getNroInodoDeLaDireccionDelPath(path) == 0){
+			agregarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
+			struct INode * inodoNuevoDir = getInodoDeLaDireccionDelPath(path);
+			// nro de inodo que cargo para . en el nuevo directorio
+			uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
+			// nro de inodo que cargo para .. en el nuevo directorio
+			uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+			inicializarEntradasNuevoDir(inodoNuevoDir,0,nroInodoEntradaNueva,nroInodoRuta);
+			free(ruta_separada->ruta);
+			free(ruta_separada->nombre);
+			free(ruta_separada);
+		} else {
+			printf("error: ya existe la carpeta %s",ruta_separada->nombre);
+		}
+	else
+		printf("error: no existe la ruta");
+
+}
+
+t_ruta_separada * separarPathParaNewDirEntry(char * path){
+	t_ruta_separada * ruta_separada = malloc(sizeof(t_ruta_separada));
+	char * separador = "/";
+	if(size_array_before_split(path,separador) == 1){
+		char ** vector_ruta = string_split(path,separador);
+		ruta_separada->ruta = calloc(1,1);
+		ruta_separada->nombre = calloc(1,strlen(vector_ruta[0]));
+		strncpy(ruta_separada->nombre,vector_ruta[0],strlen(vector_ruta[0]));
+	} else {
+		char * nombre_carpeta = rindex(path,'/');
+		uint32_t tamanio_nombre = strlen(nombre_carpeta);
+		ruta_separada->ruta = calloc(1,strlen(path) - tamanio_nombre + 1);
+		strncpy(ruta_separada->ruta,path,strlen(path) - tamanio_nombre);
+		nombre_carpeta++;
+		ruta_separada->nombre = calloc(1,strlen(nombre_carpeta) + 1);
+		strncpy(ruta_separada->nombre,nombre_carpeta,tamanio_nombre);
+	}
+	return ruta_separada;
+}
+
+/*
+ * Agrega en las entradas de directorio de inodo, una entrada que puede ser del tipo archivo o directorio
+ */
+void agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
+
+//	uint32_t nroInodoEntradaNueva;
+	uint32_t tamanio_nueva_entrada = tamanioMinEntradaDirectorio(nameNewEntry);
+	uint32_t tamanio_directorio = inodo->size;
+	uint32_t offset;
+	int encontroEspacio = 0;
+	for(offset = 0;!encontroEspacio && offset < tamanio_directorio;offset += tamanio_bloque){
+		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
+		uint16_t cantidad = 0;
+		while(tamanio_bloque > cantidad){
+			// todo: ver si carga bien los datos a la estructura
+			struct DirEntry * directorio = (struct DirEntry *) ptr;
+			char* nombre = calloc(1, directorio->name_len + 1);
+			memcpy(nombre, directorio->name, directorio->name_len);
+			uint32_t sizeMinEntradaDirectorioActual = tamanioMinEntradaDirectorio(nombre);
+			uint32_t resto = directorio->entry_len - sizeMinEntradaDirectorioActual;
+			if(resto >= tamanio_nueva_entrada){
+				directorio->entry_len = sizeMinEntradaDirectorioActual;
+				void * ptrInicioNuevaEntrada = ptr + sizeMinEntradaDirectorioActual;
+				agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,resto);
+				encontroEspacio = 1;
+				free(nombre);
+				break;
+			}
+			free(nombre);
+			cantidad += directorio->entry_len;
+			ptr += directorio->entry_len;
+		}
+	}
+	if(!encontroEspacio){
+		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+		uint32_t nroBloqueDeDato = getBloqueLibre();
+		agregarAInodo(inodo,nroBloqueLogico,nroBloqueDeDato);
+		void * ptrInicioNuevaEntrada = posicionarme(inodo,nroBloqueLogico,0);
+		agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,tamanio_bloque);
+		inodo->size += tamanio_bloque;
+	}
+}
+
+uint32_t tamanioMinEntradaDirectorio(char * nombre){
+	uint32_t tamanio_entrada = sizeof(struct DirEntry) + strlen(nombre);
+	uint32_t resto = tamanio_entrada % 4;
+	uint32_t padding = (resto == 0) ? 0 : 4 - resto;
+	tamanio_entrada += padding;
+	return tamanio_entrada;
+}
+
+/*
+ * Desc: Agrega una nueva entrada de directorio
+ * Return: número de inodo al que se asigna esta nueva entrada
+ */
+// todo: revert si nadie usa el numero de inodo retornado
+uint32_t agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante){
+	struct DirEntry * entrada_nueva = calloc(1,sizeof(struct DirEntry) + strlen(nombre) + 1);
+	uint32_t nroInodoLibre = getInodoLibre();
+	entrada_nueva->inode = nroInodoLibre;
+	entrada_nueva->entry_len = sizeRestante;
+	entrada_nueva->name_len = strlen(nombre);
+	strcat(entrada_nueva->name,nombre);
+	memcpy(ptrEntradaDirectorio,entrada_nueva,sizeof(struct DirEntry) + strlen(nombre));
+	// todo: cargar datos correctos al inodo
+	struct INode * inodo = getInodo(entrada_nueva->inode);
+	inodo->mode = 16893;
+	inodo->uid = 1000;
+	inodo->gid = 1000;
+	inodo->atime = 1340777945;
+	inodo->ctime = 1340777940;
+	inodo->mtime = 13407779;
+	inodo->generation = 996980145;
+	inodo->links = 1;
+	inodo->blocks[0] = getBloqueLibre();
+	inodo->size = tamanio_bloque;
+	free(entrada_nueva);
+	return nroInodoLibre;
+}
+
+uint32_t getInodoLibre(){
+	struct Superblock *sb = read_superblock();
+	if(sb->free_inodes == 0)
+		perror("error: No hay inodos disponibles");
+	uint32_t nroInodo = 0;
+	uint32_t nro_grupo;
+	for(nro_grupo = 0;nroInodo == 0;nro_grupo++)
+		nroInodo = getInodoLibreDelBitmap(nro_grupo);
+	actualizarEstructurasCuandoPidoInodo(nroInodo);
+	return nroInodo;
+
+}
+
+// todo: ver donde marcar como ocupado el inodo
+uint32_t getInodoLibreDelBitmap(uint32_t nro_grupo){
+	uint32_t nroInodo = 0;
+	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
+	uint32_t inicioBB = grupo->inode_bitmap;
+	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
+	struct Superblock *bloque = read_superblock();
+	int cantInodos = bloque->inodes_per_group;
+	int cantBytes = cantInodos / 8;
+	uint32_t nroPrimerInodoDelGrupo;
+	nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
+	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
+	int i;
+	for(i = 0;i < cantInodos;i++){
+		bool valor = bitarray_test_bit(ptrBit, i);
+		if(valor == 0){
+			nroInodo = nroPrimerInodoDelGrupo + i;
+			break;
+		}
+	}
+
+	return nroInodo;
+}
+
+
+void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo){
+	struct Superblock *sb = read_superblock();
+	//todo : ver si funca para todos los casos(ej. con bloques de 2k, 4k)
+	uint32_t nroGrupo = (nroInodo - 1) / sb->inodes_per_group;
+	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+	uint32_t nroInodeBitmap = grupo->inode_bitmap;
+	uint8_t * inicio = posicionarInicioBloque(nroInodeBitmap);
+	int cantBytes = sb->inodes_per_group / 8;
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
+	while(nroInodo > sb->inodes_per_group)
+		nroInodo -= sb->inodes_per_group;
+	// marca como ocupado el numero de inodo en su bitmap
+	bitarray_set_bit(ptrBit,nroInodo - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos puede ser >= 1
+
+	(sb->free_inodes)--;	// Actualizando el free_blocks del superbloque
+	(grupo->free_inodes_count)--;	// Actualizando el free_blocks del group descriptor
+	(grupo->used_dirs_count)++;
+
+}
+
+/*
+ * Desc: Se crean las entradas . y .. para el nuevo directorio
+ * nroInodoEntradaNueva -> es el nro de inodo que se carga para la entrada .
+ * nroInodoRuta -> es el nro de inodo que se carga para la entrada ..
+ */
+void inicializarEntradasNuevoDir(struct INode * inodo, uint32_t offset, uint32_t nroInodoEntradaNueva, uint32_t nroInodoRuta){
+	void * ptr = posicionarme(inodo,0,0);
+
+	char * nombre = calloc(1,2);
+	strncpy(nombre,".",1);
+
+	struct DirEntry * entrada_nueva = malloc(sizeof(struct DirEntry) + strlen(nombre));
+	entrada_nueva->inode = nroInodoEntradaNueva;
+	uint16_t tamanio_primer_entrada = tamanioMinEntradaDirectorio(nombre);
+	entrada_nueva->entry_len = tamanio_primer_entrada;
+	entrada_nueva->name_len = strlen(nombre);
+	strcat(entrada_nueva->name,nombre);
+	memcpy(ptr,entrada_nueva,sizeof(struct DirEntry) + strlen(nombre));
+
+	free(entrada_nueva);
+	free(nombre);
+
+	ptr = posicionarme(inodo,0,12);	// el 12 es el entry_len del directorio .
+
+	nombre = calloc(1,3);
+	strncpy(nombre,"..",2);
+
+	entrada_nueva = malloc(sizeof(struct DirEntry) + strlen(nombre));
+	entrada_nueva->inode = nroInodoRuta;
+	entrada_nueva->entry_len = tamanio_bloque - tamanio_primer_entrada;
+	entrada_nueva->name_len = strlen(nombre);
+	strcat(entrada_nueva->name,nombre);
+	memcpy(ptr,entrada_nueva,sizeof(struct DirEntry) + strlen(nombre));
+
+	free(entrada_nueva);
+	free(nombre);
+
+}
+
+uint32_t getNroInodoDeLaDireccionDelPath(char * path){
+	char * separador = "/";
+	char ** ruta_separada = string_split(path,separador);
+	int tamanio_ruta_separada = size_array_before_split(path,separador);
+	uint32_t nroInodoDeBusqueda = 2;	// el inodo 2 es el directorio raiz
+	struct INode * inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
+	int i;
+	for(i = 0;i < tamanio_ruta_separada;i++){
+//		printf("inodo size: %u\n",inodoDeBusqueda->size);
+		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
+		if(nroInodoDeBusqueda == 0){
+// todo: revisar, entra aca cuando hago un crearDirectorio en el raiz
+			printf("error: no existe la ruta\n");
+			break;
+		}
+		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
+	}
+	return nroInodoDeBusqueda;
+}
+
+void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato){
+	// todo: encapsular comportamiento, ver con liberarbloque()
+	// marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
+	struct Superblock *sb = read_superblock();
+	//todo : ver si funca para todos los casos(ej. con bloques de 2k, 4k)
+	uint32_t nroGrupo = (nroBloqueDeDato - 1) / sb->blocks_per_group;
+	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+	uint32_t nroBlockBitmap = grupo->block_bitmap;
+	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
+	int cantBytes = sb->blocks_per_group / 8;
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
+	while(nroBloqueDeDato > sb->blocks_per_group)
+		nroBloqueDeDato -= sb->blocks_per_group;
+	bitarray_set_bit(ptrBit,nroBloqueDeDato - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos puede ser >= 1
+	// Fin - marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
+
+	(sb->free_blocks)--;	// Actualizando el free_blocks del superbloque
+	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
+}
+
+// todo: Algoritmo - Remover un directorio
+
+void eliminarDirectorio(char * path){
+
+	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
+	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+	struct INode * inodoRuta = getInodo(nroInodoRuta);
+	uint32_t nroInodoDirectorio;
+	if(nroInodoRuta != 0) {
+		nroInodoDirectorio = getNroInodoDeLaDireccionDelPath(path);
+		if(nroInodoDirectorio != 0){
+			if(directorioVacio(nroInodoDirectorio)){
+				eliminarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
+				liberarInodo(nroInodoDirectorio);
+			} else {
+				printf("error: el directorio %s contiene archivos",ruta_separada->nombre);
+			}
+		} else {
+			printf("error: no existe el directorio %s",ruta_separada->nombre);
+		}
+	}
+	else
+		printf("error: no existe la ruta");
+	free(ruta_separada->ruta);
+	free(ruta_separada->nombre);
+	free(ruta_separada);
+
+//	if(existeLaRuta?(path))
+//		if(estaVacioDirectorio(path->nombre_entrada))
+//			remover(inodo_ruta,nombre_entrada);
+//		else
+//			printf("El directorio no está vacío, no se puede eliminar");
+//	else
+//		printf("no existe la ruta o el nombre de la entrada");
+}
+
+void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
+	uint32_t tamanio_directorio = inodoRuta->size;
+	uint32_t offset;
+	int directorioEliminado = 0;
+	uint32_t tamanio_dir_eliminado;
+	uint32_t nroBloqueLogico;
+	uint32_t tamanioEntradaAnterior;
+	void * ptr;
+	for(offset = 0;!directorioEliminado && offset < tamanio_directorio;offset += tamanio_bloque){
+		tamanioEntradaAnterior = 0;
+		nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+		ptr = posicionarme(inodoRuta,nroBloqueLogico,0);
+		uint16_t cantidad = 0;
+		while(tamanio_bloque > cantidad){
+			// todo: ver si carga bien los datos a la estructura
+			struct DirEntry * directorio = (struct DirEntry *) ptr;
+			char* nombre = calloc(1, directorio->name_len + 1);
+			memcpy(nombre, directorio->name, directorio->name_len);
+			if(string_equals_ignore_case(nombre,nombre_entrada)){
+				tamanio_dir_eliminado = directorio->entry_len;
+				directorioEliminado = 1;
+				free(nombre);
+				break;
+			}
+			free(nombre);
+			tamanioEntradaAnterior = directorio->entry_len;
+			cantidad += directorio->entry_len;
+			ptr += directorio->entry_len;
+		}
+	}
+	// es el caso cuando una sola entrada de directorio se encuentra en un bloque
+	if(tamanio_dir_eliminado == tamanio_bloque){
+		uint32_t * ptrBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodoRuta,nroBloqueLogico);
+		liberarBloque(ptrBloqueLogico);
+		ptrBloqueLogico = 0;
+	} else {
+		ptr -= tamanioEntradaAnterior;
+		struct DirEntry * directorio = (struct DirEntry *) ptr;
+		directorio->entry_len += tamanio_dir_eliminado;
+	}
+}
+
+void liberarInodo(uint32_t nroInodoDirectorio){
+	struct INode * inodoDirEliminado = getInodo(nroInodoDirectorio);
+	uint32_t tamanio = inodoDirEliminado->size;
+	uint32_t offset;
+	uint32_t nroBloqueLogico;
+	uint32_t * ptrBloqueLogico;
+// se limpia el inodo
+	for(offset = 0;offset < tamanio;offset+=tamanio_bloque){
+		nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+		ptrBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodoDirEliminado,nroBloqueLogico);
+		liberarBloque(ptrBloqueLogico);
+	}
+	// en agregarNuevaEntrada se setearon estos campos todo: encapsular en función
+	inodoDirEliminado->mode = 0;
+	inodoDirEliminado->uid = 0;
+	inodoDirEliminado->gid = 0;
+	inodoDirEliminado->atime = 0;
+	inodoDirEliminado->ctime = 0;
+	inodoDirEliminado->mtime = 0;
+	inodoDirEliminado->generation = 0;
+	inodoDirEliminado->links = 0;
+	inodoDirEliminado->size = 0;
+
+	struct Superblock *sb = read_superblock();
+	//todo : ver si funca para todos los casos
+	uint32_t nroGrupo = (nroInodoDirectorio - 1) / sb->inodes_per_group;
+	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+	uint32_t nroInodeBitmap = grupo->inode_bitmap;
+	uint8_t * inicio = posicionarInicioBloque(nroInodeBitmap);
+	int cantBytes = sb->inodes_per_group / 8;
+	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
+	while(nroInodoDirectorio > sb->inodes_per_group)
+		nroInodoDirectorio -= sb->inodes_per_group;
+	//marco como libre el inodo en el bitmap de bloques
+	bitarray_clean_bit(ptrBit,nroInodoDirectorio - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroDeInodos puede ser >= 1
+	(grupo->free_inodes_count)++;	//aumento la cantidad de inodos libres en el group descriptor
+	(sb->free_inodes)++;			//aumento la cantidad de inodos libres en el superbloque
+	(grupo->used_dirs_count)--;
+}
+
+int directorioVacio(uint32_t nroInodoDirectorio){
+	struct INode * inodoDirectorio = getInodo(nroInodoDirectorio);
+	int estaVacio = 1;
+	if(inodoDirectorio->size > tamanio_bloque){
+		estaVacio = 0;
+	} else {
+		void * ptr;
+		// me posiciono directamente en la entrada de directorio ..
+		uint32_t tamanio_primer_entrada = 12;
+		ptr = posicionarme(inodoDirectorio,0,12);
+		struct DirEntry * directorio = (struct DirEntry *) ptr;
+		if(directorio->entry_len != tamanio_bloque - tamanio_primer_entrada)
+			estaVacio = 0;
+	}
+	return estaVacio;
+}
+
+// Fin - Remover un directorio
+
+// Algoritmo - Crear un archivo
+
+// todo: comprobar que ruta_separada->ruta es directorio
+void crearArchivo(char * path, uint32_t mode){
+	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
+	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+	struct INode * inodoRuta = getInodo(nroInodoRuta);
+	if(nroInodoRuta != 0)
+		if(getNroInodoDeLaDireccionDelPath(path) == 0){
+			agregarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
+			uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
+			struct INode * inodoDeArchivo = getInodo(nroInodoEntradaNueva);
+			setearInodo(inodoDeArchivo,mode);
+			free(ruta_separada->ruta);
+			free(ruta_separada->nombre);
+			free(ruta_separada);
+		} else {
+			printf("error: ya existe el archivo %s",ruta_separada->nombre);
+		}
+	else
+		printf("error: no existe la ruta");
+
+}
+
+void setearInodo(struct INode * inodoArchivo, uint32_t mode){
+	inodoArchivo->mode = mode;
+	inodoArchivo->uid = 1000;
+	inodoArchivo->gid = 1000;
+	inodoArchivo->atime = 1340777945;
+	inodoArchivo->ctime = 1340777940;
+	inodoArchivo->mtime = 13407779;
+	inodoArchivo->generation = 322993457;
+	inodoArchivo->links = 1;
+	inodoArchivo->size = 0;
+}
+
+// Fin - Crear un archivo
