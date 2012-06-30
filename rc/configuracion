@@ -1,3 +1,6 @@
+#Path al archivo DUMP
+PATH=/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Dump.dat
+
 # Administracion de memoria : PART_DINAM O BUDDY
 ESQUEMA=PART_DINAM
 

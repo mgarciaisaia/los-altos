@@ -36,4 +36,7 @@ void vector_clean(void);
 void init_semaforos(void);
 void destroy_semaforos(void);
 
+uint32_t ordenar_vector(uint32_t posicion);
+
+
 #endif /* VECTOR_H_ */

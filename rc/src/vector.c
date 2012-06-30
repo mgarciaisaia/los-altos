@@ -237,14 +237,19 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 
 uint32_t compactarDinam(void) {
 
-	// como ordenar recive algo le mando cualquier posicion
+	// como ordenar recibe algo le mando cualquier posicion
 	int32_t posicion_new = ordenar_vector(0);
 	posicion_new = 1;
 	//empiezo desde cero y me fijo si esta vacio el siguiente
 	int32_t i = 0;
 
-	uint32_t ultimo_libre;
-	bool termine = false;
+		bool termine = false;
+
+	if ((key_vector[i].libre)
+			&& key_vector[i].data_size == cache_size)
+		termine =true;
+
+	uint32_t ultimo_libre = i;
 
 	pthread_rwlock_wrlock(keyVector);
 
@@ -253,7 +258,7 @@ uint32_t compactarDinam(void) {
 		// pregunto si en mi posicion hay datos, si hay pregunto por la pos sgte
 //			if (!key_vector[posicion_new].libre){
 
-//fixme : si esta libre que tmb entre y los junte!!!
+//listo : si esta libre que tmb entre y los junte!!!
 
 		//al reves, pregunto si en la siguiente hay datos,y dsp si habia en la anterior y los muevo
 		if (((posicion_new + i) < cantRegistros)
@@ -399,6 +404,7 @@ key_element *buscarLibreNext(size_t espacio) {
 			} else {
 				// compactar
 				i = compactarDinam();
+				busquedas_fallidas = 0;
 			}
 
 			pthread_rwlock_rdlock(keyVector);
@@ -492,6 +498,7 @@ key_element *buscarLibreWorst(size_t espacio) {
 				} else {
 					// compactar
 					i = compactarDinam();
+					busquedas_fallidas = 0;
 				}
 
 				pthread_rwlock_rdlock(keyVector);

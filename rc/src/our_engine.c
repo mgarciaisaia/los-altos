@@ -23,6 +23,7 @@
 #include <err.h>
 #include <src/commons/config.h>
 #include <stdio.h>
+#include <time.h>
 
 #define PATH_CONFIG "/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/configuracion"
 
@@ -89,7 +90,7 @@ char *keys_space;
 size_t cache_size;
 size_t part_minima;
 t_config* config;
-
+extern uint32_t cantRegistros;
 /*
  * Esta es la función que va a llamar memcached para instanciar nuestro engine
  */MEMCACHED_PUBLIC_API ENGINE_ERROR_CODE create_instance(uint64_t interface,
@@ -180,7 +181,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 		part_minima = engine->config.block_size_max;
 //		double worstCase = cache_size / part_minima;
 
-		//inicializo los semáforos
+//inicializo los semáforos
 		init_semaforos();
 
 		//elegimos el algoritmo a usar
@@ -231,7 +232,6 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 		} else
 			printf("no existe la clave");
 
-
 		int lock = mlock(cache, cache_size);
 		if (lock == -1)
 			perror("Error locking the cache");
@@ -266,9 +266,9 @@ static void dummy_ng_destroy(ENGINE_HANDLE* handle, const bool force) {
  * Esto retorna algo de información la cual se muestra en la consola
  */
 static const engine_info* dummy_ng_get_info(ENGINE_HANDLE* handle) {
-	static engine_info info = { .description = "Our Engine SO",
-			.num_features = 0, .features = { [0].feature = ENGINE_FEATURE_LRU,
-					[0].description = "No hay soporte de LRU" } };
+	static engine_info info = { .description = "Our Engine SO", .num_features =
+			0, .features = { [0].feature = ENGINE_FEATURE_LRU, [0].description =
+			"No hay soporte de LRU" } };
 
 	return &info;
 }
@@ -312,18 +312,17 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	key_element *it;
 
 	int32_t almacenada = vector_get(strkey);
-	if (almacenada > 0){
-	//si la clave estaba ya la libero y pregunto si mis datos entran ahi
+	if (almacenada > 0) {
+		//si la clave estaba ya la libero y pregunto si mis datos entran ahi
 		key_vector[almacenada].libre = true;
 		key_vector[almacenada].stored = false;
 
-		if(key_vector[almacenada].data_size >= nbytes)
+		if (key_vector[almacenada].data_size >= nbytes)
 			it = &key_vector[almacenada];
 		else
 			it = vector_search(nbytes);
-	}else
+	} else
 		it = vector_search(nbytes);
-
 
 	if (it == NULL) {
 		return ENGINE_ENOMEM;
@@ -460,27 +459,26 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	strkey[nkey] = '\0';
 
 	// buscamos y obtenemos el item
-		int32_t res = vector_get(strkey);
+	int32_t res = vector_get(strkey);
 
-		if (res < 0) {
+	if (res < 0) {
 
-					return ENGINE_KEY_ENOENT;
-				}
-			key_element *item = &key_vector[res];
+		return ENGINE_KEY_ENOENT;
+	}
+	key_element *item = &key_vector[res];
 
-/*Falta arreglar esto para pasarle a elmina_buddy la posicion en el vector
- */
+	/*Falta arreglar esto para pasarle a elmina_buddy la posicion en el vector
+	 */
 	char *string = config_get_string_value(config, "ESQUEMA");
 
-	if (strcmp(string, "BUDDY") == 0){
+	if (strcmp(string, "BUDDY") == 0) {
 
 //Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
 
-	size_t new_pos = elimina_buddy(res);
-	item = &key_vector[new_pos];
+		size_t new_pos = elimina_buddy(res);
+		item = &key_vector[new_pos];
 
 	}
-
 
 	dummy_ng_item_release(handle, NULL, item);
 
@@ -515,11 +513,43 @@ static void dummy_ng_item_set_cas(ENGINE_HANDLE *handle, const void *cookie,
  */
 void dummy_ng_dummp(int signal) {
 
-//ver que hacer con esta funcion
-	/*	void it(char *key, void *data){
-	 printf("%s\n", key);
-	 }
+	FILE *fich;
+	char *path = config_get_string_value(config,"PATH");
+	if ((fich = fopen(path, "w+")) == NULL)
+	{  /* control del error de apertura */
+	printf ( "Error en la apertura. Es posible que el fichero no exista \n ");
+	}
+	//Dump: 14/07/2012 10:11:12
 
-	 dictionary_iterator(cache, it);
-	 */
+	  time_t tiempo = time(0);
+	  struct tm *tlocal = localtime(&tiempo);
+	  char output[128];
+	  strftime(output,128,"%d/%m/%y %H:%M:%S",tlocal);
+
+	fprintf (fich,"Dump: %s\n",output);
+
+	uint32_t posicion = ordenar_vector(0);
+	posicion = 0;
+	uint32_t particion = 0;
+	uint32_t i;
+	char *stri = config_get_string_value(config, "VICTIM");
+
+for (i = posicion; i < cantRegistros; i++) {
+
+	//si data_size > 0 significa que tiene espacio libre u ocupado
+	if (key_vector[i].data_size > 0) {
+		particion++;
+
+		if (key_vector[i].libre) {
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [L] Size: %d b \n", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size);
+
+		} else {
+
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s \n",
+					particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
+		}
+	}
+}
+	fclose (fich);
+
 }
