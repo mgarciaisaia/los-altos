@@ -15,6 +15,8 @@
 #include <src/commons/collections/queue.h>
 //#include <commons/collections/queue.h>
 
+#define EXT2_S_IFREG 0x8000
+#define EXT2_S_IFDIR 0x4000
 #define EXT2_INODE_HAS_MODE_FLAG(inode, flag)	((inode->mode & 0xF000) == flag)
 
 	struct Superblock
@@ -117,19 +119,13 @@
 	struct Superblock *read_superblock();
 
 	uint32_t cantidadDeGrupos();
-	void leerLosGroupDescriptor(uint32_t,uint32_t);
 
 	struct GroupDesc * leerGroupDescriptor(uint32_t);
-
-
-//	char esPotenciaDe(uint32_t grupo);
-	uint8_t *dir_inicioDeGrupo (uint32_t);
 
 	void leerBitmapDeBloque(uint32_t);
 	void leerBitmapDeInodos(uint32_t);
 
 	int nroBloqueInicioDeGrupo(uint32_t);
-	void leerTablaDeInodos(uint32_t);
 	t_queue * buscarBloquesLibres(uint32_t);
 	void buscarBloquesLibresBitmaps(t_queue *,uint32_t,uint32_t);
 	t_queue * buscarInodosLibres(uint32_t);
@@ -139,13 +135,6 @@
 	struct INode * getInodo(uint32_t);
 	uint8_t * posicionarInicioBloque(uint32_t);
 
-	void leerBloquesInodos(struct INode *);
-	void leerBloquesDirectos(struct INode *);
-	void leerIndireccionSimple(uint32_t);
-	void leerIndireccionDoble(uint32_t);
-	void leerIndireccionTriple(uint32_t);
-
-	bool esInodoDirectorio(uint32_t nroInodo);
 //	struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
 	// de prueba
 	uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
@@ -158,7 +147,6 @@
 
 //	t_list * cargarEntradasDirectorioALista(struct INode *);
 
-	t_queue * buscarDirectorios(void);
 	void buscarInodosDirectorio(t_queue *,uint32_t);
 
 	uint32_t nroBloqueDentroDelInodo(uint32_t offset);
@@ -178,6 +166,8 @@
 	void truncarArchivo(char * path,uint32_t offset);
 	uint32_t * getPtrNroBloqueLogicoDentroInodo(struct INode * inodo,uint32_t nroBloqueLogico);
 	void liberarBloque(uint32_t * ptrBloqueDeDatos);
+	void * getPtrBloqueIndDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico);
+	void * getPtrBloqueIndTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico);
 
 	uint32_t getBloqueLibre(void);
 	uint32_t getBloqueLibreDelBitmap(uint32_t nro_grupo);
@@ -192,7 +182,6 @@
 //	void crearDirectorio(char * path, mode_t mode);
 	// fixme: de prueba
 	void crearDirectorio(char * path);
-	t_ruta_separada * separarPathParaNewDirEntry(char * path);
 	// de prueba
 	t_ruta_separada * separarPathParaNewDirEntry(char * path);
 	void agregarEntradaDirectorio(struct INode * inodo,char * nombre);
@@ -214,5 +203,9 @@
 
 	void crearArchivo(char * path, uint32_t mode);
 	void setearInodo(struct INode * inodoArchivo, uint32_t mode);
+
+	void eliminarArchivo(char * path);
+
+	int hayEspacioSuficiente(uint32_t size);
 
 #endif /* FUNCIONES_RFS_H_ */
