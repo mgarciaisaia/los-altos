@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <errno.h>
+#include "src/commons/collections/list.h"
 #include "src/commons/log.h"
 
 
@@ -58,14 +59,10 @@ void serve_create(int socket, struct nipc_create *request) {
  */
 void serve_read(int socket, struct nipc_read *request) {
     log_debug(logger, "read %s", request->path);
-    // FIXME: leer el archivo
-    char *saludo = "Trabajo muy duro, como un esclavo :)";
+    void *buffer;
+    size_t readBytes = leerArchivo(request->path, request->offset, request->size, &buffer);
 
-    size_t tamanioMensaje = strlen("Trabajo muy duro, como un esclavo :)");
-    char *mensaje = malloc(tamanioMensaje);
-    memcpy(mensaje, saludo, tamanioMensaje);
-
-    struct nipc_packet *response = new_nipc_read_response(mensaje, tamanioMensaje);
+    struct nipc_packet *response = new_nipc_read_response(buffer, readBytes);
     nipc_send(socket, response);
     log_debug(logger, "/read %s", request->path);
 }
@@ -117,40 +114,26 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
  */
 void serve_readdir(int socket, struct nipc_readdir *request) {
     log_debug(logger, "readdir %s", request->path);
-    // FIXME:  THIS IS SPARTAAAAAAAA!!!!!!
+    t_list *entradas = listarDirectorio(request->path);
     /**
      * La fruleada de aca tiene que tener una lista de entries del directorio
      * Cada entry tiene el nombre/ruta relativa y los atributos (modo y size, como mínimo)
      */
     int index = 0;
-    struct readdir_entry *entries = calloc(4, sizeof(struct readdir_entry));
+    struct readdir_entry *entries = calloc(entradas->elements_count, sizeof(struct readdir_entry));
 
-    entries[index].path = ".";
-    entries[index].mode = -1;
-    entries[index].n_link = -1;
-    entries[index].size = -1;
+    t_link_element *entry = entradas->head;
+    for(index = 0; index < entradas->elements_count; index++) {
+        memcpy(&(entries[index]), entry->data, sizeof(struct readdir_entry));
+        entry = entry->next;
+    }
 
-    entries[++index].path = "..";
-    entries[index].mode = -1;
-    entries[index].n_link = -1;
-    entries[index].size = -1;
+    // FIXME: manejar la falla de permisos (con /lost+found estaba rompiendo el server)
 
-
-    entries[++index].path = "bb";
-    entries[index].mode = S_IFREG | 0755;
-    entries[index].n_link = -1;
-    entries[index].size = 304325;
-
-
-    entries[++index].path = "aa";
-    entries[index].mode = S_IFDIR | 0755;
-    entries[index].n_link = 2;
-    entries[index].size = -1;
-
-
-    struct nipc_readdir_response *response = new_nipc_readdir_response(4, entries);
+    struct nipc_readdir_response *response = new_nipc_readdir_response(entradas->elements_count, entries);
     nipc_send(socket, response->serialize(response));
     log_debug(logger, "/readdir %s", request->path);
+    list_destroy_and_destroy_elements(entradas, &readdir_entry_destroy);
 }
 
 /**
@@ -169,22 +152,17 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
 void serve_getattr(int socket, struct nipc_getattr *request) {
     log_debug(logger, "getattr %s", request->path);
     char *path = request->path;
-    struct readdir_entry *attributes = malloc(sizeof(struct readdir_entry));
-    // FIXME: Implementar. Va a ser algo heavy como el serve_readdir, pero no tanto
-    if (strcmp(path, "/") == 0) {
-        attributes->mode = S_IFDIR | 0755;
-        attributes->n_link = 2;
-    } else if(strcmp(path, "/nueva") == 0) {
+    struct INode *inodo = getInodoDeLaDireccionDelPath(path);
+    if(inodo == NULL) {
         nipc_send(socket, new_getattr_error(-ENOENT));
         return;
-    } else if (strcmp(path, "/aa") == 0) {
-        attributes->mode = S_IFDIR | 0755;
-        attributes->n_link = 2;
-    } else {
-        attributes->mode = S_IFREG | 0755;
-        attributes->n_link = 1;
-        attributes->size = 32350;
     }
+    struct readdir_entry *attributes = malloc(sizeof(struct readdir_entry));
+
+    attributes->mode = inodo->mode;
+    attributes->n_link = inodo->links;
+    attributes->size = inodo->size;
+
     struct nipc_getattr_response *response = new_nipc_getattr_response(attributes);
     nipc_send(socket, response->serialize(response));
     log_debug(logger, "/getattr %s", request->path);
@@ -281,6 +259,8 @@ void *serveRequest(void *socketPointer) {
 }
 
 int32_t main(void) {
+#define DISK_PATH "/home/utnso/Desarrollo/ext2.disk" // FIXME: parametrizar
+    mapear_archivo(DISK_PATH);
     int accepted = 0;
     // FIXME: parametros de configuracion
 #define LOG_LEVEL "LOG_LEVEL_TRACE"

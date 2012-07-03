@@ -141,9 +141,9 @@
 
 //	t_list * listarDirectorio(char *);
 	// de prueba
-	void listarDirectorio(char *);
+	t_list *listarDirectorio(char *);
 	// de prueba
-	void cargarEntradasDirectorioALista(struct INode *);
+	t_list *cargarEntradasDirectorioALista(struct INode *);
 
 //	t_list * cargarEntradasDirectorioALista(struct INode *);
 
@@ -159,8 +159,7 @@
 	int esIndireccionSimple(uint32_t nroBloque);
 	int esIndireccionDoble(uint32_t nroBloque);
 
-	void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size);
-	void leerArchivo(char * path,uint32_t offset,uint32_t size);
+	size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **bufferPointer);
 
 	struct INode * getInodoDeLaDireccionDelPath(char * path);
 	void truncarArchivo(char * path,uint32_t offset);

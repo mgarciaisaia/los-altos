@@ -14,6 +14,7 @@
 // FIXME: parametrizar
 #define fileSystemIP "127.0.0.1"
 #define fileSystemPort 3087
+#define MAXIMUM_READWRITE_SIZE 32 * 1024
 
 t_log *logger;
 
@@ -132,6 +133,9 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
  */
 int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     logger_operation_read_write("read", path, size, offset);
+    if(size > MAXIMUM_READWRITE_SIZE) {
+        size = MAXIMUM_READWRITE_SIZE;
+    }
     struct nipc_read* readData = new_nipc_read(path, size, offset);
     struct nipc_packet* packet = readData->serialize(readData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
@@ -156,6 +160,9 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
 // documentation for the write() system call.
 int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
     logger_operation_read_write("write", path, size, offset);
+    if(size > MAXIMUM_READWRITE_SIZE) {
+        size = MAXIMUM_READWRITE_SIZE;
+    }
     struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
     struct nipc_packet* packet = writeData->serialize(writeData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
