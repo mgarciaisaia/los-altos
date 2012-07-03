@@ -422,43 +422,79 @@ t_list *cargarEntradasDirectorioALista(struct INode * directorio){
 //	return lista;
 //}
 
-void leerArchivo(char * path,uint32_t offset,uint32_t size){
+size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **bufferPointer) {
+    *bufferPointer = NULL;
 
-	uint32_t nroInodoDeBusqueda = getNroInodoDeLaDireccionDelPath(path);
-	if(nroInodoDeBusqueda == 0){
-		printf("no existe el archivo");
-	} else {
-		struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-		if((size <= 0) || (inodoDeBusqueda->size <= offset + size))
-			perror("no es posible realizar la lectura");
-		else
-			guardarDatosArchivos(inodoDeBusqueda,offset,size);
-	}
+    struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+
+    if(!inodoDeBusqueda->size) {
+               return 0;
+           }
+
+           // Si me piden leer mas que el largo del archivo, achico la cantidad a leer
+           if(inodoDeBusqueda->size <= offset + bytesALeer) {
+               bytesALeer = inodoDeBusqueda->size - offset;
+           }
+
+           void *buffer = malloc(bytesALeer);
+           size_t bytesLeidos = 0;
+
+           while(bytesLeidos < bytesALeer) {
+                   uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset + bytesLeidos);
+                   uint32_t desplazamiento = desplazamientoDentroDelBloque(offset + bytesLeidos);
+                   void *ptr = posicionarme(inodoDeBusqueda, nroBloqueLogico, desplazamiento);
+
+                   if(bytesALeer - bytesLeidos > tamanio_bloque){
+                   // El contenido sigue en otro bloque. Leo el resto de este bloque y sigo con los otros
+                       uint32_t restoDelBloque = tamanio_bloque - desplazamiento;
+                       memcpy(buffer + bytesLeidos, ptr, restoDelBloque);
+                       bytesLeidos += restoDelBloque;
+                    } else {
+                        // El contenido termina en este bloque. Leo lo que falta de contenido
+                                              memcpy(buffer + bytesLeidos, ptr, bytesALeer - bytesLeidos);
+                                               bytesLeidos = bytesALeer;
+
+                    }
+           }
+           *bufferPointer = buffer;
+                  return bytesLeidos;
 }
-
-void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size){
-	while(size > 0){
-		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
-		uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
-		void * ptr = posicionarme(inodo,nroBloqueLogico,desplazamiento);
-		char* string_archivo;
-		printf("el archivo contiene\n");
-
-		if(size + desplazamiento > tamanio_bloque){
-			uint32_t resto = tamanio_bloque - desplazamiento;
-			string_archivo = calloc(1, resto + 1);
-			memcpy(string_archivo, ptr, resto);
-			size -= resto;
-			offset += resto;
-		} else {
-			string_archivo = calloc(1, size + 1);
-			memcpy(string_archivo, ptr, size);
-			offset += size;
-			size = 0;
-		}
-		printf("%s\n",string_archivo);
-	}
-}
+//
+//
+//	if(nroInodoDeBusqueda == 0){
+//		printf("no existe el archivo");
+//	} else {
+//		struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+//		if((size <= 0) || (inodoDeBusqueda->size <= offset + size))
+//			perror("no es posible realizar la lectura");
+//		else
+//			guardarDatosArchivos(inodoDeBusqueda,offset,size);
+//	}
+//}
+//
+//void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size){
+//	while(size > 0){
+//		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
+//		uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
+//		void * ptr = posicionarme(inodo,nroBloqueLogico,desplazamiento);
+//		char* string_archivo;
+//		printf("el archivo contiene\n");
+//
+//		if(size + desplazamiento > tamanio_bloque){
+//			uint32_t resto = tamanio_bloque - desplazamiento;
+//			string_archivo = calloc(1, resto + 1);
+//			memcpy(string_archivo, ptr, resto);
+//			size -= resto;
+//			offset += resto;
+//		} else {
+//			string_archivo = calloc(1, size + 1);
+//			memcpy(string_archivo, ptr, size);
+//			offset += size;
+//			size = 0;
+//		}
+//		printf("%s\n",string_archivo);
+//	}
+//}
 
 uint32_t nroBloqueDentroDelInodo(uint32_t offset){
 	return offset / tamanio_bloque;

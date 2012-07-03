@@ -59,14 +59,10 @@ void serve_create(int socket, struct nipc_create *request) {
  */
 void serve_read(int socket, struct nipc_read *request) {
     log_debug(logger, "read %s", request->path);
-    // FIXME: leer el archivo
-    char *saludo = "Trabajo muy duro, como un esclavo :)";
+    void *buffer;
+    size_t readBytes = leerArchivo(request->path, request->offset, request->size, &buffer);
 
-    size_t tamanioMensaje = strlen("Trabajo muy duro, como un esclavo :)");
-    char *mensaje = malloc(tamanioMensaje);
-    memcpy(mensaje, saludo, tamanioMensaje);
-
-    struct nipc_packet *response = new_nipc_read_response(mensaje, tamanioMensaje);
+    struct nipc_packet *response = new_nipc_read_response(buffer, readBytes);
     nipc_send(socket, response);
     log_debug(logger, "/read %s", request->path);
 }
