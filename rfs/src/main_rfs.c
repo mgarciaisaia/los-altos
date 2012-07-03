@@ -134,8 +134,6 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
         entry = entry->next;
     }
 
-    // FIXME: manejar la falla de permisos (con /lost+found estaba rompiendo el server)
-
     struct nipc_readdir_response *response = new_nipc_readdir_response(entradas->elements_count, entries);
     nipc_send(socket, response->serialize(response));
     log_debug(logger, "/readdir %s", request->path);
