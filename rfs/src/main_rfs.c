@@ -118,39 +118,27 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
 void serve_readdir(int socket, struct nipc_readdir *request) {
     log_debug(logger, "readdir %s", request->path);
     // FIXME:  THIS IS SPARTAAAAAAAA!!!!!!
+    t_list *entradas = listarDirectorio(request->path);
+
     /**
      * La fruleada de aca tiene que tener una lista de entries del directorio
      * Cada entry tiene el nombre/ruta relativa y los atributos (modo y size, como mínimo)
      */
     int index = 0;
-    struct readdir_entry *entries = calloc(4, sizeof(struct readdir_entry));
+    struct readdir_entry *entries = calloc(entradas->elements_count, sizeof(struct readdir_entry));
 
-    entries[index].path = ".";
-    entries[index].mode = -1;
-    entries[index].n_link = -1;
-    entries[index].size = -1;
+    t_link_element *entry = entradas->head;
+    for(index = 0; index < entradas->elements_count; index++) {
+        memcpy(&(entries[index]), entry->data, sizeof(struct readdir_entry));
+        entry = entry->next;
+    }
 
-    entries[++index].path = "..";
-    entries[index].mode = -1;
-    entries[index].n_link = -1;
-    entries[index].size = -1;
+    // FIXME: manejar la falla de permisos (con /lost+found estaba rompiendo el server)
 
-
-    entries[++index].path = "bb";
-    entries[index].mode = S_IFREG | 0755;
-    entries[index].n_link = -1;
-    entries[index].size = 304325;
-
-
-    entries[++index].path = "aa";
-    entries[index].mode = S_IFDIR | 0755;
-    entries[index].n_link = 2;
-    entries[index].size = -1;
-
-
-    struct nipc_readdir_response *response = new_nipc_readdir_response(4, entries);
+    struct nipc_readdir_response *response = new_nipc_readdir_response(entradas->elements_count, entries);
     nipc_send(socket, response->serialize(response));
     log_debug(logger, "/readdir %s", request->path);
+    // FIXME: free de la lista
 }
 
 /**

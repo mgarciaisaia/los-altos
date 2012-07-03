@@ -152,9 +152,9 @@
 
 //	t_list * listarDirectorio(char *);
 	// de prueba
-	void listarDirectorio(char *);
+	t_list *listarDirectorio(char *);
 	// de prueba
-	void cargarEntradasDirectorioALista(struct INode *);
+	t_list *cargarEntradasDirectorioALista(struct INode *);
 
 //	t_list * cargarEntradasDirectorioALista(struct INode *);
 

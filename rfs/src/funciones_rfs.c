@@ -24,6 +24,7 @@
 #include <src/commons/collections/list.h>
 #include <src/commons/string.h>
 #include <src/commons/config.h>
+#include "src/nipc/nipc.h"
 
 //#define PATH_CONFIG "home/utnso/archivo_configuracion";
 
@@ -305,9 +306,9 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 //}
 
 // de prueba todo: controlar que el path es un directorio
-void listarDirectorio(char * path){
+t_list *listarDirectorio(char * path){
 	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-	cargarEntradasDirectorioALista(inodoDeBusqueda);
+	return cargarEntradasDirectorioALista(inodoDeBusqueda);
 }
 
 uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta){
@@ -348,29 +349,37 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 
 
 // de prueba
-void cargarEntradasDirectorioALista(struct INode * inodo){
+t_list *cargarEntradasDirectorioALista(struct INode * directorio){
+    t_list *entradas = list_create();
 
-	uint32_t tamanio_directorio = inodo->size;
+	uint32_t tamanio_directorio = directorio->size;
 	uint32_t offset;
 	for(offset = 0;offset < tamanio_directorio;offset += tamanio_bloque){
 		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
-		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
+		void * ptr = posicionarme(directorio,nroBloqueLogico,0);
 		uint16_t cantidad = 0;
 		while(tamanio_bloque > cantidad){
 			// todo: ver si carga bien los datos a la estructura
-			struct DirEntry * directorio = (struct DirEntry *) ptr;
-			char* nombre = calloc(1, directorio->name_len + 1);
-			memcpy(nombre, directorio->name, directorio->name_len);
-//			inodoEntradaDirectorioActual = getInodo(directorio->inode);
-			printf("nombre: %s\n",nombre);
-			printf("entry_len: %d\n",directorio->entry_len);
-			printf("inode: %d\n",directorio->inode);
-//			printf("type: %hu\n",directorio->type);
-			printf("name_len: %hu\n\n",directorio->name_len);
-			cantidad += directorio->entry_len;
-			ptr += directorio->entry_len;
+			struct DirEntry * entradaDirectorio = (struct DirEntry *) ptr;
+			struct INode *inodoEntradaDirectorio = getInodo(entradaDirectorio->inode);
+
+			struct readdir_entry *entrada = malloc(sizeof(struct readdir_entry));
+
+			entrada->path = calloc(1, entradaDirectorio->name_len + 1);
+			memcpy(entrada->path, entradaDirectorio->name, entradaDirectorio->name_len);
+
+			entrada->mode = inodoEntradaDirectorio->mode;
+			entrada->n_link = inodoEntradaDirectorio->links;
+			entrada->size = inodoEntradaDirectorio->size;
+
+			list_add(entradas,entrada);
+
+			cantidad += entradaDirectorio->entry_len;
+			ptr += entradaDirectorio->entry_len;
+
 		}
 	}
+	return entradas;
 }
 
 
