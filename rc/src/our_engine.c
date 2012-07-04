@@ -24,6 +24,7 @@
 #include <src/commons/config.h>
 #include <stdio.h>
 #include <time.h>
+#include <src/commons/log.h>
 
 #define PATH_CONFIG "/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/configuracion"
 
@@ -88,7 +89,7 @@ key_element *key_vector;
 void *cache;
 char *keys_space;
 size_t cache_size;
-size_t part_minima;
+size_t part_minima, part_maxima;
 t_config* config;
 extern uint32_t cantRegistros;
 /*
@@ -139,6 +140,7 @@ extern uint32_t cantRegistros;
 
 	return ENGINE_SUCCESS;
 }
+ t_log *logger;
 
 /*
  * Esta función se llama inmediatamente despues del create_instance y sirve para inicializar
@@ -173,17 +175,20 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 		parse_config(config_str, items, NULL);
 
 		//aca ya aloque lo del vector de keys y la cache.
-		void mtrace(void);
+		mtrace();
 
 		config = config_create(PATH_CONFIG);
 
 		cache_size = engine->config.cache_max_size;
-		part_minima = engine->config.block_size_max;
-//		double worstCase = cache_size / part_minima;
+		part_minima = engine->config.chunk_size;
+		part_maxima = engine->config.block_size_max;
 
 //inicializo los semáforos
 		init_semaforos();
-
+		char *path_log = config_get_string_value(config, "PATH_LOG");
+		bool console_active = config_get_string_value(config, "CONSOLE");
+		logger = log_create(path_log, "RC", console_active, LOG_LEVEL_DEBUG);
+		logger_operation("Allocate","prueba");
 		//elegimos el algoritmo a usar
 		bool valor = config_has_property(config, "ESQUEMA");
 		if (valor == 1) {
@@ -253,13 +258,15 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
  */
 static void dummy_ng_destroy(ENGINE_HANDLE* handle, const bool force) {
 
-	muntrace();
 	destroy_semaforos();
 	config_destroy(config);
+	log_destroy(logger);
 	free(cache);
 	free(keys_space);
 	free(key_vector);
 	free(handle);
+	muntrace();
+
 }
 
 /*
@@ -286,6 +293,13 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		const void* cookie, item **item, const void* key, const size_t nkey,
 		const size_t nbytes, const int flags, const rel_time_t exptime) {
 
+	logger_operation("Allocate",key);
+	//valido que no sea mayor a la particion maxima
+	if (nbytes > part_maxima){
+		printf("El tamaño de los datos excede el límite");
+//		return MEMCACHED_FAILURE;
+		return ENGINE_FAILED;
+	}
 	char strkey[nkey + 1];
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
@@ -356,6 +370,8 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 
 	key_element *it = (key_element*) item;
 
+	logger_operation("Release",it->key);
+
 	if (!it->stored) {
 		it->libre = true;
 	}
@@ -402,6 +418,8 @@ static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
 
+	logger_operation("Get",strkey);
+
 // buscamos y obtenemos el item
 	int32_t res = vector_get(strkey);
 
@@ -428,6 +446,7 @@ static ENGINE_ERROR_CODE dummy_ng_store(ENGINE_HANDLE *handle,
 
 	key_element *it = (key_element*) item;
 
+	logger_operation("Store",it->key);
 	it->stored = true;
 
 	*cas = 0;
@@ -457,6 +476,8 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	char strkey[nkey + 1];
 	memcpy(strkey, key, nkey);
 	strkey[nkey] = '\0';
+
+	logger_operation("Delete",strkey);
 
 	// buscamos y obtenemos el item
 	int32_t res = vector_get(strkey);
@@ -514,7 +535,7 @@ static void dummy_ng_item_set_cas(ENGINE_HANDLE *handle, const void *cookie,
 void dummy_ng_dummp(int signal) {
 
 	FILE *fich;
-	char *path = config_get_string_value(config,"PATH");
+	char *path = config_get_string_value(config,"PATH_DUMP");
 	if ((fich = fopen(path, "w+")) == NULL)
 	{  /* control del error de apertura */
 	printf ( "Error en la apertura. Es posible que el fichero no exista \n ");

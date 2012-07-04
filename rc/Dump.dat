@@ -1,3 +1,3 @@
-Dump: 30/06/12 14:14:20
-Partición 1: 0x90C1F90 - 0x90C2199. [X] Size: 521 b FIFO <1341076460:354290474> Key: clave 
-Partición 2: 0x90C21A0 - 0x90C2390. [L] Size: 496 b 
+Dump: 03/07/12 19:21:04
+Partición 1: 0x8A7F300 - 0x8A7F509. [X] Size: 521 b LRU <1341354064:321569245> Key: clave 
+Partición 2: 0x8A7F500 - 0x8A7F700. [L] Size: 512 b 

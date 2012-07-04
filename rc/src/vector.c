@@ -353,7 +353,6 @@ key_element *buscarLibreNext(size_t espacio) {
 	key_element *resultado;
 	int16_t busquedas_fallidas = 0;
 	uint32_t particion;
-	pthread_rwlock_wrlock(posicion);
 
 	uint32_t i = ultima_posicion;
 	char encontrado = 0;

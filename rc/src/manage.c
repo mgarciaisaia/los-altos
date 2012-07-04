@@ -12,11 +12,18 @@
 #include <src/commons/config.h>
 #include <time.h>
 #include <stdio.h>
+#include <src/commons/log.h>
 
 extern size_t cache_size;
 extern size_t part_minima;
 extern t_config* config;
 uint32_t cantRegistros;
+
+extern t_log *logger;
+
+void logger_operation(const char *operation, const char *key) {
+    log_debug(logger, "Operacion recibida: %s la key %s", operation, key);
+}
 
 bool esPotenciaDe(uint32_t valor) {
 

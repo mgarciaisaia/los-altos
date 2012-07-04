@@ -1,6 +1,11 @@
 #Path al archivo DUMP
-PATH=/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Dump.dat
+PATH_DUMP=/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Dump.dat
 
+#Path al archivo LOG
+PATH_LOG=/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/RcLog.log
+
+#Si es cero imprime el log al archivo, sino en la consola
+CONSOLE=0
 # Administracion de memoria : PART_DINAM O BUDDY
 ESQUEMA=PART_DINAM
 
@@ -8,7 +13,7 @@ ESQUEMA=PART_DINAM
 PARTICION=WORST
 
 # Eleccion de victima : LRU O FIFO
-VICTIM=FIFO
+VICTIM=LRU
 
 # Frecuencia de compactación
 FREQ=5

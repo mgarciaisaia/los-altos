@@ -1,0 +1,482 @@
+= Start
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(config_create+0x5b)[0x330aac] + 0x806a340 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a350 0x44
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(dictionary_create+0x1e)[0x32f612] + 0x806a398 0x14
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(dictionary_create+0x4a)[0x32f63e] + 0x806a3b0 0x50
+@ /lib/i386-linux-gnu/libc.so.6:[0x204d08] + 0x806a408 0x160
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(config_create+0xde)[0x330b2f] + 0x806a570 0x200
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a778 0x200
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a980 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a990 0x16
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a980
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a980 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a9b0 0x49
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a980
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a980 0xc
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806aa00 0x15
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a980
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806aa20 0x10
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806aa38 0x49
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806aa20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806aa20 0x14
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806aa88 0x3a
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806aa20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806aac8 0x18
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a980 0xa
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806aac8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806aac8 0x1c
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806aae8 0x31
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806aac8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ab20 0x20
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806aa20 0x13
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806ab20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ab20 0x24
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ab48 0x2d
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806ab20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ab80 0x28
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806abb0 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806ab80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ab80 0x2c
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ab20 0x23
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806ab80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806abc8 0x30
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ac00 0xb
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806abc8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806abc8 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ac10 0x1e
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806abc8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ac38 0x38
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ac78 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806ac38
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ac38 0x3c
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806aac8 0x18
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806ac38
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806ac88 0x40
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806acd0 0xb
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806ac88
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806ac88 0x44
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a778
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a778 0x49
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a7c8 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7d8 0xa
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a7c8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a7c8 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7e8 0x3f
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a7c8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a7c8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a778
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806a778 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a7c8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a830 0x49
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a7c8 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a880 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a7c8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a7c8 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a890 0x40
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a7c8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a7c8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a830
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806a790 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a7c8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7c8 0xa
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a7a8 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7b8 0x8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a7a8 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a830 0x2
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a7a8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a7c8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806a840 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a7a8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a858 0x13
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a7a8 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7c8 0x8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a7a8 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a870 0xb
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a7a8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a858
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806a858 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a7a8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a8d8 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a7a8 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a8f0 0xa
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a7a8 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a900 0x6
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a7a8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a8d8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806a8d8 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a7a8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7a8 0xb
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a910 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a920 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a910
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a910 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a930 0x4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a910
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a910 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806a940 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a910
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a910 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a7a8 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a958 0x5
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a7a8 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a968 0x2
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a7a8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a910
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806ace0 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a7a8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a7a8 0xb
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] + 0x806a910 0x4
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806acf8 0x8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] < 0x806a910
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0x74)[0x331662] > 0x806a910 0x8
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ad08 0x3
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] < 0x806a910
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xce)[0x3316bc] > 0x806a910 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_split+0xee)[0x3316dc] - 0x806a7a8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x32fb0e] + 0x806ad18 0x10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x330a4a] - 0x806a910
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806a990
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806a9b0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806aa00
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806aa38
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806aa88
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806a980
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806aae8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806aa20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806ab48
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806abb0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806ab20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806ac00
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806ac10
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806ac78
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806aac8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(string_iterate_lines+0x15)[0x3316fb] - 0x806acd0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(config_create+0x151)[0x330ba2] - 0x806ac88
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(config_create+0x15c)[0x330bad] - 0x806a570
+@ /lib/i386-linux-gnu/libc.so.6:(fclose+0x154)[0x204414] - 0x806a408
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Debug/librc.so:(init_semaforos+0x1e)[0x3252ee] + 0x806ac10 0x20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Debug/librc.so:(init_semaforos+0x30)[0x325300] + 0x806ab20 0x20
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(log_create+0x24)[0x330dc0] + 0x806abb0 0x14
+@ /lib/i386-linux-gnu/libc.so.6:[0x204d08] + 0x806a408 0x160
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806acd0 0x3
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Debug/librc.so:(alocate_vector+0xae)[0x324446] + 0x806ad30 0x16000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Debug/librc.so:(alocate_keys_space+0x45)[0x324497] + 0x8080d38 0x14000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/Debug/librc.so:[0x3247cb] + 0xb7de4008 0x200000
+@ /lib/i386-linux-gnu/libc.so.6:(fdopen+0xd3)[0x2045d3] + 0x806a980 0x160
+@ /lib/i386-linux-gnu/libc.so.6:(fclose+0x154)[0x204414] - 0x806a980
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b713] + 0x806abc8 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806a910 0x5
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b737] + 0x806a980 0x100
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cbc0] + 0x8094d40 0x9fb0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805ab30] + 0x809ecf8 0x2d0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805ab4d] + 0x806ab48 0x14
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806a7a8 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806a570 0x16c
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806ac00 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809efd0 0x180
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806ab60 0x8
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] + 0x806ac38 0x80
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806acc0 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806ab70 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805acd7] + 0x806aa88 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b713] + 0x806aae0 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x806ab80 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b737] + 0x809f158 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809f260 0x16c
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806ab90 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809f3d0 0x180
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806aba0 0x8
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] + 0x806a6e0 0x80
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806a768 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809f558 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805acd7] + 0x809f568 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b713] + 0x809f5c0 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809f5f8 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b737] + 0x809f608 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809f710 0x16c
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809f880 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809f890 0x180
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809fa18 0x8
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] + 0x809fa28 0x80
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809fab0 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809fac0 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805acd7] + 0x809fad0 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b713] + 0x809fb28 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fb60 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b737] + 0x809fb70 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809fc78 0x16c
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809fde8 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809fdf8 0x180
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x809ff80 0x8
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] + 0x809ff90 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0098 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a00a8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805acd7] + 0x80a00b8 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b713] + 0x80a0110 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x80a0148 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b737] + 0x80a0158 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0260 0x16c
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a03d0 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a03e0 0x180
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0568 0x8
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] + 0x80a0578 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0680 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0690 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b713] + 0x80a06a0 0x34
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x80a06d8 0x7
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b737] + 0x80a06e8 0x100
+@ /lib/ld-linux.so.2:[0x120c35] + 0x80a07f0 0x88
+@ /lib/ld-linux.so.2:[0x120c35] + 0x80a0880 0x88
+@ /lib/ld-linux.so.2:[0x120c35] + 0x80a0910 0x88
+@ /lib/ld-linux.so.2:[0x120c35] + 0x80a09a0 0x88
+@ /lib/ld-linux.so.2:[0x120c35] + 0x80a0a30 0x88
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] + 0x80a0ac0 0x20
+@ /lib/i386-linux-gnu/libc.so.6:[0x24f8e1] + 0x80a0ae8 0x3c
+@ /lib/i386-linux-gnu/libc.so.6:[0x24f8e1] + 0x80a0b28 0x30
+@ /lib/i386-linux-gnu/libc.so.6:[0x204d08] + 0x80a0b60 0x160
+@ /lib/i386-linux-gnu/libc.so.6:(getdelim+0xac)[0x20595c] + 0x80a0cc8 0x78
+@ /lib/i386-linux-gnu/libc.so.6:[0x24e396] - 0x80a0cc8
+@ /lib/i386-linux-gnu/libc.so.6:(fclose+0x154)[0x204414] - 0x80a0b60
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a0b60 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80a0d48 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80a1550 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80a1d58 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80a2080 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80a20d8 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a2d60 0x118
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] < 0x8069330
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] > 0x80a2e80 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x8069330 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a2f88 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80a3170 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80a3978 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80a4180 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x8069340 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80a44a8 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a5130 0x118
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x8069398 0xc
+@ /lib/i386-linux-gnu/libc.so.6:(freeaddrinfo+0x38)[0x251068] - 0x80a0b28
+@ /lib/i386-linux-gnu/libc.so.6:(freeaddrinfo+0x38)[0x251068] - 0x80a0ae8
+@ /lib/i386-linux-gnu/libc.so.6:[0x24f8e1] + 0x80a0ae8 0x3c
+@ /lib/i386-linux-gnu/libc.so.6:[0x24f8e1] + 0x80a0b28 0x30
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b228] + 0x80a5250 0x600
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a5858 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80a5a40 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80a6248 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80a6a50 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80a6d78 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80a6dd0 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a7a58 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a7b78 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80a7d60 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80a8568 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80a8d70 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80a9098 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80a90f0 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a9d78 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x80a9e98 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80b9ea0 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80ba088 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80ba890 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80bb098 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80bb3c0 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80bb418 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80bc0a0 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x80bc1c0 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x80ba088
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x80cc1c8 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x80a5a40
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] < 0x806ac38
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] > 0x80a5a40 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80693a8 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x80a7d60
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] < 0x806a6e0
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] > 0x80a5b48 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806ac38 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] < 0x809fa28
+@ /usr/lib/libevent-2.0.so.5:(event_mm_realloc_+0x35)[0x141145] > 0x80a5c50 0x100
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806ac48 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a5d58 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80a7d60 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80ba088 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80dc1d0 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x806ac58 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80dc4f8 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a5f40 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x80dd180 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x80a7d60
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806acb0 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a6060 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80a7d60 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80ed188 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80ed990 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x806a6e0 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80edcb8 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80ee940 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x80eea60 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x80a7d60
+@ /lib/i386-linux-gnu/libc.so.6:(freeaddrinfo+0x38)[0x251068] - 0x80a0b28
+@ /lib/i386-linux-gnu/libc.so.6:(freeaddrinfo+0x38)[0x251068] - 0x80a0ae8
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80a7d60 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x80fea68 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x80ff270 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80a7f48 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80a0ae8 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x80ffa78 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a8270 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x8100700 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x80fea68
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0b40 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80fea68 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x8110708 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x8110f10 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x80fec50 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x809fa28 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x8111718 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x80a8390 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x81123a0 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x8110708
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x80a0b50 0xc
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806a738 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80fef78 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x8110708 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x81223a8 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x8122bb0 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80a84b0 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x8122ed8 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x8123b60 0x118
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541b8] + 0x8123c80 0x10000
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x80541d2] - 0x8110708
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806a748 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x8110708 0x1e4
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca14] + 0x8133c88 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca49] + 0x8134490 0x800
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804ca80] + 0x81108f0 0x320
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cabd] + 0x80a8508 0x50
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cafd] + 0x8134c98 0xc80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x804cb36] + 0x8110c18 0x118
+@ /usr/lib/libevent-2.0.so.5:(event_mm_calloc_+0x6c)[0x14104c] + 0x806a758 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:[0x204d08] + 0x8110d38 0x160
+@ /lib/i386-linux-gnu/libc.so.6:[0x233e89] + 0x8135d28 0x164
+@ /lib/i386-linux-gnu/libc.so.6:[0x232e2e] + 0x8110ea0 0xd
+@ /lib/i386-linux-gnu/libc.so.6:(fclose+0x154)[0x204414] - 0x8110d38
+@ /lib/i386-linux-gnu/libc.so.6:[0x232e2e] + 0x8110eb8 0xc
+@ /lib/i386-linux-gnu/libc.so.6:[0x232e2e] + 0x8110ec8 0xc
+@ /lib/i386-linux-gnu/libc.so.6:[0x232e2e] + 0x8110ed8 0xd
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/memcached-1.6/.libs/memcached:[0x805b8db] + 0x80ff160 0x28
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xd
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33114a] - 0x8135e90
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331047] + 0x8135920 0x401
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa80 0xe
+@ /lib/i386-linux-gnu/libc.so.6:[0x2336b9] - 0x809fa98
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x809fa98 0xf
+@ /lib/i386-linux-gnu/libc.so.6:(__strdup+0x31)[0x21c371] + 0x8110ef0 0x9
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0xef)[0x331917] - 0x8110ef0
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] < 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:(temporal_get_string_time+0x120)[0x331948] > 0x809fa80 0xc
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33107f] + 0x8135e90 0x465
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x331134] - 0x809fa80
+@ /home/utnso/Desarrollo/Workspace/2012-1c-los-altos/commons/Debug/libcommons.so:[0x33113f] - 0x8135920
+@ /home/utnso/Desarrollo/Works

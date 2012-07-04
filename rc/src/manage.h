@@ -12,5 +12,7 @@
 key_element *alocate_vector(void);
 char *alocate_keys_space(void);
 bool esPotenciaDe(uint32_t valor);
+void logger_operation(const char *operation, const char *key);
+
 
 #endif /* MANAGE_H_ */
