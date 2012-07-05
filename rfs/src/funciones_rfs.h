@@ -115,7 +115,7 @@
 		char * nombre;
 	} t_ruta_separada;
 
-	void mapear_archivo();
+	void mapear_archivo(char *);
 	struct Superblock *read_superblock();
 
 	uint32_t cantidadDeGrupos();

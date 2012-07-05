@@ -79,7 +79,6 @@ struct Superblock *read_superblock() {
 
 }
 
-// todo: darle uso
 uint32_t cantidadDeGrupos() {
 	struct Superblock *sb= read_superblock();
 	uint32_t inodos = sb->inodes;
@@ -91,11 +90,13 @@ uint32_t cantidadDeGrupos() {
 
 // todo: modificar la asignación a posInicialGD de acuerdo al tamaño de bloque
 struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
-	struct GroupDesc *gd;
-	uint16_t posInicialGD = 2048;
-	uint8_t tamanioGrupo = sizeof(struct GroupDesc);
-	uint8_t *posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
-	gd = (struct GroupDesc*) posActual;
+	struct GroupDesc * gd = NULL;
+	if(nroGrupo < cantidadDeGrupos()){
+		uint16_t posInicialGD = 2048;
+		uint8_t tamanioGrupo = sizeof(struct GroupDesc);
+		uint8_t *posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
+		gd = (struct GroupDesc*) posActual;
+	}
 	return gd;
 }
 
@@ -228,9 +229,9 @@ void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_
 int nroBloqueInicioDeGrupo(uint32_t nro_grupo){
 	struct Superblock *sb = read_superblock();
 	uint32_t bloquesPorGrupo = sb->blocks_per_group;
-	int nroBloque;
-	nroBloque = (tamanio_bloque == 1024) ? 1 : 0;
-	return nroBloque + bloquesPorGrupo * nro_grupo;
+	uint32_t nroBloqueInicio;
+	nroBloqueInicio = sb->first_data_block;
+	return nroBloqueInicio + bloquesPorGrupo * nro_grupo;
 }
 
 int nroInodoInicioDeGrupo(uint32_t nro_grupo){
@@ -274,7 +275,7 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 //}
 
 // de prueba todo: controlar que el path es un directorio
-t_list *listarDirectorio(char * path){
+t_list * listarDirectorio(char * path){
 	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
 	return cargarEntradasDirectorioALista(inodoDeBusqueda);
 }
@@ -315,9 +316,8 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 	return nroInodoBuscado;
 }
 
-
 // de prueba
-t_list *cargarEntradasDirectorioALista(struct INode * directorio){
+t_list * cargarEntradasDirectorioALista(struct INode * directorio){
     t_list *entradas = list_create();
 
 	uint32_t tamanio_directorio = directorio->size;
@@ -352,40 +352,6 @@ t_list *cargarEntradasDirectorioALista(struct INode * directorio){
 	}
 	return entradas;
 }
-
-
-//t_list * cargarEntradasDirectorioALista(struct INode * inodo){
-//	t_list * lista = list_create();
-//
-//	struct INode * inodoEntradaDirectorioActual;
-//	uint32_t tamanio_directorio = inodo->size;
-//	uint32_t offset;
-//	for(offset = 0;offset < tamanio_directorio;offset += tamanio_bloque){
-//		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
-//		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
-//		uint16_t cantidad = 0;
-//		while(tamanio_bloque > cantidad){
-//			// todo: ver si carga bien los datos a la estructura
-//			struct DirEntry * directorio = (struct DirEntry *) ptr;
-//			printf("nombre %s\n",directorio->name);
-//			char* nombre = calloc(1, directorio->name_len + 1);
-//			memcpy(nombre, directorio->name, directorio->name_len);
-//			inodoEntradaDirectorioActual = getInodo(directorio->inode);
-//			t_readdir_stat * readdirStats = malloc(sizeof(t_readdir_stat));
-//			readdirStats->mode = inodoEntradaDirectorioActual->mode;
-//			readdirStats->gid = inodoEntradaDirectorioActual->gid;
-//			readdirStats->nlink = inodoEntradaDirectorioActual->links;
-//			readdirStats->uid = inodoEntradaDirectorioActual->uid;
-//			readdirStats->name = nombre;
-//			list_add(lista,inodoEntradaDirectorioActual);
-//
-//			cantidad += directorio->entry_len;
-//			ptr += directorio->entry_len;
-//		}
-//
-//	}
-//	return lista;
-//}
 
 size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **bufferPointer) {
     *bufferPointer = NULL;
@@ -527,6 +493,7 @@ uint32_t * posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nr
 	int i,j;
 	for (i = 0; cantBloquesPorIndireccionDoble <= nroBloqueLogico; i++, nroBloqueLogico -= cantBloquesPorIndireccionDoble);
 	ptrBloque = (uint32_t*) (inicio + i * 4);
+	inicio = posicionarInicioBloque(*ptrBloque);
 	for (j = 0; cantBloquesPorIndireccionSimple <= nroBloqueLogico; j++, nroBloqueLogico -= cantBloquesPorIndireccionSimple);
 	ptrBloque = (uint32_t*) (inicio + j * 4);	// me ubico en la indireccion doble que contiene el bloque logico que busco
 	inicio = posicionarInicioBloque(*ptrBloque);
@@ -606,6 +573,9 @@ void truncarArchivo(char * path,uint32_t offset){
 								offsetEOF -= desplazamiento;
 								size += desplazamiento;
 
+								if(nroBloqueLogico == 131340)
+									printf("revisar si borra");
+
 								if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12){
 									liberarBloque(&inodoPath->iblock);
 								}
@@ -652,6 +622,9 @@ void truncarArchivo(char * path,uint32_t offset){
 								uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF);
 								uint32_t nroBloqueDeDato = getBloqueLibre();
 
+								if(nroBloqueLogico == 131340)
+									printf("revisar si carga");
+
 			// manejo de la asignación de bloques para indirecciones simples, dobles y triples
 								if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12)
 										inodoPath->iblock = getBloqueLibre();
@@ -681,8 +654,13 @@ void truncarArchivo(char * path,uint32_t offset){
 										memcpy(ptrBloque,ptrNroBloqueLibre,sizeof(uint32_t));
 									}
 									if((nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) % cantPtrEnIndireccionSimple == 0){
-										uint32_t posDentroIndireccionDoble = (nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) / cantPtrEnIndireccionSimple;
-										void * ptrBloque = desplazarme(nroBloqueLibre,posDentroIndireccionDoble * 4);
+										void * ptrIndTriple = getPtrBloqueIndTriple(inodoPath->iiiblock,nroBloqueLogico);
+										uint32_t * nroBloqueIndTriple = (uint32_t *)ptrIndTriple;
+										uint32_t nroBloqueRelativo = nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble);
+										while(nroBloqueRelativo >= cantPtrEnIndireccionDoble)
+											nroBloqueRelativo -= cantPtrEnIndireccionDoble;
+										uint32_t posDentroIndireccionDoble = nroBloqueRelativo / cantPtrEnIndireccionSimple;
+										void * ptrBloque = desplazarme(*nroBloqueIndTriple,posDentroIndireccionDoble * 4);
 										uint32_t nroBloqueLibreIndDoble = getBloqueLibre();
 										uint32_t * ptrNroBloqueLibre = &nroBloqueLibreIndDoble;
 										memcpy(ptrBloque,ptrNroBloqueLibre,sizeof(uint32_t));
@@ -717,8 +695,6 @@ void truncarArchivo(char * path,uint32_t offset){
 	free(ruta_separada->nombre);
 	free(ruta_separada);
 
-
-
 }
 
 
@@ -733,6 +709,7 @@ void * getPtrBloqueIndDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogi
 	int i,j;
 	for (i = 0; cantBloquesPorIndireccionDoble <= nroBloqueLogico; i++, nroBloqueLogico -= cantBloquesPorIndireccionDoble);
 	ptrBloque = (uint32_t*) (inicio + i * 4);
+	inicio = posicionarInicioBloque(*ptrBloque);
 	for (j = 0; cantBloquesPorIndireccionSimple <= nroBloqueLogico; j++, nroBloqueLogico -= cantBloquesPorIndireccionSimple);
 	ptrBloque = (uint32_t*) (inicio + j * 4);	// me ubico en la indireccion doble que contiene el bloque logico que busco
 	return ptrBloque;
@@ -796,7 +773,6 @@ void liberarBloque(uint32_t * ptrBloqueDeDato){
 }
 
 uint32_t getBloqueLibre(){
-	struct Superblock *sb = read_superblock();
 	uint32_t nroBloqueDeDato = 0;
 	uint32_t nro_grupo;
 	for(nro_grupo = 0;nroBloqueDeDato == 0;nro_grupo++)
@@ -1057,7 +1033,6 @@ uint32_t getInodoLibreDelBitmap(uint32_t nro_grupo){
 	return nroInodo;
 }
 
-
 void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo){
 	struct Superblock *sb = read_superblock();
 	//todo : ver si funca para todos los casos(ej. con bloques de 2k, 4k)
@@ -1156,8 +1131,6 @@ void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato){
 	(sb->free_blocks)--;	// Actualizando el free_blocks del superbloque
 	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
 }
-
-// Algoritmo - Remover un directorio
 
 void eliminarDirectorio(char * path){
 
@@ -1285,10 +1258,6 @@ int directorioVacio(uint32_t nroInodoDirectorio){
 	return estaVacio;
 }
 
-// Fin - Remover un directorio
-
-// Algoritmo - Crear un archivo
-
 void crearArchivo(char * path, uint32_t mode){
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
@@ -1322,11 +1291,6 @@ void setearInodo(struct INode * inodoArchivo, uint32_t mode){
 	inodoArchivo->size = 0;
 }
 
-// Fin - Crear un archivo
-
-
-// Algoritmo: Eliminar Archivo
-
 void eliminarArchivo(char * path){
 
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
@@ -1351,8 +1315,6 @@ void eliminarArchivo(char * path){
 	free(ruta_separada);
 
 }
-
-// Fin - Alogritmo: Eliminar Archivo
 
 int hayEspacioSuficiente(uint32_t size){
 	struct Superblock * sb = read_superblock();
