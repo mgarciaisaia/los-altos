@@ -27,6 +27,8 @@ enum tipo_nipc {
     nipc_disconnected
 };
 
+char *nombre_del_enum_nipc(enum tipo_nipc tipo);
+
 struct nipc_packet {
     enum tipo_nipc type;
     u_int16_t data_length;

@@ -4,6 +4,12 @@
 #include <string.h>
 #include "nipc.h"
 
+static char *enum_nipc_names[19] = {"CREATE", "OPEN", "READ", "WRITE", "UNLINK", "RELEASE", "MKDIR", "RMDIR", "READDIR", "GETATTR", "TRUNCATE", "ERROR", "OK", "READ_RESPONSE", "READDIR_RESPONSE", "GETATTR_RESPONSE", "GETATTR_ERROR", "HANDSHAKE", "DISCONNECTED"};
+
+char *nombre_del_enum_nipc(enum tipo_nipc tipo) {
+    return enum_nipc_names[tipo];
+}
+
 static struct nipc_packet* serialize_create(struct nipc_create* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
