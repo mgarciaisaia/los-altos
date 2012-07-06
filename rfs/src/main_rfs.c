@@ -24,6 +24,7 @@
 #include "src/commons/collections/list.h"
 #include "src/commons/log.h"
 #include "src/commons/config.h"
+#include <semaphore.h>
 
 // FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
 #define PATH_CONFIG "conf/rfs.conf"
@@ -33,6 +34,7 @@ int epoll;
 u_int16_t listening_port;
 int max_connections;
 int max_events;
+sem_t threads_count;
 
 
 void send_ok(int socket) {
@@ -259,6 +261,7 @@ void *serveRequest(void *socketPointer) {
         break;
     }
     epoll_ctl(epoll, EPOLL_CTL_DEL, socket, NULL);
+    sem_post(&threads_count);
     return NULL;
 }
 
@@ -293,6 +296,9 @@ void initialize_configuration() {
     max_connections = config_get_int_value(config, "connections.max_connections");
 
     max_events = config_get_int_value(config, "connections.max_events");
+
+    // 0 = semaforo compartido entre threads
+    sem_init(&threads_count, 0, config_get_int_value(config, "connections.max_threads"));
 
     config_destroy(config);
 }
@@ -349,9 +355,8 @@ int32_t main(void) {
                 log_debug(logger, "Actividad en un socket cualquiera");
                 int querySocket = events[index].data.fd;
                 pthread_t threadID;
-                pthread_attr_t threadAttributes;
-                pthread_attr_init(&threadAttributes);
-                pthread_create(&threadID, &threadAttributes, &serveRequest, &querySocket);
+                sem_wait(&threads_count);
+                pthread_create(&threadID, NULL, &serveRequest, &querySocket);
             }
         }
     }
