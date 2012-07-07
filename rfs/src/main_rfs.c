@@ -35,6 +35,7 @@ u_int16_t listening_port;
 int max_connections;
 int max_events;
 sem_t threads_count;
+t_list archivos_abiertos;
 
 
 void send_ok(int socket) {
@@ -306,7 +307,6 @@ void initialize_configuration() {
 int32_t main(void) {
     initialize_configuration();
 
-    int accepted = 0;
     int listeningSocket = socket_binded(listening_port);
     struct sockaddr_in address;
     socklen_t addressLength = sizeof address;
@@ -337,7 +337,6 @@ int32_t main(void) {
                 // nueva conexion entrante: la acepto y meto el nuevo descriptor en el poll
                 int querySocket = accept(listeningSocket,
                         (struct sockaddr *) &address, &addressLength);
-                log_debug(logger, "Acepto una nueva conexion (van %d)", accepted++);
                 // FIXME:
                 // setnonblocking(querySocket);
                 int flags = fcntl(querySocket, F_GETFL, 0);

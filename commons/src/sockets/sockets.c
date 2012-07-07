@@ -14,7 +14,6 @@
 #include <errno.h>
 
 t_log *logger_socket;
-int creados = 0;
 
 struct sockaddr_in *socket_address(in_addr_t ip, uint16_t port) {
     struct sockaddr_in *address = malloc(sizeof(struct sockaddr_in));
@@ -27,7 +26,6 @@ struct sockaddr_in *socket_address(in_addr_t ip, uint16_t port) {
 
 int socket_connect(char *remoteIP, uint16_t port) {
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
-    log_debug(logger_socket, "SOCKET CREADO connect %d", creados++);
     const struct sockaddr_in *address = socket_address(inet_addr(remoteIP),
             port);
     connect(socketDescriptor, (struct sockaddr*) address,
@@ -132,7 +130,6 @@ struct nipc_packet *nipc_query(struct nipc_packet *request, char *remoteIP, uint
 
 int socket_binded(uint16_t port) {
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
-    log_debug(logger_socket, "SOCKET CREADO bind %d", creados++);
     if(socketDescriptor < 0) {
         perror("socket");
         return -1;
