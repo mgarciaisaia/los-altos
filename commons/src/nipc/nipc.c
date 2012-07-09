@@ -13,6 +13,7 @@ char *nombre_del_enum_nipc(enum tipo_nipc tipo) {
 static struct nipc_packet* serialize_create(struct nipc_create* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1; //(el +1 es para el \0)
 
     // El largo de los datos es el largo del path + lo que ocupa el modo
@@ -67,6 +68,7 @@ struct nipc_create* new_nipc_create(u_int32_t client_id, const char* path, mode_
 static struct nipc_packet* serialize_open(struct nipc_open* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
 
     packet->data_length = path_lenght + sizeof(payload->flags);
@@ -115,6 +117,7 @@ struct nipc_open* new_nipc_open(u_int32_t client_id, const char* path, int flags
 static struct nipc_packet* serialize_read(struct nipc_read* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
 
     packet->data_length = path_lenght + sizeof(payload->size)
@@ -170,6 +173,7 @@ struct nipc_read* new_nipc_read(u_int32_t client_id, const char* path, size_t si
 static struct nipc_packet* serialize_write(struct nipc_write* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
 
     packet->data_length = path_lenght + payload->size + sizeof(payload->size)
@@ -234,6 +238,7 @@ static struct nipc_packet* serialize_unlink(struct nipc_unlink* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
 
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     packet->data_length = strlen(payload->path) + 1;
     packet->data = malloc(packet->data_length);
     memcpy(packet->data, payload->path, packet->data_length);
@@ -271,6 +276,7 @@ struct nipc_unlink* new_nipc_unlink(u_int32_t client_id, const char* path) {
 static struct nipc_packet* serialize_release(struct nipc_release* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
 
     packet->data_length = path_lenght + sizeof(payload->flags);
@@ -319,6 +325,7 @@ struct nipc_release* new_nipc_release(u_int32_t client_id, const char* path, int
 static struct nipc_packet* serialize_mkdir(struct nipc_mkdir* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
     packet->data_length = path_lenght + sizeof(mode_t);
     packet->data = malloc(packet->data_length);
@@ -364,6 +371,7 @@ static struct nipc_packet* serialize_rmdir(struct nipc_rmdir* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
 
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     packet->data_length = strlen(payload->path) + 1;
     packet->data = malloc(packet->data_length);
     memcpy(packet->data, payload->path, packet->data_length);
@@ -401,6 +409,7 @@ struct nipc_rmdir* new_nipc_rmdir(u_int32_t client_id, const char* path) {
 static struct nipc_packet* serialize_readdir(struct nipc_readdir* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
     packet->data_length = path_lenght + sizeof(payload->offset);
     packet->data = malloc(packet->data_length);
@@ -447,6 +456,7 @@ struct nipc_readdir* new_nipc_readdir(u_int32_t client_id, const char* path, off
 static struct nipc_packet* serialize_getattr(struct nipc_getattr* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     packet->data_length = strlen(payload->path) + 1;
     packet->data = malloc(packet->data_length);
     memcpy(packet->data, payload->path, packet->data_length);
@@ -486,6 +496,7 @@ struct nipc_getattr* new_nipc_getattr(u_int32_t client_id, const char* path) {
 static struct nipc_packet* serialize_truncate(struct nipc_truncate* payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
     packet->data_length = path_lenght + sizeof(payload->offset);
     packet->data = malloc(packet->data_length);
