@@ -23,6 +23,8 @@ int maximumReadWriteSize = 32 * 1024;
 memcached_st *remote_cache;
 memcached_return_t memcached_response;
 bool cache_active;
+u_int32_t client_id = 0;
+
 
 /**
  * FIXME: falta hacer free() a todos los response
@@ -80,14 +82,12 @@ int check_ok_error(const char *operation, const char *path,
  *
  * Introduced in version 2.5
  */
-int remote_create(const char *path, mode_t mode,
-		struct fuse_file_info *fileInfo) {
-	logger_operation("create", path);
-	struct nipc_create* createData = new_nipc_create(path, mode);
-	struct nipc_packet* packet = createData->serialize(createData);
-	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
-			fileSystemPort);
-	return check_ok_error("create", path, response);
+int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
+    logger_operation("create", path);
+    struct nipc_create* createData = new_nipc_create(client_id, path, mode);
+    struct nipc_packet* packet = createData->serialize(createData);
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("create", path, response);
 }
 
 /** File open operation
@@ -112,12 +112,11 @@ int remote_create(const char *path, mode_t mode,
  *
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
-	logger_operation("open", path);
-	struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
-	struct nipc_packet* packet = openData->serialize(openData);
-	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
-			fileSystemPort);
-	return check_ok_error("open", path, response);
+    logger_operation("open", path);
+    struct nipc_open* openData = new_nipc_open(client_id, path, fileInfo->flags);
+    struct nipc_packet* packet = openData->serialize(openData);
+    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    return check_ok_error("open", path, response);
 }
 
 /** Read data from an open file
@@ -161,7 +160,7 @@ int remote_read(const char *path, char *output, size_t size, off_t offset,
 //    if(memcached_response != MEMCACHED_SUCCESS) {
 //        printf("NOOOOO %s\n", memcached_strerror(remote_cache, memcached_response));
 //    }
-	struct nipc_read* readData = new_nipc_read(path, size, offset);
+	struct nipc_read* readData = new_nipc_read(client_id, path, size, offset);
 	struct nipc_packet* packet = readData->serialize(readData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -191,7 +190,7 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
 	if (size > maximumReadWriteSize) {
 		size = maximumReadWriteSize;
 	}
-	struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
+	struct nipc_write* writeData = new_nipc_write(client_id, path, input, size, offset);
 	struct nipc_packet* packet = writeData->serialize(writeData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -219,7 +218,7 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
 	logger_operation("release", path);
-	struct nipc_release* releaseData = new_nipc_release(path, fileInfo->flags);
+	struct nipc_release* releaseData = new_nipc_release(client_id, path, fileInfo->flags);
 	struct nipc_packet* packet = releaseData->serialize(releaseData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -229,7 +228,7 @@ int remote_release(const char *path, struct fuse_file_info *fileInfo) {
 /** Remove a file */
 int remote_unlink(const char *path) {
 	logger_operation("unlink", path);
-	struct nipc_unlink* unlinkData = new_nipc_unlink(path);
+	struct nipc_unlink* unlinkData = new_nipc_unlink(client_id, path);
 	struct nipc_packet* packet = unlinkData->serialize(unlinkData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -239,7 +238,7 @@ int remote_unlink(const char *path) {
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
 	logger_operation("mkdir", path);
-	struct nipc_mkdir* mkdirData = new_nipc_mkdir(path, mode);
+	struct nipc_mkdir* mkdirData = new_nipc_mkdir(client_id, path, mode);
 	struct nipc_packet* packet = mkdirData->serialize(mkdirData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -282,8 +281,7 @@ int remote_mkdir(const char *path, mode_t mode) {
  */
 #define MEMCACHED_KEY_SIZE 41
 
-int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
-		off_t offset, struct fuse_file_info *fileInfo) {
+int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
 
 	logger_operation("readdir", path);
 
@@ -307,7 +305,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
 
 	} else {
 		/******si no lo tiene ---> consultar a Remote y dsp almacenar en la cache *****/
-		struct nipc_readdir* readdirData = new_nipc_readdir(path, offset);
+		struct nipc_readdir* readdirData = new_nipc_readdir(client_id, path, offset);
 		struct nipc_packet* packet = readdirData->serialize(readdirData);
 		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 				fileSystemPort);
@@ -317,8 +315,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
 			int index;
 			int bufferIsFull = 0;
 
-			for (index = 0; index < readdirData->entriesLength && !bufferIsFull;
-					index++) {
+			for (index = 0; index < readdirData->entriesLength && !bufferIsFull; index++) {
 				struct readdir_entry *entry = &(readdirData->entries[index]);
 				struct stat stats;
 				stats.st_nlink = entry->n_link;
@@ -358,7 +355,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
 /** Remove a directory */
 int remote_rmdir(const char *path) {
 	logger_operation("rmdir", path);
-	struct nipc_rmdir* rmdirData = new_nipc_rmdir(path);
+	struct nipc_rmdir* rmdirData = new_nipc_rmdir(client_id, path);
 	struct nipc_packet* packet = rmdirData->serialize(rmdirData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -402,8 +399,8 @@ int remote_getattr(const char *path, struct stat *statbuf) {
 		return (struct readdir_entry*) return_value;
 
 	} else {
-		/******si no lo tiene o no esta activa---> consultar a Remote y dsp almacenar en la cache *****/
-		struct nipc_getattr* getattrData = new_nipc_getattr(path);
+		/******si no lo tiene o no esta activa ---> consultar a Remote y dsp almacenar en la cache *****/
+		struct nipc_getattr* getattrData = new_nipc_getattr(client_id, path);
 		struct nipc_packet* packet = getattrData->serialize(getattrData);
 		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 				fileSystemPort);
@@ -442,7 +439,7 @@ int remote_getattr(const char *path, struct stat *statbuf) {
  */
 int remote_truncate(const char * path, off_t offset) {
 	logger_operation("truncate", path);
-	struct nipc_truncate* truncateData = new_nipc_truncate(path, offset);
+	struct nipc_truncate* truncateData = new_nipc_truncate(client_id, path, offset);
 	struct nipc_packet* packet = truncateData->serialize(truncateData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
@@ -452,11 +449,19 @@ int remote_truncate(const char * path, off_t offset) {
 /**
  * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Functions_list
  */
-static struct fuse_operations remote_operations = { .create = remote_create,
-		.open = remote_open, .read = remote_read, .write = remote_write,
-		.release = remote_release, .unlink = remote_unlink, .mkdir =
-				remote_mkdir, .readdir = remote_readdir, .rmdir = remote_rmdir,
-		.getattr = remote_getattr, .truncate = remote_truncate };
+static struct fuse_operations remote_operations = {
+		.create = remote_create,
+		.open = remote_open,
+		.read = remote_read,
+		.write = remote_write,
+		.release = remote_release,
+		.unlink = remote_unlink,
+		.mkdir = remote_mkdir,
+		.readdir = remote_readdir,
+		.rmdir = remote_rmdir,
+		.getattr = remote_getattr,
+		.truncate = remote_truncate
+};
 
 int remote_handshake() {
 	struct nipc_packet* response = nipc_query(new_nipc_handshake_hello(),
@@ -471,7 +476,8 @@ int remote_handshake() {
 			free(validData);
 			return -1;
 		} else {
-			log_info(logger, "handshake: ok");
+            client_id = response->client_id;
+            log_info(logger, "Handshake: conectado con Client ID %d", client_id);
 			return 0;
 		}
 	} else {

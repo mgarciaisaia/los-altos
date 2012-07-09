@@ -55,8 +55,9 @@ struct nipc_create* empty_nipc_create() {
     return instance;
 }
 
-struct nipc_create* new_nipc_create(const char* path, mode_t mode) {
+struct nipc_create* new_nipc_create(u_int32_t client_id, const char* path, mode_t mode) {
     struct nipc_create* instance = empty_nipc_create();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->fileMode = mode;
@@ -102,8 +103,9 @@ struct nipc_open* empty_nipc_open() {
     return instance;
 }
 
-struct nipc_open* new_nipc_open(const char* path, int flags) {
+struct nipc_open* new_nipc_open(u_int32_t client_id, const char* path, int flags) {
     struct nipc_open* instance = empty_nipc_open();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->flags = flags;
@@ -155,8 +157,9 @@ struct nipc_read* empty_nipc_read() {
     return instance;
 }
 
-struct nipc_read* new_nipc_read(const char* path, size_t size, off_t offset) {
+struct nipc_read* new_nipc_read(u_int32_t client_id, const char* path, size_t size, off_t offset) {
     struct nipc_read* instance = empty_nipc_read();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->size = size;
@@ -214,9 +217,10 @@ struct nipc_write* empty_nipc_write() {
     return instance;
 }
 
-struct nipc_write* new_nipc_write(const char* path, const char* data,
-        size_t size, off_t offset) {
+struct nipc_write* new_nipc_write(u_int32_t client_id, const char* path,
+        const char* data, size_t size, off_t offset) {
     struct nipc_write* instance = empty_nipc_write();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->data = malloc(strlen(data) + 1);
@@ -256,8 +260,9 @@ struct nipc_unlink* empty_nipc_unlink() {
     return instance;
 }
 
-struct nipc_unlink* new_nipc_unlink(const char* path) {
+struct nipc_unlink* new_nipc_unlink(u_int32_t client_id, const char* path) {
     struct nipc_unlink* instance = empty_nipc_unlink();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     return instance;
@@ -302,8 +307,9 @@ struct nipc_release* empty_nipc_release() {
     return instance;
 }
 
-struct nipc_release* new_nipc_release(const char* path, int flags) {
+struct nipc_release* new_nipc_release(u_int32_t client_id, const char* path, int flags) {
     struct nipc_release* instance = empty_nipc_release();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->flags = flags;
@@ -345,8 +351,9 @@ struct nipc_mkdir* empty_nipc_mkdir() {
     return instance;
 }
 
-struct nipc_mkdir* new_nipc_mkdir(const char* path, mode_t mode) {
+struct nipc_mkdir* new_nipc_mkdir(u_int32_t client_id, const char* path, mode_t mode) {
     struct nipc_mkdir* instance = empty_nipc_mkdir();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->fileMode = mode;
@@ -383,8 +390,9 @@ struct nipc_rmdir* empty_nipc_rmdir() {
     return instance;
 }
 
-struct nipc_rmdir* new_nipc_rmdir(const char* path) {
+struct nipc_rmdir* new_nipc_rmdir(u_int32_t client_id, const char* path) {
     struct nipc_rmdir* instance = empty_nipc_rmdir();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     return instance;
@@ -427,8 +435,9 @@ struct nipc_readdir* empty_nipc_readdir() {
     return instance;
 }
 
-struct nipc_readdir* new_nipc_readdir(const char* path, off_t offset) {
+struct nipc_readdir* new_nipc_readdir(u_int32_t client_id, const char* path, off_t offset) {
     struct nipc_readdir* instance = empty_nipc_readdir();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->offset = offset;
@@ -466,8 +475,9 @@ struct nipc_getattr* empty_nipc_getattr() {
     return instance;
 }
 
-struct nipc_getattr* new_nipc_getattr(const char* path) {
+struct nipc_getattr* new_nipc_getattr(u_int32_t client_id, const char* path) {
     struct nipc_getattr* instance = empty_nipc_getattr();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     return instance;
@@ -510,8 +520,9 @@ struct nipc_truncate* empty_nipc_truncate() {
     return instance;
 }
 
-struct nipc_truncate* new_nipc_truncate(const char* path, off_t offset) {
+struct nipc_truncate* new_nipc_truncate(u_int32_t client_id, const char* path, off_t offset) {
     struct nipc_truncate* instance = empty_nipc_truncate();
+    instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
     instance->offset = offset;
