@@ -25,6 +25,7 @@
 #include "src/commons/log.h"
 #include "src/commons/config.h"
 #include <semaphore.h>
+#include "administracion.h"
 
 // FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
 #define PATH_CONFIG "conf/rfs.conf"
@@ -35,7 +36,7 @@ u_int16_t listening_port;
 int max_connections;
 int max_events;
 sem_t threads_count;
-t_list archivos_abiertos;
+t_list *archivos_abiertos;
 
 
 void send_ok(int socket) {
@@ -44,13 +45,21 @@ void send_ok(int socket) {
 }
 
 /**
- * Si el path puede abrirse, manda un nipc_ok, sino un nipc_error
+ * Registra la apertura del archivo en la lista de archivos abiertos
+ * y en la lista de archivos del cliente
  */
 void serve_open(int socket, struct nipc_open *request) {
-    log_debug(logger, "open %s", request->path);
+    log_info(logger, "open %s", request->path);
     // FIXME: contestar si puede o no abrir el archivo
-    send_ok(socket);
-    log_debug(logger, "/open %s", request->path);
+    uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
+    if(numero_inodo != 0) {
+        struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(archivos_abiertos, numero_inodo);
+        registrar_apertura(nodo_archivo);
+        send_ok(socket);
+    } else {
+        // FIXME: send_error()
+    }
+    log_info(logger, "/open %s", request->path);
 }
 
 /**
@@ -92,10 +101,17 @@ void serve_write(int socket, struct nipc_write *request) {
  * contestemos cualquiera
  */
 void serve_release(int socket, struct nipc_release *request) {
-    log_debug(logger, "release %s", request->path);
-    // FIXME: implementar
-    send_ok(socket);
-    log_debug(logger, "/release %s", request->path);
+    log_info(logger, "release %s", request->path);
+    uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
+    if(numero_inodo != 0) {
+        // FIXME: si el archivo no esta abierto, romper
+        struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(archivos_abiertos, numero_inodo);
+        registrar_cierre(archivos_abiertos, nodo_archivo);
+        send_ok(socket);
+    } else {
+        // FIXME: send_error()
+    }
+    log_info(logger, "/release %s", request->path);
 }
 
 /**
@@ -307,6 +323,8 @@ void initialize_configuration() {
 
 int32_t main(void) {
     initialize_configuration();
+
+    archivos_abiertos = list_create();
 
     int listeningSocket = socket_binded(listening_port);
     struct sockaddr_in address;
