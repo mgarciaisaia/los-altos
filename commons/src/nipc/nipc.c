@@ -554,9 +554,11 @@ struct nipc_truncate* new_nipc_truncate(u_int32_t client_id, const char* path, o
 size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket) {
     size_t typeLenght = sizeof(packet->type);
     size_t dataLengthLength = sizeof(packet->data_length);
-    size_t packetSize = typeLenght + dataLengthLength + packet->data_length;
+    size_t clientIdSize = sizeof(packet->client_id);
+    size_t packetSize = typeLenght + dataLengthLength + clientIdSize + packet->data_length;
     *rawPacket = malloc(packetSize);
     memcpy(*rawPacket, &packet->type, typeLenght);
+    memcpy(*rawPacket, &packet->client_id, clientIdSize);
     memcpy(*rawPacket + typeLenght, &packet->data_length, dataLengthLength);
     if(packet->data_length) {
         memcpy(*rawPacket + typeLenght + dataLengthLength, packet->data,
@@ -570,10 +572,11 @@ size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket) {
 struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize) {
     struct nipc_packet *packet = malloc(sizeof(struct nipc_packet));
     memcpy(&(packet->type), rawPacket, sizeof(packet->type));
-    memcpy(&(packet->data_length), rawPacket + sizeof(packet->type), sizeof(packet->data_length));
+    memcpy(&(packet->client_id), rawPacket + sizeof(packet->type), sizeof(packet->client_id));
+    memcpy(&(packet->data_length), rawPacket + sizeof(packet->type) + sizeof(packet->client_id), sizeof(packet->data_length));
     packet->data = malloc(packet->data_length);
     if(packet->data_length) {
-        memcpy(packet->data, rawPacket + sizeof(packet->type) + sizeof(packet->data_length), packet->data_length);
+        memcpy(packet->data, rawPacket + sizeof(packet->type) + sizeof(packet->client_id) + sizeof(packet->data_length), packet->data_length);
     } else {
         packet->data = NULL;
     }
