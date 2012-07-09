@@ -140,7 +140,7 @@ extern uint32_t cantRegistros;
 
 	return ENGINE_SUCCESS;
 }
- t_log *logger;
+extern t_log *logger;
 
 /*
  * Esta función se llama inmediatamente despues del create_instance y sirve para inicializar
@@ -174,8 +174,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		parse_config(config_str, items, NULL);
 
-		//aca ya aloque lo del vector de keys y la cache.
-		mtrace();
+//		mtrace();
 
 		config = config_create(PATH_CONFIG);
 
@@ -188,7 +187,6 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 		char *path_log = config_get_string_value(config, "PATH_LOG");
 		bool console_active = config_get_string_value(config, "CONSOLE");
 		logger = log_create(path_log, "RC", console_active, LOG_LEVEL_DEBUG);
-		logger_operation("Allocate","prueba");
 		//elegimos el algoritmo a usar
 		bool valor = config_has_property(config, "ESQUEMA");
 		if (valor == 1) {
@@ -245,6 +243,8 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 //		printf("%d", engine->config.block_size_max);
 
+	mtrace();
+
 	/*
 	 * Registro la SIGUSR1. El registro de signals debe ser realizado en la función initialize
 	 */
@@ -296,9 +296,9 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	logger_operation("Allocate",key);
 	//valido que no sea mayor a la particion maxima
 	if (nbytes > part_maxima){
-		printf("El tamaño de los datos excede el límite");
+		printf("El tamaño de los datos excede el límite \n");
 //		return MEMCACHED_FAILURE;
-		return ENGINE_FAILED;
+//		return ENGINE_FAILED;
 	}
 	char strkey[nkey + 1];
 	memcpy(strkey, key, nkey);
@@ -370,10 +370,11 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 
 	key_element *it = (key_element*) item;
 
-	logger_operation("Release",it->key);
 
 	if (!it->stored) {
 		it->libre = true;
+		logger_operation("Release",it->key);
+
 	}
 }
 
@@ -486,17 +487,19 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 
 		return ENGINE_KEY_ENOENT;
 	}
-	key_element *item = &key_vector[res];
 
-	/*Falta arreglar esto para pasarle a elmina_buddy la posicion en el vector
-	 */
+//modifico eliminar_particion para poder usarla aca:
+	uint32_t valor = eliminar_particion (res);
+
+	key_element *item = &key_vector[valor];
+
 	char *string = config_get_string_value(config, "ESQUEMA");
 
 	if (strcmp(string, "BUDDY") == 0) {
 
 //Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
 
-		size_t new_pos = elimina_buddy(res);
+		size_t new_pos = elimina_buddy(valor);
 		item = &key_vector[new_pos];
 
 	}

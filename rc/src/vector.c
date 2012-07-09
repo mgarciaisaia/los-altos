@@ -12,7 +12,9 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <src/commons/log.h>
 
+extern t_log *logger;
 extern key_element *key_vector;
 extern t_config* config;
 extern uint32_t cantRegistros;
@@ -125,11 +127,18 @@ void actualizar_key(key_element *it) {
 }
 
 // Me sirve para los 2 algoritmos
-uint32_t eliminar_particion(void) {
+//devuelve la posicion borrada
+uint32_t eliminar_particion(int32_t valor) {
 
 	uint32_t resultado;
 
+//si entra aca fue porque habia que borrar segun fifo o lru
+	if (valor == -1){
 	resultado = borrar();
+	char *string = config_get_string_value(config, "VICTIM");
+	log_debug(logger, "Se elimina la key: %s, usando el algoritmo %s", key_vector[resultado].key , string);
+	}else
+	resultado = valor;
 
 	if (resultado != cantRegistros) {
 //aca muere ¿porque? ya no hay semaforo de lectura.Solo para buddy no funciona
@@ -236,6 +245,8 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 }
 
 uint32_t compactarDinam(void) {
+
+	log_info(logger,"Se compacta la cache");
 
 	// como ordenar recibe algo le mando cualquier posicion
 	int32_t posicion_new = ordenar_vector(0);
@@ -393,7 +404,7 @@ key_element *buscarLibreNext(size_t espacio) {
 
 			if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
 				//eliminar una particion segun esquema
-				particion = eliminar_particion();
+				particion = eliminar_particion(-1);
 
 				if (particion == cantRegistros)
 					vector_inicializar(keys_space, cache, cache_size);
@@ -444,8 +455,11 @@ key_element *buscarLibreNext(size_t espacio) {
 					posicion);
 
 			key_vector[i].data_unuse = diferencia;
-		} else
-			printf("No hay posiciones libres en el vector");
+		} else{
+			log_error(logger, "La memoria cache se encuentra llena");
+			//printf("No hay posiciones libres en el vector");
+//			return ENGINE_FAILED;
+	}
 	}
 
 	resultado = &key_vector[i];
@@ -487,7 +501,7 @@ key_element *buscarLibreWorst(size_t espacio) {
 
 				if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
 					//eliminar una particion segun esquema
-					particion = eliminar_particion();
+					particion = eliminar_particion(-1);
 
 					if (particion == cantRegistros)
 						vector_inicializar(keys_space, cache, cache_size);
@@ -548,13 +562,16 @@ key_element *buscarLibreWorst(size_t espacio) {
 					key_vector[pos_mayor_tamano].data_size - espacio
 							- diferencia, true, posicionn);
 			key_vector[pos_mayor_tamano].data_unuse = diferencia;
-		} else
-			printf("No hay posiciones libres en el vector");
+		} else{
+			log_error(logger, "La memoria cache se encuentra llena");
+			//printf("No hay posiciones libres en el vector");
+//			return ENGINE_FAILED;
+		}
 	}
-
 	resultado = &key_vector[pos_mayor_tamano];
 	return resultado;
 }
+
 
 // aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
 key_element *buscarLibreBuddy(size_t espacio) {
@@ -562,9 +579,9 @@ key_element *buscarLibreBuddy(size_t espacio) {
 	key_element *resultado;
 	uint32_t i = 0;
 	char encontrado = 0;
-	uint32_t lugares = i;
+	uint32_t lugares = cantRegistros;;
 
-//	pthread_rwlock_rdlock(keyVector);
+	pthread_rwlock_rdlock(keyVector);
 //|| (key_vector[i].data_size > 0)
 	while (((encontrado == 0)) && (i < cantRegistros)) {
 
@@ -574,14 +591,15 @@ key_element *buscarLibreBuddy(size_t espacio) {
 					|| !key_vector[lugares].libre) {
 
 				// entra aca si no encontro espacio
-				//	pthread_rwlock_unlock(keyVector);
 
-				i = eliminar_particion();
+					pthread_rwlock_unlock(keyVector);
+
+				i = eliminar_particion(-1);
 
 				//Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
 				uint32_t new_pos = elimina_buddy(i);
 				i = new_pos;
-				//	pthread_rwlock_rdlock(keyVector);
+					pthread_rwlock_rdlock(keyVector);
 
 				// pregunto si en el nuevo lugar entra
 				if ((key_vector[i].data_size > espacio)
@@ -596,13 +614,20 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			}
 		} else {
 
-			if ((key_vector[i].data_size > espacio)
-					&& (key_vector[i].data_size <= key_vector[lugares].data_size)
-					&& (key_vector[i].libre))
+			if (((encontrado == 0) &&(key_vector[i].data_size > espacio))
+					&& ((key_vector[i].libre))){
+				if (lugares == cantRegistros)
 				lugares = i;
+				else{
+					if (key_vector[i].data_size <= key_vector[lugares].data_size)
+						lugares = i;
+				}
+
+			}
 		}
 		i++;
 	}
+
 	uint32_t prox_espacio;
 
 	bool verdad = false;
@@ -617,7 +642,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			// actualizar las particiones
 			int32_t posicionn = buscarPosLibre();
 
-			//	pthread_rwlock_unlock(keyVector);
+				pthread_rwlock_unlock(keyVector);
 
 			if (posicionn != -1) {
 
@@ -627,20 +652,29 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			} else
 				printf("No hay posiciones libres en el vector");
 
-			//	pthread_rwlock_wrlock(keyVector);
+				pthread_rwlock_wrlock(keyVector);
 			key_vector[lugares].data_size = prox_espacio;
 			prox_particion = prox_espacio;
-			//	pthread_rwlock_unlock(keyVector);
+				pthread_rwlock_unlock(keyVector);
+				pthread_rwlock_rdlock(keyVector);
+
 		} else {
 			/*ya no lo puedo partir mas o mi espacio es mayor a la particion que cree.*/
-			//	pthread_rwlock_wrlock(keyVector);
+			pthread_rwlock_unlock(keyVector);
+//					if(pthread_rwlock_trywrlock(keyVector))
+//						perror("trylock");
+//					else
+//						printf("Entro try lock\n");
+
+			pthread_rwlock_wrlock(keyVector);
 			if (espacio > prox_particion)
 				key_vector[lugares].data_unuse = key_vector[lugares].data_size
 						- espacio;
 			else
 				key_vector[lugares].data_unuse = prox_particion - espacio;
 
-			//		pthread_rwlock_unlock(keyVector);
+				pthread_rwlock_unlock(keyVector);
+				pthread_rwlock_rdlock(keyVector);
 
 			resultado = &key_vector[lugares];
 
@@ -648,7 +682,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 		}
 	} while (!verdad);
 
-//	pthread_rwlock_unlock(keyVector);
+	pthread_rwlock_unlock(keyVector);
 
 	return resultado;
 }
@@ -689,3 +723,4 @@ int32_t vector_get(char *key) {
 
 	return resultado;
 }
+
