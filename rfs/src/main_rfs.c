@@ -42,6 +42,8 @@ int max_connections;
 int max_events;
 sem_t threads_count;
 t_list *archivos_abiertos;
+u_int32_t generated_client_id = 0;
+pthread_mutex_t *mutex_client_id;
 
 #define ERROR1 -1 //"No es posible abrir el archivo"
 #define ERROR2 -2 //"El archivo no esta abierto"
@@ -325,11 +327,20 @@ void serve_unknown(int socket, struct nipc_packet *request) {
 	log_debug(logger, "/unknown de tipo %d", request->type);
 }
 
+u_int32_t generate_client_id() {
+    pthread_mutex_lock(mutex_client_id);
+    generated_client_id++;
+    pthread_mutex_unlock(mutex_client_id);
+    return generated_client_id;
+}
+
 void serve_handshake(int socket, struct nipc_packet *request) {
 	log_debug(logger, "handshake");
 	log_trace(logger, "handshake recibido: %s", request->data);
 	if (!strcmp(request->data, HANDSHAKE_HELLO)) {
-		nipc_send(socket, new_nipc_handshake_ok());
+        int new_client_id = generate_client_id();
+        nipc_send(socket, new_nipc_handshake_ok(new_client_id));
+        log_info(logger, "Acepto un nuevo cliente con ID %d", new_client_id);
 	} else {
 		log_error(logger, "handshake: HELLO no reconocido (%d)", request->type);
 		close(socket);
@@ -441,8 +452,10 @@ void initialize_configuration() {
 	max_events = config_get_int_value(config, "connections.max_events");
 
 	// 0 = semaforo compartido entre threads
-	sem_init(&threads_count, 0,
-			config_get_int_value(config, "connections.max_threads"));
+    sem_init(&threads_count, 0, config_get_int_value(config, "connections.max_threads"));
+
+    mutex_client_id = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(mutex_client_id, NULL);
 
 	config_destroy(config);
 }

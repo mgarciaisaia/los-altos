@@ -59,7 +59,7 @@ int nipc_send(int socketDescriptor, struct nipc_packet *request) {
 
 struct nipc_packet *nipc_receive(int socketDescriptor) {
     struct nipc_packet* packet = NULL;
-    size_t headerSize = sizeof(packet->type) + sizeof(packet->data_length);
+    size_t headerSize = sizeof(packet->type) + sizeof(packet->client_id) + sizeof(packet->data_length);
 
     log_debug(logger_socket, "Recibo un header de %d bytes en %d", headerSize, socketDescriptor);
 
@@ -82,7 +82,7 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
 
 
     u_int16_t messageSize = headerSize
-            + *(u_int16_t *) (header + sizeof(packet->type));
+            + *(u_int16_t *) (header + sizeof(packet->type) + sizeof(packet->client_id));
     free(header);
     void *message = malloc(messageSize);
 

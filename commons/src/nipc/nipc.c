@@ -558,10 +558,10 @@ size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket) {
     size_t packetSize = typeLenght + dataLengthLength + clientIdSize + packet->data_length;
     *rawPacket = malloc(packetSize);
     memcpy(*rawPacket, &packet->type, typeLenght);
-    memcpy(*rawPacket, &packet->client_id, clientIdSize);
-    memcpy(*rawPacket + typeLenght, &packet->data_length, dataLengthLength);
+    memcpy(*rawPacket + typeLenght, &packet->client_id, clientIdSize);
+    memcpy(*rawPacket + typeLenght + clientIdSize, &packet->data_length, dataLengthLength);
     if(packet->data_length) {
-        memcpy(*rawPacket + typeLenght + dataLengthLength, packet->data,
+        memcpy(*rawPacket + typeLenght + clientIdSize + dataLengthLength, packet->data,
             packet->data_length);
     }
     // FIXME: free(packet->data);
@@ -799,9 +799,10 @@ struct nipc_packet *new_getattr_error(int errorNumber) {
     return packet;
 }
 
-struct nipc_packet *new_nipc_handshake(char *message) {
+struct nipc_packet *new_nipc_handshake(char *message, u_int32_t client_id) {
     struct nipc_packet *packet = malloc(sizeof(struct nipc_packet));
     packet->type = nipc_handshake;
+    packet->client_id = client_id;
     packet->data_length = strlen(message) + 1;
     packet->data = malloc(packet->data_length);
     strcpy(packet->data, message);
@@ -809,11 +810,11 @@ struct nipc_packet *new_nipc_handshake(char *message) {
 }
 
 struct nipc_packet *new_nipc_handshake_hello() {
-    return new_nipc_handshake(HANDSHAKE_HELLO);
+    return new_nipc_handshake(HANDSHAKE_HELLO, 0);
 }
 
-struct nipc_packet *new_nipc_handshake_ok() {
-    return new_nipc_handshake(HANDSHAKE_OK);
+struct nipc_packet *new_nipc_handshake_ok(int new_client_id) {
+    return new_nipc_handshake(HANDSHAKE_OK, new_client_id);
 }
 
 
