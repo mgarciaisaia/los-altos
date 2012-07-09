@@ -39,6 +39,7 @@ struct nipc_create* deserialize_create(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_create* instance = empty_nipc_create();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen((char*) packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -88,6 +89,7 @@ struct nipc_open* deserialize_open(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_open* instance = empty_nipc_open();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen(packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -140,6 +142,7 @@ struct nipc_read* deserialize_read(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_read* instance = empty_nipc_read();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen(packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -199,6 +202,7 @@ struct nipc_write* deserialize_write(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_write* instance = empty_nipc_write();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen(packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -251,6 +255,7 @@ struct nipc_unlink* deserialize_unlink(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_unlink* instance = empty_nipc_unlink();
+    instance->client_id = packet->client_id;
     instance->path = malloc(packet->data_length);
     strcpy(instance->path, packet->data);
     free(packet->data);
@@ -296,6 +301,7 @@ struct nipc_release* deserialize_release(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_release* instance = empty_nipc_release();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen(packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -342,6 +348,7 @@ struct nipc_mkdir* deserialize_mkdir(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_mkdir* instance = empty_nipc_mkdir();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen((char*) packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -384,6 +391,7 @@ struct nipc_rmdir* deserialize_rmdir(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_rmdir* instance = empty_nipc_rmdir();
+    instance->client_id = packet->client_id;
     instance->path = malloc(packet->data_length);
     strcpy(instance->path, packet->data);
     free(packet->data);
@@ -427,6 +435,7 @@ struct nipc_readdir* deserialize_readdir(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_readdir* instance = empty_nipc_readdir();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen((char*) packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
@@ -471,6 +480,7 @@ struct nipc_getattr* deserialize_getattr(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_getattr* instance = empty_nipc_getattr();
+    instance->client_id = packet->client_id;
     instance->path = malloc(packet->data_length);
     strcpy(instance->path, packet->data);
     free(packet->data);
@@ -514,6 +524,7 @@ struct nipc_truncate* deserialize_truncate(struct nipc_packet* packet) {
         perror("Error desearilzando paquete - tipo invalido");
     }
     struct nipc_truncate* instance = empty_nipc_truncate();
+    instance->client_id = packet->client_id;
     size_t path_length = strlen((char*) packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
