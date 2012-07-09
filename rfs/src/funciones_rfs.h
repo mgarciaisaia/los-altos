@@ -14,6 +14,7 @@
 #include <src/commons/collections/list.h>
 #include <src/commons/collections/queue.h>
 //#include <commons/collections/queue.h>
+#include "src/commons/log.h"
 
 #define EXT2_S_IFREG 0x8000
 #define EXT2_S_IFDIR 0x4000
@@ -114,6 +115,8 @@
 		char * ruta;
 		char * nombre;
 	} t_ruta_separada;
+
+	void set_logger_funciones(t_log *logger_para_funciones);
 
 	void mapear_archivo(char *);
 	struct Superblock *read_superblock();

@@ -275,6 +275,7 @@ void initialize_configuration() {
     int log_has_console = config_get_int_value(config, "logger.has_console");
 
     logger = log_create(log_file, log_name, log_has_console, log_level_from_string(log_level));
+    set_logger_funciones(logger);
 
     log_info(logger, "Inicializado el logger en %s con nivel %s", log_file, log_level);
 

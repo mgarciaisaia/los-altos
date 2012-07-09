@@ -25,12 +25,19 @@
 #include <src/commons/string.h>
 #include <src/commons/config.h>
 #include "src/nipc/nipc.h"
+#include "../commons/src/commons/log.h"
+#include <errno.h>
 
 //#define PATH_CONFIG "home/utnso/archivo_configuracion";
 
 static const int tamanio_bloque = 1024;
 //uint32_t *ptr_arch;
 uint8_t *ptr_arch;
+t_log *logger_funciones;
+
+void set_logger_funciones(t_log *logger_para_funciones) {
+    logger_funciones = logger_para_funciones;
+}
 
 void mapear_archivo(char *ruta_archivo) {
 	// todo: revisar el archivo de configuracion
@@ -120,7 +127,7 @@ void leerBitmapDeBloque(uint32_t nroGrupo){
 	int i;
 	for(i = 0;i < cantBloques;i++){
 		bool valor = bitarray_test_bit(ptrBit, i);
-		printf("bloque %d: %d\n",i+bInicioDeGrupo,valor);
+		log_trace(logger_funciones, "bloque %d: %d\n",i+bInicioDeGrupo,valor);
 	}
 
 }
@@ -141,7 +148,7 @@ void leerBitmapDeInodos(uint32_t nroGrupo){
 	int i;
 	for(i = 0;i < cantBloques;i++){
 		bool valor = bitarray_test_bit(ptrBit, i);
-		printf("inodo %d: %d\n",i,valor);
+		log_trace(logger_funciones, "inodo %d: %d\n",i,valor);
 	}
 }
 
@@ -176,7 +183,7 @@ void buscarBloquesLibresBitmaps(t_queue * bloquesLibres,uint32_t nro_grupo,uint3
 		if(valor == 0){
 			uint32_t nroBloque = nroPrimerBloqueDelGrupo + i;
 			queue_push(bloquesLibres,(void *)(nroBloque));
-			printf("nroBloque agregado a la cola: %hu\n",nroBloque);
+			log_trace(logger_funciones, "nroBloque agregado a la cola: %hu\n",nroBloque);
 		}
 	}
 
@@ -218,7 +225,7 @@ void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_
 		if(valor == 0){
 			uint32_t nroInodo = nroPrimerInodoDelGrupo + i;
 			queue_push(inodosLibres,(void *)(nroInodo));
-			printf("nroInodo agregado a la cola: %hu\n",nroInodo);
+			log_trace(logger_funciones, "nroInodo agregado a la cola: %hu\n",nroInodo);
 		}
 //		printf("tamano cola Inodos libres: %d\n",queue_size(inodosLibres));
 	}
@@ -245,7 +252,7 @@ struct INode * getInodo(uint32_t nroInodo){
         return NULL;
     }
 
-	printf("nroInodo: %hu\n",nroInodo);
+	log_trace(logger_funciones, "nroInodo: %hu\n",nroInodo);
 	struct Superblock *sb = read_superblock();
 	int nroGrupo = (nroInodo - 1) / sb->inodes_per_group;
 	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
@@ -292,17 +299,17 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 		uint16_t cantidad = 0;
 		int i = 0;
 		while(tamanio_bloque > cantidad){
-			printf("entrada de directorio %d\n",i++);
+			log_trace(logger_funciones, "entrada de directorio %d\n",i++);
 			struct DirEntry * directorio = (struct DirEntry *) ptr;
-			printf("nro inodo: %u\n",directorio->inode);
-			printf("entry_len: %u\n",directorio->entry_len);
-			printf("name_len: %u\n",directorio->name_len);
-			printf("type: %u\n",directorio->type);
+			log_trace(logger_funciones, "nro inodo: %u\n",directorio->inode);
+			log_trace(logger_funciones, "entry_len: %u\n",directorio->entry_len);
+			log_trace(logger_funciones, "name_len: %u\n",directorio->name_len);
+			log_trace(logger_funciones, "type: %u\n",directorio->type);
 			char* nombre = calloc(1, directorio->name_len + 1);
 			memcpy(nombre, directorio->name, directorio->name_len);
-			printf("name: %s\n", nombre);
+			log_trace(logger_funciones, "name: %s\n", nombre);
 			if(string_equals_ignore_case(nombre,ruta)){
-				printf("nro de inodo que gestiona %s es %u\n",ruta,directorio->inode);
+				log_trace(logger_funciones, "nro de inodo que gestiona %s es %u\n",ruta,directorio->inode);
 //				inodoBuscado = getInodo(directorio->inode);
 				nroInodoBuscado = directorio->inode;
 				break;
@@ -452,7 +459,7 @@ uint32_t * posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nr
 	nroBloqueLogico -= cantBloquesYaRecorridos;
 	for (i = 0; i < nroBloqueLogico; i++);
 	ptrBloque = (uint32_t*) (inicio + i * 4);
-	printf("nro de bloque: %u\n", *ptrBloque);
+	log_trace(logger_funciones, "nro de bloque: %u\n", *ptrBloque);
 	return ptrBloque;
 }
 
@@ -507,7 +514,7 @@ uint32_t * posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nr
 void * posicionarme(struct INode * inodo,uint32_t nroBloqueLogico,uint32_t desplazamiento){
 	void * ptr;
 	uint32_t * ptrNroBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodo,nroBloqueLogico);
-	printf("nroBloqueDeDato %u\n",*ptrNroBloqueLogico);
+	log_trace(logger_funciones, "nroBloqueDeDato %u\n",*ptrNroBloqueLogico);
 	ptr = desplazarme(*ptrNroBloqueLogico, desplazamiento);
 	return ptr;
 }
@@ -534,7 +541,7 @@ struct INode * getInodoDeLaDireccionDelPath(char * path){
 	for(i = 0;i < tamanio_ruta_separada;i++){
 		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
 		if(nroInodoDeBusqueda == 0){
-			printf("error: no existe la ruta");
+			log_error(logger_funciones, "error: no existe la ruta");
 			break;
 		}
 		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
@@ -558,10 +565,10 @@ void truncarArchivo(char * path,uint32_t offset){
 				uint32_t cantPtrEnIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
 				uint32_t cantPtrEnIndireccionDoble = cantPtrEnIndireccionSimple * cantPtrEnIndireccionSimple;
 				if(size == 0)
-					printf("no hay cambio");
+					log_trace(logger_funciones, "no hay cambio");
 				if(size < 0){
 					if(offsetEOF < abs(size)) // si el size es negativo y es mayor en valor absoluto que el tamanio del archivo: error
-						perror("truncamiento invalido");
+						log_error(logger_funciones, "truncamiento invalido: %s", strerror(errno)); // FIXME creo que aca no hay errno
 					else{
 						// achicar archivo
 						while(size < 0){
@@ -574,7 +581,7 @@ void truncarArchivo(char * path,uint32_t offset){
 								size += desplazamiento;
 
 								if(nroBloqueLogico == 131340)
-									printf("revisar si borra");
+									log_trace(logger_funciones, "revisar si borra");
 
 								if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12){
 									liberarBloque(&inodoPath->iblock);
@@ -623,7 +630,7 @@ void truncarArchivo(char * path,uint32_t offset){
 								uint32_t nroBloqueDeDato = getBloqueLibre();
 
 								if(nroBloqueLogico == 131340)
-									printf("revisar si carga");
+									log_trace(logger_funciones, "revisar si carga");
 
 			// manejo de la asignación de bloques para indirecciones simples, dobles y triples
 								if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12)
@@ -682,15 +689,15 @@ void truncarArchivo(char * path,uint32_t offset){
 						}
 						inodoPath->size = offsetEOF;
 					} else
-						printf("no hay suficiente espacion en disco");
+						log_error(logger_funciones, "no hay suficiente espacion en disco");
 				}
 			}
 
 		} else {
-			printf("error: no existe el archivo %s",ruta_separada->nombre);
+			log_error(logger_funciones, "no existe el archivo %s",ruta_separada->nombre);
 		}
 	else
-		printf("error: no existe la ruta");
+		log_error(logger_funciones, "error: no existe la ruta");
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
@@ -829,7 +836,7 @@ void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 
 	uint32_t nroInodoPath = getNroInodoDeLaDireccionDelPath(path);
 	if(nroInodoPath == 0){
-		printf("no existe el archivo");
+		log_error(logger_funciones, "no existe el archivo");
 	} else{
 		struct INode * inodoPath = getInodo(nroInodoPath);
 		if(inodoPath->size < size + offset){
@@ -885,10 +892,10 @@ void crearDirectorio(char * path){
 			free(ruta_separada->nombre);
 			free(ruta_separada);
 		} else {
-			printf("error: ya existe la carpeta %s",ruta_separada->nombre);
+			log_error(logger_funciones, "ya existe la carpeta %s",ruta_separada->nombre);
 		}
 	else
-		printf("error: no existe la ruta");
+		log_error(logger_funciones, "no existe la ruta");
 
 }
 
@@ -1104,7 +1111,7 @@ uint32_t getNroInodoDeLaDireccionDelPath(char * path){
 		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
 		if(nroInodoDeBusqueda == 0){
 // todo: revisar, entra aca cuando hago un crearDirectorio en el raiz
-			printf("error: no existe la ruta\n");
+			log_error(logger_funciones, "no existe la ruta\n");
 			break;
 		}
 		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
@@ -1145,14 +1152,14 @@ void eliminarDirectorio(char * path){
 				eliminarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
 				liberarInodo(nroInodoDirectorio);
 			} else {
-				printf("error: el directorio %s contiene archivos",ruta_separada->nombre);
+				log_error(logger_funciones, "el directorio %s contiene archivos",ruta_separada->nombre);
 			}
 		} else {
-			printf("error: no existe el directorio %s",ruta_separada->nombre);
+			log_error(logger_funciones, "no existe el directorio %s",ruta_separada->nombre);
 		}
 	}
 	else
-		printf("error: no existe la ruta");
+		log_error(logger_funciones, "no existe la ruta");
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
@@ -1272,10 +1279,10 @@ void crearArchivo(char * path, uint32_t mode){
 			free(ruta_separada->nombre);
 			free(ruta_separada);
 		} else {
-			printf("error: ya existe el archivo %s",ruta_separada->nombre);
+			log_error(logger_funciones, "ya existe el archivo %s",ruta_separada->nombre);
 		}
 	else
-		printf("error: no existe la ruta");
+		log_error(logger_funciones, "no existe la ruta");
 
 }
 
@@ -1305,11 +1312,11 @@ void eliminarArchivo(char * path){
 			liberarInodo(nroInodoArchivo);
 			eliminarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
 		} else {
-			printf("error: no existe el archivo %s",ruta_separada->nombre);
+			log_error(logger_funciones, "no existe el archivo %s",ruta_separada->nombre);
 		}
 	}
 	else
-		printf("error: no existe la ruta");
+		log_error(logger_funciones, "no existe la ruta");
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
