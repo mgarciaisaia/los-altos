@@ -30,8 +30,9 @@
 
 //#define PATH_CONFIG "home/utnso/archivo_configuracion";
 
-static const int tamanio_bloque = 1024;
-//uint32_t *ptr_arch;
+static uint32_t nro_de_grupo = 0;
+
+static const int tamanio_bloque = 4096;
 uint8_t *ptr_arch;
 t_log *logger_funciones;
 
@@ -66,22 +67,13 @@ void mapear_archivo(char *ruta_archivo) {
 
 }
 
-struct Superblock *read_superblock() {
+// todo: hacer memcpy
+struct Superblock * read_superblock() {
 
 	uint16_t OFFSET = 1024;
 	struct Superblock *sb;
 	uint8_t *posicion = ptr_arch + OFFSET;
 	sb = (struct Superblock *) posicion;
-
-//	printf("inodos= %d, \n",sb->inodes);
-//	printf("inodos por grupo= %d, \n",sb->inodes_per_group);
-//	printf("bloques= %d, \n",sb->blocks);
-//	printf("bloques libres= %d, \n",sb->free_blocks);
-//	printf("inodos libres= %d, \n",sb->free_inodes);
-//	printf("bloques por grupo= %d, \n",sb->blocks_per_group);
-//	printf("primer bloque de datos= %d, \n",sb->first_data_block);
-//	printf("bloques reservados= %d, \n",sb->reserved_blocks);
-
 	return sb;
 
 }
@@ -95,145 +87,18 @@ uint32_t cantidadDeGrupos() {
 	return (resto != 0) ? cantidadDeGrupos + 1 : cantidadDeGrupos;
 }
 
-// todo: modificar la asignación a posInicialGD de acuerdo al tamaño de bloque
 struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
 	struct GroupDesc * gd = NULL;
 	if(nroGrupo < cantidadDeGrupos()){
-		uint16_t posInicialGD = 2048;
+		uint16_t posInicialGD = (tamanio_bloque == 4096) ? tamanio_bloque : 2048;
 		uint8_t tamanioGrupo = sizeof(struct GroupDesc);
-		uint8_t *posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
+		uint8_t * posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
 		gd = (struct GroupDesc*) posActual;
 	}
 	return gd;
 }
 
-
-// todo: deprecated
-void leerBitmapDeBloque(uint32_t nroGrupo){
-
-	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-
-	uint32_t nroBloque = grupo->block_bitmap;
-	uint8_t * inicio = posicionarInicioBloque(nroBloque);
-
-	struct Superblock *bloque = read_superblock();
-	int cantBloques = bloque->blocks_per_group;
-	int cantBytes = cantBloques / 8;
-
-	int bInicioDeGrupo = nroBloqueInicioDeGrupo(nroGrupo);
-
-	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
-
-	int i;
-	for(i = 0;i < cantBloques;i++){
-		bool valor = bitarray_test_bit(ptrBit, i);
-		log_trace(logger_funciones, "bloque %d: %d\n",i+bInicioDeGrupo,valor);
-	}
-
-}
-
-// todo: deprecated
-void leerBitmapDeInodos(uint32_t nroGrupo){
-
-	struct GroupDesc * grupo= leerGroupDescriptor(nroGrupo);
-	uint32_t nroBloque = grupo->inode_bitmap;
-	uint8_t * inicio = posicionarInicioBloque(nroBloque);
-
-	struct Superblock *bloque = read_superblock();
-	int cantBloques = bloque->inodes_per_group;
-	int cantBytes = cantBloques / 8;
-
-	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
-
-	int i;
-	for(i = 0;i < cantBloques;i++){
-		bool valor = bitarray_test_bit(ptrBit, i);
-		log_trace(logger_funciones, "inodo %d: %d\n",i,valor);
-	}
-}
-
-// todo: deprecated
-t_queue * buscarBloquesLibres(uint32_t bloquesRequeridos){
-	t_queue * bloquesLibres = queue_create();
-	uint32_t nro_grupo;
-	for(nro_grupo = 0;queue_size(bloquesLibres) < bloquesRequeridos;nro_grupo++)
-		buscarBloquesLibresBitmaps(bloquesLibres,nro_grupo,bloquesRequeridos);
-	return bloquesLibres;
-}
-
-// todo: deprecated
-void buscarBloquesLibresBitmaps(t_queue * bloquesLibres,uint32_t nro_grupo,uint32_t bloquesRequeridos){
-
-	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
-	uint32_t inicioBB = grupo->block_bitmap;
-	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
-
-	struct Superblock *bloque = read_superblock();
-	int cantBloques = bloque->blocks_per_group;
-	int cantBytes = cantBloques / 8;
-	uint32_t nroPrimerBloqueDelGrupo;
-
-	 nroPrimerBloqueDelGrupo =  nroBloqueInicioDeGrupo(nro_grupo);
-
-	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
-
-	int i;
-	for(i = 0;queue_size(bloquesLibres) < bloquesRequeridos && i < cantBloques;i++){
-		bool valor = bitarray_test_bit(ptrBit, i);
-		if(valor == 0){
-			uint32_t nroBloque = nroPrimerBloqueDelGrupo + i;
-			queue_push(bloquesLibres,(void *)(nroBloque));
-			log_trace(logger_funciones, "nroBloque agregado a la cola: %hu\n",nroBloque);
-		}
-	}
-
-}
-
-// todo: deprecated
-t_queue * buscarInodosLibres(uint32_t inodosRequeridos){
-	//	struct Superblock *sb = read_superblock();
-	//	if(sb->free_blocks < bloquesRequeridos)
-	//		goto errorInsuficientesBloques;
-
-		t_queue * inodosLibres = queue_create();
-		uint32_t nro_grupo;
-		for(nro_grupo = 0;queue_size(inodosLibres) < inodosRequeridos;nro_grupo++)
-			buscarInodosLibresBitmaps(inodosLibres,nro_grupo,inodosRequeridos);
-		return inodosLibres;
-}
-
-// todo: deprecated
-void buscarInodosLibresBitmaps(t_queue * inodosLibres,uint32_t nro_grupo,uint32_t inodosRequeridos){
-
-	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
-	uint32_t inicioIB = grupo->inode_bitmap;
-	uint8_t *posActual = ptr_arch + inicioIB * tamanio_bloque;
-
-	struct Superblock *sb = read_superblock();
-	int cantInodos = sb->inodes_per_group;
-	int cantBytes = cantInodos / 8;
-	uint32_t nroPrimerInodoDelGrupo;
-
-	nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
-
-	t_bitarray 	* ptrBit = bitarray_create((char*)posActual, cantBytes);
-
-//	printf("primer bloque del grupo: %hu\n",nroPrimerBloqueDelGrupo);
-	int i;
-	for(i = 0;queue_size(inodosLibres) < inodosRequeridos && i < cantInodos;i++){
-		bool valor = bitarray_test_bit(ptrBit, i);
-		if(valor == 0){
-			uint32_t nroInodo = nroPrimerInodoDelGrupo + i;
-			queue_push(inodosLibres,(void *)(nroInodo));
-			log_trace(logger_funciones, "nroInodo agregado a la cola: %hu\n",nroInodo);
-		}
-//		printf("tamano cola Inodos libres: %d\n",queue_size(inodosLibres));
-	}
-
-}
-
-// todo: ver si funca con bloques de 2k 4k
-int nroBloqueInicioDeGrupo(uint32_t nro_grupo){
+uint32_t nroBloqueInicioDeGrupo(uint32_t nro_grupo){
 	struct Superblock *sb = read_superblock();
 	uint32_t bloquesPorGrupo = sb->blocks_per_group;
 	uint32_t nroBloqueInicio;
@@ -241,7 +106,7 @@ int nroBloqueInicioDeGrupo(uint32_t nro_grupo){
 	return nroBloqueInicio + bloquesPorGrupo * nro_grupo;
 }
 
-int nroInodoInicioDeGrupo(uint32_t nro_grupo){
+uint32_t nroInodoInicioDeGrupo(uint32_t nro_grupo){
 	struct Superblock *sb = read_superblock();
 	uint32_t inodosPorGrupo = sb->inodes_per_group;
 	return inodosPorGrupo * nro_grupo + 1; //el + 1 es porque empieza en el inodo nro 1
@@ -274,17 +139,26 @@ uint8_t * posicionarInicioBloque(uint32_t nroBloque){
 	return ptr_arch + nroBloque * tamanio_bloque;
 }
 
-//t_list * listarDirectorio(char * path){
-//	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-//	// todo: cargar en las estructuras
-//	return cargarEntradasDirectorioALista(inodoDeBusqueda);
-//
-//}
-
 // de prueba todo: controlar que el path es un directorio
 t_list * listarDirectorio(char * path){
-	struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-	return cargarEntradasDirectorioALista(inodoDeBusqueda);
+	uint32_t nroInodoDeRuta;
+	uint32_t nroInodoDeDirectorio;
+	struct INode * inodo;
+	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
+	nroInodoDeRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+	if(nroInodoDeRuta != 0){
+		nroInodoDeDirectorio = getNroInodoDeLaDireccionDelPath(path);
+		if(nroInodoDeDirectorio != 0){
+			inodo = getInodo(nroInodoDeDirectorio);
+			return cargarEntradasDirectorioALista(inodo);
+		} else {
+			printf("no existe el archivo");
+			return list_create();
+		}
+	} else {
+		printf("no existe la ruta");
+		return list_create();
+	}
 }
 
 uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta){
@@ -323,7 +197,6 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 	return nroInodoBuscado;
 }
 
-// de prueba
 t_list * cargarEntradasDirectorioALista(struct INode * directorio){
     t_list *entradas = list_create();
 
@@ -340,7 +213,7 @@ t_list * cargarEntradasDirectorioALista(struct INode * directorio){
 			if(inodoEntradaDirectorio == NULL) {
 			    break;
 			}
-			
+
 			struct readdir_entry *entrada = malloc(sizeof(struct readdir_entry));
 
 			entrada->path = calloc(1, entradaDirectorio->name_len + 1);
@@ -364,6 +237,8 @@ size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **buf
     *bufferPointer = NULL;
 
     struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+
+
 
     if(!inodoDeBusqueda->size) {
                return 0;
@@ -397,42 +272,6 @@ size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **buf
            *bufferPointer = buffer;
                   return bytesLeidos;
 }
-//
-//
-//	if(nroInodoDeBusqueda == 0){
-//		printf("no existe el archivo");
-//	} else {
-//		struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
-//		if((size <= 0) || (inodoDeBusqueda->size <= offset + size))
-//			perror("no es posible realizar la lectura");
-//		else
-//			guardarDatosArchivos(inodoDeBusqueda,offset,size);
-//	}
-//}
-//
-//void guardarDatosArchivos(struct INode * inodo,uint32_t offset,uint32_t size){
-//	while(size > 0){
-//		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
-//		uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
-//		void * ptr = posicionarme(inodo,nroBloqueLogico,desplazamiento);
-//		char* string_archivo;
-//		printf("el archivo contiene\n");
-//
-//		if(size + desplazamiento > tamanio_bloque){
-//			uint32_t resto = tamanio_bloque - desplazamiento;
-//			string_archivo = calloc(1, resto + 1);
-//			memcpy(string_archivo, ptr, resto);
-//			size -= resto;
-//			offset += resto;
-//		} else {
-//			string_archivo = calloc(1, size + 1);
-//			memcpy(string_archivo, ptr, size);
-//			offset += size;
-//			size = 0;
-//		}
-//		printf("%s\n",string_archivo);
-//	}
-//}
 
 uint32_t nroBloqueDentroDelInodo(uint32_t offset){
 	return offset / tamanio_bloque;
@@ -455,11 +294,11 @@ uint32_t * posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nr
 	uint8_t* inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t* ptrBloque;
 	int i;
-	uint32_t cantBloquesYaRecorridos = 12;	// el 12 se refiere a los primeros 12 bloques directos
+	uint32_t cantBloquesYaRecorridos = 12;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
 	for (i = 0; i < nroBloqueLogico; i++);
 	ptrBloque = (uint32_t*) (inicio + i * 4);
-	log_trace(logger_funciones, "nro de bloque: %u\n", *ptrBloque);
+//	log_trace(logger_funciones, "nro de bloque: %u\n", *ptrBloque);
 	return ptrBloque;
 }
 
@@ -473,13 +312,12 @@ uint32_t * posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nro
 	uint32_t * ptrBloque;
 	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
 	int i;
-//	uint32_t cantBloquesYaRecorridos = 268;
 	uint32_t cantBloquesYaRecorridos = 12 + cantBloquesPorIndireccionSimple;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
 	for (i = 0; cantBloquesPorIndireccionSimple <= nroBloqueLogico; i++, nroBloqueLogico -= cantBloquesPorIndireccionSimple);
-	ptrBloque = (uint32_t*) (inicio + i * 4);	// me ubico en la indireccion doble que contiene el bloque logico que busco
+	ptrBloque = (uint32_t*) (inicio + i * 4);
 	inicio = posicionarInicioBloque(*ptrBloque);
-	ptrBloque = (uint32_t *) (inicio + nroBloqueLogico * 4); // dentro de la indireccion doble, me ubico en la indireccion simple
+	ptrBloque = (uint32_t *) (inicio + nroBloqueLogico * 4);
 	return ptrBloque;
 }
 
@@ -489,7 +327,6 @@ int esIndireccionTriple(uint32_t nroBloque){
 			+ pow(cantBloquesPorIndireccion,3));
 }
 
-// todo: ver si cantBloquesYaRecorridos es correcto
 uint32_t * posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
@@ -718,7 +555,7 @@ void * getPtrBloqueIndDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogi
 	ptrBloque = (uint32_t*) (inicio + i * 4);
 	inicio = posicionarInicioBloque(*ptrBloque);
 	for (j = 0; cantBloquesPorIndireccionSimple <= nroBloqueLogico; j++, nroBloqueLogico -= cantBloquesPorIndireccionSimple);
-	ptrBloque = (uint32_t*) (inicio + j * 4);	// me ubico en la indireccion doble que contiene el bloque logico que busco
+	ptrBloque = (uint32_t*) (inicio + j * 4);
 	return ptrBloque;
 }
 
@@ -727,7 +564,6 @@ void * getPtrBloqueIndTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLog
 	uint32_t * ptrBloque;
 	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
 	uint32_t cantBloquesPorIndireccionDoble = pow(cantBloquesPorIndireccionSimple,2);
-	// se cambio 65803 por 65804
 	uint32_t cantBloquesYaRecorridos = 12 + cantBloquesPorIndireccionSimple + cantBloquesPorIndireccionDoble;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
 	int i;
@@ -762,8 +598,7 @@ void liberarBloque(uint32_t * ptrBloqueDeDato){
 	uint32_t * ptrNroBloque = &nroBloque;
 	uint32_t nroBloqueDeDato = *ptrBloqueDeDato;
 	struct Superblock *sb = read_superblock();
-	//todo : ver si funca para todos los casos 2k, 4k
-	uint32_t nroGrupo = (nroBloqueDeDato - 1) / sb->blocks_per_group;
+	uint32_t nroGrupo = (nroBloqueDeDato - sb->first_data_block) / sb->blocks_per_group;
 	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
 	uint32_t nroBlockBitmap = grupo->block_bitmap;
 	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
@@ -781,9 +616,14 @@ void liberarBloque(uint32_t * ptrBloqueDeDato){
 
 uint32_t getBloqueLibre(){
 	uint32_t nroBloqueDeDato = 0;
-	uint32_t nro_grupo;
-	for(nro_grupo = 0;nroBloqueDeDato == 0;nro_grupo++)
-		nroBloqueDeDato = getBloqueLibreDelBitmap(nro_grupo);
+	struct GroupDesc * gd = leerGroupDescriptor(nro_de_grupo);
+	if(gd->free_blocks_count == 0){
+		if(nro_de_grupo == cantidadDeGrupos())
+			nro_de_grupo = 0;
+		gd = leerGroupDescriptor(nro_de_grupo);
+	}
+	for(nro_de_grupo = 0;nroBloqueDeDato == 0;nro_de_grupo++)
+		nroBloqueDeDato = getBloqueLibreDelBitmap(nro_de_grupo);
 	actualizarEstructurasCuandoPidoBloque(nroBloqueDeDato);
 	return nroBloqueDeDato;
 }
@@ -838,7 +678,9 @@ void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 	if(nroInodoPath == 0){
 		log_error(logger_funciones, "no existe el archivo");
 	} else{
+
 		struct INode * inodoPath = getInodo(nroInodoPath);
+
 		if(inodoPath->size < size + offset){
 			uint32_t truncar = size + offset;
 			truncarArchivo(path,truncar);
@@ -860,16 +702,12 @@ void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 
 }
 
-// todo: preguntar si siempre voy a recibir strings como input
-void escribir(struct INode * inodo, char * input,uint32_t size,uint32_t offset){
+void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset){
 	uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 	uint32_t desplazamiento = desplazamientoDentroDelBloque(offset);
 	void * ptr = posicionarme(inodo,nroBloqueLogico,desplazamiento);
-	char * subString = malloc(size);
-	strncpy(subString,input,size);
+	memcpy(ptr,input,size);
 	input += size;
-	memcpy(ptr,subString,size);
-	free(subString);
 }
 
 // todo: agregar el mode para asignarle al inodo de la nueva entrada
@@ -881,8 +719,11 @@ void crearDirectorio(char * path){
 		if(getNroInodoDeLaDireccionDelPath(path) == 0){
 			agregarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
 			struct INode * inodoNuevoDir = getInodoDeLaDireccionDelPath(path);
+
+			inodoNuevoDir->links = 2;
 			inodoNuevoDir->blocks[0] = getBloqueLibre();
 			inodoNuevoDir->size = tamanio_bloque;
+
 			// nro de inodo que cargo para . en el nuevo directorio
 			uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
 			// nro de inodo que cargo para .. en el nuevo directorio
@@ -924,7 +765,6 @@ t_ruta_separada * separarPathParaNewDirEntry(char * path){
  */
 void agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 
-//	uint32_t nroInodoEntradaNueva;
 	uint32_t tamanio_nueva_entrada = tamanioMinEntradaDirectorio(nameNewEntry);
 	uint32_t tamanio_directorio = inodo->size;
 	uint32_t offset;
@@ -934,7 +774,6 @@ void agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
 		uint16_t cantidad = 0;
 		while(tamanio_bloque > cantidad){
-			// todo: ver si carga bien los datos a la estructura
 			struct DirEntry * directorio = (struct DirEntry *) ptr;
 			char* nombre = calloc(1, directorio->name_len + 1);
 			memcpy(nombre, directorio->name, directorio->name_len);
@@ -975,45 +814,41 @@ uint32_t tamanioMinEntradaDirectorio(char * nombre){
  * Desc: Agrega una nueva entrada de directorio
  * Return: número de inodo al que se asigna esta nueva entrada
  */
-// todo: revert si nadie usa el numero de inodo retornado
-uint32_t agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante){
+void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante){
 	struct DirEntry * entrada_nueva = calloc(1,sizeof(struct DirEntry) + strlen(nombre) + 1);
 	uint32_t nroInodoLibre = getInodoLibre();
-	entrada_nueva->inode = nroInodoLibre;
-	entrada_nueva->entry_len = sizeRestante;
-	entrada_nueva->name_len = strlen(nombre);
-	strcat(entrada_nueva->name,nombre);
-	memcpy(ptrEntradaDirectorio,entrada_nueva,sizeof(struct DirEntry) + strlen(nombre));
-	// todo: cargar datos correctos al inodo
-	struct INode * inodo = getInodo(entrada_nueva->inode);
-	inodo->mode = 16893;
-	inodo->uid = 1000;
-	inodo->gid = 1000;
-	inodo->atime = 1340777945;
-	inodo->ctime = 1340777940;
-	inodo->mtime = 13407779;
-	inodo->generation = 996980145;
-	inodo->links = 1;
-//	if(EXT2_INODE_HAS_MODE_FLAG(inodo, EXT2_S_IFDIR)){
-//		inodo->blocks[0] = getBloqueLibre();
-//		inodo->size = tamanio_bloque;
-//	}
-	inodo->size = 0;
+	if(nroInodoLibre != 0){
+		entrada_nueva->inode = nroInodoLibre;
+		entrada_nueva->entry_len = sizeRestante;
+		entrada_nueva->name_len = strlen(nombre);
+		strcat(entrada_nueva->name,nombre);
+		memcpy(ptrEntradaDirectorio,entrada_nueva,sizeof(struct DirEntry) + strlen(nombre));
+		// todo: cargar datos correctos al inodo
+		struct INode * inodo = getInodo(entrada_nueva->inode);
+		inodo->mode = 16893;
+		inodo->uid = 1000;
+		inodo->gid = 1000;
+		inodo->atime = 1340777945;
+		inodo->ctime = 1340777940;
+		inodo->mtime = 13407779;
+		inodo->generation = 996980145;
+		inodo->size = 0;
+	}
 	free(entrada_nueva);
-	return nroInodoLibre;
 }
 
 uint32_t getInodoLibre(){
-	struct Superblock *sb = read_superblock();
-	if(sb->free_inodes == 0)
-		perror("error: No hay inodos disponibles");
 	uint32_t nroInodo = 0;
-	uint32_t nro_grupo;
-	for(nro_grupo = 0;nroInodo == 0;nro_grupo++)
-		nroInodo = getInodoLibreDelBitmap(nro_grupo);
-	actualizarEstructurasCuandoPidoInodo(nroInodo);
+	struct Superblock *sb = read_superblock();
+	if(sb->free_inodes == 0){
+		perror("error: No hay inodos disponibles");
+	} else {
+		uint32_t nro_grupo;
+		for(nro_grupo = 0;nroInodo == 0;nro_grupo++)
+			nroInodo = getInodoLibreDelBitmap(nro_grupo);
+		actualizarEstructurasCuandoPidoInodo(nroInodo);
+	}
 	return nroInodo;
-
 }
 
 // todo: ver donde marcar como ocupado el inodo
@@ -1022,8 +857,8 @@ uint32_t getInodoLibreDelBitmap(uint32_t nro_grupo){
 	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
 	uint32_t inicioBB = grupo->inode_bitmap;
 	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
-	struct Superblock *bloque = read_superblock();
-	int cantInodos = bloque->inodes_per_group;
+	struct Superblock *sb = read_superblock();
+	int cantInodos = sb->inodes_per_group;
 	int cantBytes = cantInodos / 8;
 	uint32_t nroPrimerInodoDelGrupo;
 	nroPrimerInodoDelGrupo =  nroInodoInicioDeGrupo(nro_grupo);
@@ -1056,7 +891,8 @@ void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo){
 
 	(sb->free_inodes)--;	// Actualizando el free_blocks del superbloque
 	(grupo->free_inodes_count)--;	// Actualizando el free_blocks del group descriptor
-	(grupo->used_dirs_count)++;
+	// todo: poner solo para el crearDirectorio
+//	(grupo->used_dirs_count)++;
 
 }
 
@@ -1120,11 +956,9 @@ uint32_t getNroInodoDeLaDireccionDelPath(char * path){
 }
 
 void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato){
-	// todo: encapsular comportamiento, ver con liberarbloque()
 	// marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
 	struct Superblock *sb = read_superblock();
-	//todo : ver si funca para todos los casos(ej. con bloques de 2k, 4k)
-	uint32_t nroGrupo = (nroBloqueDeDato - 1) / sb->blocks_per_group;
+	uint32_t nroGrupo = (nroBloqueDeDato - sb->first_data_block) / sb->blocks_per_group;
 	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
 	uint32_t nroBlockBitmap = grupo->block_bitmap;
 	uint8_t * inicio = posicionarInicioBloque(nroBlockBitmap);
@@ -1132,15 +966,14 @@ void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato){
 	t_bitarray 	* ptrBit = bitarray_create((char*)inicio, cantBytes);
 	while(nroBloqueDeDato > sb->blocks_per_group)
 		nroBloqueDeDato -= sb->blocks_per_group;
-	bitarray_set_bit(ptrBit,nroBloqueDeDato - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroBloqueDeDatos puede ser >= 1
-	// Fin - marcar ocupado el nroBloqueDeDato dentro de su block_bitmap
+	bitarray_set_bit(ptrBit,nroBloqueDeDato - sb->first_data_block);
 
 	(sb->free_blocks)--;	// Actualizando el free_blocks del superbloque
 	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
 }
 
 void eliminarDirectorio(char * path){
-
+	struct Superblock * sb;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
@@ -1151,6 +984,13 @@ void eliminarDirectorio(char * path){
 			if(directorioVacio(nroInodoDirectorio)){
 				eliminarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
 				liberarInodo(nroInodoDirectorio);
+
+				// para actualizar el nro de directorios del grupo
+				sb = read_superblock();
+				uint32_t nroGrupo = (nroInodoRuta - 1) / sb->inodes_per_group;
+				struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+				(grupo->used_dirs_count)--;
+
 			} else {
 				log_error(logger_funciones, "el directorio %s contiene archivos",ruta_separada->nombre);
 			}
@@ -1221,7 +1061,7 @@ void liberarInodo(uint32_t nroInodoDirectorio){
 	}
 	struct Superblock *sb = read_superblock();
 	//todo : ver si funca para todos los casos
-	uint32_t nroGrupo = (nroInodoDirectorio - 1) / sb->inodes_per_group;
+	uint32_t nroGrupo = (nroInodoDirectorio - sb->first_data_block) / sb->inodes_per_group;
 	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
 	uint32_t nroInodeBitmap = grupo->inode_bitmap;
 	uint8_t * inicio = posicionarInicioBloque(nroInodeBitmap);
@@ -1233,9 +1073,7 @@ void liberarInodo(uint32_t nroInodoDirectorio){
 	bitarray_clean_bit(ptrBit,nroInodoDirectorio - 1); // el -1 es porque la función empieza a leer desde cero, pero el nroDeInodos puede ser >= 1
 	(grupo->free_inodes_count)++;	//aumento la cantidad de inodos libres en el group descriptor
 	(sb->free_inodes)++;			//aumento la cantidad de inodos libres en el superbloque
-	if(EXT2_INODE_HAS_MODE_FLAG(inodoDirEliminado,EXT2_S_IFDIR))
-		(grupo->used_dirs_count)--;
-	// en agregarNuevaEntrada se setearon estos campos todo: encapsular en función
+// en agregarNuevaEntrada se setearon estos campos todo: encapsular en función
 	inodoDirEliminado->mode = 0;
 	inodoDirEliminado->uid = 0;
 	inodoDirEliminado->gid = 0;
@@ -1300,6 +1138,8 @@ void setearInodo(struct INode * inodoArchivo, uint32_t mode){
 
 void eliminarArchivo(char * path){
 
+	// todo: sacar el nro de grupo al q pertenece el inodoRuta, para dsp descontarle a su gd el used_dirs_count
+	struct Superblock * sb;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
@@ -1308,9 +1148,15 @@ void eliminarArchivo(char * path){
 		nroInodoArchivo = getNroInodoDeLaDireccionDelPath(path);
 		if(nroInodoArchivo != 0){
 			truncarArchivo(path,0);
-//			struct INode * inodoArchivo = getInodo(nroInodoArchivo);
 			liberarInodo(nroInodoArchivo);
 			eliminarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
+
+			// para actualizar el nro de directorios del grupo
+			sb = read_superblock();
+			uint32_t nroGrupo = (nroInodoRuta - 1) / sb->inodes_per_group;
+			struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+			(grupo->used_dirs_count)--;
+
 		} else {
 			log_error(logger_funciones, "no existe el archivo %s",ruta_separada->nombre);
 		}

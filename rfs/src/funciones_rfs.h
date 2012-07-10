@@ -125,32 +125,16 @@
 
 	struct GroupDesc * leerGroupDescriptor(uint32_t);
 
-	void leerBitmapDeBloque(uint32_t);
-	void leerBitmapDeInodos(uint32_t);
-
-	int nroBloqueInicioDeGrupo(uint32_t);
-	t_queue * buscarBloquesLibres(uint32_t);
-	void buscarBloquesLibresBitmaps(t_queue *,uint32_t,uint32_t);
-	t_queue * buscarInodosLibres(uint32_t);
-	void buscarInodosLibresBitmaps(t_queue *,uint32_t,uint32_t);
-	int nroInodoInicioDeGrupo(uint32_t);
+	uint32_t nroBloqueInicioDeGrupo(uint32_t);
+	uint32_t nroInodoInicioDeGrupo(uint32_t);
 
 	struct INode * getInodo(uint32_t);
 	uint8_t * posicionarInicioBloque(uint32_t);
 
-//	struct INode * buscarInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
-	// de prueba
 	uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
 
-//	t_list * listarDirectorio(char *);
-	// de prueba
 	t_list *listarDirectorio(char *);
-	// de prueba
 	t_list *cargarEntradasDirectorioALista(struct INode *);
-
-//	t_list * cargarEntradasDirectorioALista(struct INode *);
-
-	void buscarInodosDirectorio(t_queue *,uint32_t);
 
 	uint32_t nroBloqueDentroDelInodo(uint32_t offset);
 	uint32_t desplazamientoDentroDelBloque(uint32_t offset);
@@ -161,6 +145,11 @@
 	int esBloqueDirecto(uint32_t nroBloque);
 	int esIndireccionSimple(uint32_t nroBloque);
 	int esIndireccionDoble(uint32_t nroBloque);
+	int esIndireccionTriple(uint32_t nroBloque);
+
+	uint32_t * posicionarIndireccionSimple(uint32_t, uint32_t);
+	uint32_t * posicionarIndireccionDoble(uint32_t, uint32_t);
+	uint32_t * posicionarIndireccionTriple(uint32_t, uint32_t);
 
 	size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **bufferPointer);
 
@@ -179,15 +168,14 @@
 	void escribirBloque(void *, uint32_t);
 
 	void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
-	void escribir(struct INode * inodo, char * input,uint32_t size,uint32_t offset);
+	void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset);
 
 //	void crearDirectorio(char * path, mode_t mode);
 	// fixme: de prueba
 	void crearDirectorio(char * path);
-	// de prueba
 	t_ruta_separada * separarPathParaNewDirEntry(char * path);
 	void agregarEntradaDirectorio(struct INode * inodo,char * nombre);
-	uint32_t agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
+	void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
 	uint32_t tamanioMinEntradaDirectorio(char * nombre);
 	uint32_t getInodoLibre(void);
 	void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo);
