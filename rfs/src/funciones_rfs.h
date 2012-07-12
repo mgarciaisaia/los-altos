@@ -154,7 +154,7 @@
 	size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **bufferPointer);
 
 	struct INode * getInodoDeLaDireccionDelPath(char * path);
-	void truncarArchivo(char * path,uint32_t offset);
+	int32_t truncarArchivo(char * path,uint32_t offset);
 	uint32_t * getPtrNroBloqueLogicoDentroInodo(struct INode * inodo,uint32_t nroBloqueLogico);
 	void liberarBloque(uint32_t * ptrBloqueDeDatos);
 	void * getPtrBloqueIndDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico);
@@ -167,12 +167,11 @@
 	void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size);
 	void escribirBloque(void *, uint32_t);
 
-	void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
+	int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
 	void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset);
 
 //	void crearDirectorio(char * path, mode_t mode);
-	// fixme: de prueba
-	void crearDirectorio(char * path);
+	int32_t crearDirectorio(char * path);
 	t_ruta_separada * separarPathParaNewDirEntry(char * path);
 	void agregarEntradaDirectorio(struct INode * inodo,char * nombre);
 	void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
@@ -186,15 +185,15 @@
 	uint32_t getNroInodoDeLaDireccionDelPath(char * path);
 	void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato);
 
-	void eliminarDirectorio(char * path);
+	int32_t eliminarDirectorio(char * path);
 	void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada);
 	void liberarInodo(uint32_t nroInodoDirectorio);
 	int directorioVacio(uint32_t nroInodoDirectorio);
 
-	void crearArchivo(char * path, uint32_t mode);
+	int32_t crearArchivo(char * path, uint32_t mode);
 	void setearInodo(struct INode * inodoArchivo, uint32_t mode);
 
-	void eliminarArchivo(char * path);
+	int32_t eliminarArchivo(char * path);
 
 	int hayEspacioSuficiente(uint32_t size);
 

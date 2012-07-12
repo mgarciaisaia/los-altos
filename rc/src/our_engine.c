@@ -174,7 +174,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		parse_config(config_str, items, NULL);
 
-//		mtrace();
+		mtrace();
 
 		config = config_create(PATH_CONFIG);
 
@@ -243,7 +243,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 //		printf("%d", engine->config.block_size_max);
 
-	mtrace();
+//	mtrace();
 
 	/*
 	 * Registro la SIGUSR1. El registro de signals debe ser realizado en la función initialize

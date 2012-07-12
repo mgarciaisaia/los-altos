@@ -28,8 +28,6 @@
 #include "../commons/src/commons/log.h"
 #include <errno.h>
 
-//#define PATH_CONFIG "home/utnso/archivo_configuracion";
-
 static uint32_t nro_de_grupo = 0;
 
 static const int tamanio_bloque = 4096;
@@ -41,9 +39,7 @@ void set_logger_funciones(t_log *logger_para_funciones) {
 }
 
 void mapear_archivo(char *ruta_archivo) {
-	// todo: revisar el archivo de configuracion
-//	t_config * config = config_create(PATH_CONFIG);
-//	char * path_a = config_get_string_value(config,"path_disco");
+
 	uint32_t archivo = open(ruta_archivo, O_RDWR);
 	if (archivo == -1) {
 		perror("Error opening file for reading");
@@ -386,8 +382,9 @@ struct INode * getInodoDeLaDireccionDelPath(char * path){
 	return inodoDeBusqueda;
 }
 
-void truncarArchivo(char * path,uint32_t offset){
+int32_t truncarArchivo(char * path,uint32_t offset){
 
+	int32_t resultado = 0;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	if(nroInodoRuta != 0)
@@ -404,9 +401,10 @@ void truncarArchivo(char * path,uint32_t offset){
 				if(size == 0)
 					log_trace(logger_funciones, "no hay cambio");
 				if(size < 0){
-					if(offsetEOF < abs(size)) // si el size es negativo y es mayor en valor absoluto que el tamanio del archivo: error
-						log_error(logger_funciones, "truncamiento invalido: %s", strerror(errno)); // FIXME creo que aca no hay errno
-					else{
+					if(offsetEOF < abs(size)){ // si el size es negativo y es mayor en valor absoluto que el tamanio del archivo: error
+						resultado = EINVAL;
+						log_error(logger_funciones, "truncamiento invalido: %s", strerror(EINVAL));
+				}else{
 						// achicar archivo
 						while(size < 0){
 							uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF - 1);	//el -1 es por el EOF
@@ -525,20 +523,26 @@ void truncarArchivo(char * path,uint32_t offset){
 							}
 						}
 						inodoPath->size = offsetEOF;
-					} else
+					} else{
+						resultado = ENOSPC;
 						log_error(logger_funciones, "no hay suficiente espacion en disco");
-				}
+					}
+					}
 			}
 
 		} else {
+			resultado = ENOENT;
 			log_error(logger_funciones, "no existe el archivo %s",ruta_separada->nombre);
 		}
-	else
+	else{
+		resultado = ENOENT;
 		log_error(logger_funciones, "error: no existe la ruta");
+	}
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
 
+	return resultado;
 }
 
 
@@ -672,10 +676,12 @@ void escribirBloque(void * posicionPtr,uint32_t size){
 		memcpy(posicionPtr,dato,1);
 }
 
-void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
+int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 
+	int32_t resultado = 0;
 	uint32_t nroInodoPath = getNroInodoDeLaDireccionDelPath(path);
 	if(nroInodoPath == 0){
+		resultado = ENOENT;
 		log_error(logger_funciones, "no existe el archivo");
 	} else{
 
@@ -700,6 +706,7 @@ void escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 		}
 	}
 
+	return resultado;
 }
 
 void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset){
@@ -711,7 +718,8 @@ void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset){
 }
 
 // todo: agregar el mode para asignarle al inodo de la nueva entrada
-void crearDirectorio(char * path){
+int32_t crearDirectorio(char * path){
+	int32_t resultado = 0;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
@@ -733,11 +741,14 @@ void crearDirectorio(char * path){
 			free(ruta_separada->nombre);
 			free(ruta_separada);
 		} else {
+			resultado = EEXIST;
 			log_error(logger_funciones, "ya existe la carpeta %s",ruta_separada->nombre);
 		}
-	else
+	else{
+		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
-
+	}
+	return resultado;
 }
 
 t_ruta_separada * separarPathParaNewDirEntry(char * path){
@@ -972,7 +983,8 @@ void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato){
 	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
 }
 
-void eliminarDirectorio(char * path){
+int32_t eliminarDirectorio(char * path){
+	int32_t resultado = 0;
 	struct Superblock * sb;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
@@ -992,17 +1004,23 @@ void eliminarDirectorio(char * path){
 				(grupo->used_dirs_count)--;
 
 			} else {
+				resultado = ENOTEMPTY;
 				log_error(logger_funciones, "el directorio %s contiene archivos",ruta_separada->nombre);
 			}
 		} else {
+			resultado = ENOENT;
 			log_error(logger_funciones, "no existe el directorio %s",ruta_separada->nombre);
 		}
 	}
-	else
+	else{
+		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
+	}
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
+
+	return resultado;
 }
 
 void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
@@ -1103,7 +1121,8 @@ int directorioVacio(uint32_t nroInodoDirectorio){
 	return estaVacio;
 }
 
-void crearArchivo(char * path, uint32_t mode){
+int32_t crearArchivo(char * path, uint32_t mode){
+	int32_t resultado = 0;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
@@ -1117,11 +1136,15 @@ void crearArchivo(char * path, uint32_t mode){
 			free(ruta_separada->nombre);
 			free(ruta_separada);
 		} else {
+			resultado = EEXIST;
 			log_error(logger_funciones, "ya existe el archivo %s",ruta_separada->nombre);
 		}
-	else
+	else {
+		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
+	}
 
+return resultado;
 }
 
 void setearInodo(struct INode * inodoArchivo, uint32_t mode){
@@ -1136,8 +1159,9 @@ void setearInodo(struct INode * inodoArchivo, uint32_t mode){
 	inodoArchivo->size = 0;
 }
 
-void eliminarArchivo(char * path){
+int32_t eliminarArchivo(char * path){
 
+	int32_t resultado = 0;
 	// todo: sacar el nro de grupo al q pertenece el inodoRuta, para dsp descontarle a su gd el used_dirs_count
 	struct Superblock * sb;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
@@ -1158,15 +1182,19 @@ void eliminarArchivo(char * path){
 			(grupo->used_dirs_count)--;
 
 		} else {
+			resultado = ENOENT;
 			log_error(logger_funciones, "no existe el archivo %s",ruta_separada->nombre);
 		}
 	}
-	else
+	else{
+		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
+	}
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
 
+	return resultado;
 }
 
 int hayEspacioSuficiente(uint32_t size){
