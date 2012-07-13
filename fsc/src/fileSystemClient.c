@@ -43,7 +43,11 @@ int check_error(const char *operation, const char *path, struct nipc_packet *res
         log_error(logger, "%s en %s: %s", operation, path, (char*)response->data);
         return -1;
     } else {
-        log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path, response->type);
+    	if(response->type == nipc_getattr_error){
+    		if((int32_t)response->data > 0)
+    			return (int32_t)response->data;
+    	}
+    	log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path, response->type);
         return -1;
     }
 }
