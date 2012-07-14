@@ -26,13 +26,13 @@ endif
 all: rfs
 
 dependents:
-	-cd /home/desert69/workspaces/operativos/2012-1c-los-altos/commons/Debug && $(MAKE) all
+	-cd /home/utnso/workspaces/2012-1c-los-altos/commons/Debug && $(MAKE) clean all
 
 # Tool invocations
-rfs: $(OBJS) $(USER_OBJS) /home/desert69/workspaces/operativos/2012-1c-los-altos/commons/Debug/libcommons.so
+rfs: $(OBJS) $(USER_OBJS) /home/utnso/workspaces/2012-1c-los-altos/commons/Debug/libcommons.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/desert69/workspaces/operativos/2012-1c-los-altos/commons/Debug" -o "rfs" $(OBJS) $(USER_OBJS) $(LIBS) -pthread
+	gcc -L"/home/utnso/workspaces/2012-1c-los-altos/commons/Debug" -o "rfs" $(OBJS) $(USER_OBJS) $(LIBS) -pthread
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -43,6 +43,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/desert69/workspaces/operativos/2012-1c-los-altos/commons/Debug/libcommons.so:
+/home/utnso/workspaces/2012-1c-los-altos/commons/Debug/libcommons.so:
 
 -include ../makefile.targets
