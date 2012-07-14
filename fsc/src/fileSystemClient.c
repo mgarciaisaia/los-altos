@@ -516,7 +516,8 @@ void initialize_configuration() {
 
 	remote_cache = memcached_create(NULL);
 //    memcached_return_t memcached_response;
-	memcached_server_st *servers = memcached_server_list_append(servers,
+	memcached_server_st *servers = NULL;
+    servers = memcached_server_list_append(servers,
 			remote_cache_host, remote_cache_port, &memcached_response);
 	if (memcached_response != MEMCACHED_SUCCESS) {
 		log_error(logger,

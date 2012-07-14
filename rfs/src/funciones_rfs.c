@@ -30,7 +30,7 @@
 
 static uint32_t nro_de_grupo = 0;
 
-static const int tamanio_bloque = 4096;
+static const int tamanio_bloque = 1024;
 uint8_t *ptr_arch;
 t_log *logger_funciones;
 
