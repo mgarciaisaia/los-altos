@@ -28,11 +28,13 @@
 #include <semaphore.h>
 #include "administracion.h"
 #include <string.h>
+#include <sys/inotify.h>
 
 // FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
 #define PATH_CONFIG "conf/rfs.conf"
 
 int32_t sleep_time;
+char *sleep_type;
 t_log *logger;
 int epoll;
 u_int16_t listening_port;
@@ -54,6 +56,19 @@ void send_ok(int socket) {
 	nipc_send(socket, ok);
 }
 
+void do_sleep(void){
+
+	//aca si pregunta por inotify a ver se cambia
+	if (strcmp(sleep_type, "MICRO") == 0)
+	//en microsegundos
+		usleep(sleep_time);
+	else
+	//en milisegundos
+		usleep(sleep_time*1000);
+
+}
+
+
 /**
  * Registra la apertura del archivo en la lista de archivos abiertos
  * y en la lista de archivos del cliente
@@ -68,7 +83,8 @@ void serve_open(int socket, struct nipc_open *request) {
 		registrar_apertura(nodo_archivo);
 		send_ok(socket);
 	} else {
-		send_no_ok(socket, ERROR1);
+		//send_no_ok(socket, ERROR1);
+		send_no_ok(socket, ENOENT);
 	}
 	log_info(logger, "/open %s", request->path);
 }
@@ -79,10 +95,7 @@ void serve_open(int socket, struct nipc_open *request) {
 void serve_create(int socket, struct nipc_create *request) {
 	log_debug(logger, "create %s", request->path);
 
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+	do_sleep();
 
 	int32_t codError = crearArchivo(request->path, request->fileMode);
 
@@ -101,10 +114,7 @@ void serve_read(int socket, struct nipc_read *request) {
 	log_debug(logger, "read %s", request->path);
 	void *buffer;
 
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+	do_sleep();
 
 	size_t readBytes = leerArchivo(request->path, request->offset,
 			request->size, &buffer);
@@ -125,10 +135,7 @@ void serve_read(int socket, struct nipc_read *request) {
 void serve_write(int socket, struct nipc_write *request) {
 	log_debug(logger, "write %s", request->path);
 
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+	do_sleep();
 
 	int32_t codError = escribirArchivo(request->path, request->data,
 			request->size, request->offset);
@@ -150,13 +157,15 @@ void serve_release(int socket, struct nipc_release *request) {
 	log_info(logger, "release %s", request->path);
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
-		//  si el archivo no esta abierto, romper
+		//FIXME:  si el archivo no esta abierto, romper
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
 				archivos_abiertos, numero_inodo);
 		registrar_cierre(archivos_abiertos, nodo_archivo);
+
+		//		send_no_ok(socket, ERROR2);
 		send_ok(socket);
 	} else {
-		send_no_ok(socket, ERROR2);
+		send_no_ok(socket, ENOENT);
 	}
 	log_info(logger, "/release %s", request->path);
 }
@@ -166,10 +175,8 @@ void serve_release(int socket, struct nipc_release *request) {
  */
 void serve_unlink(int socket, struct nipc_unlink *request) {
 	log_debug(logger, "unlink %s", request->path);
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+
+	do_sleep();
 
 	int32_t codError = eliminarArchivo(request->path);
 
@@ -187,10 +194,7 @@ void serve_unlink(int socket, struct nipc_unlink *request) {
 void serve_mkdir(int socket, struct nipc_mkdir *request) {
 	log_debug(logger, "mkdir %s", request->path);
 
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+	do_sleep();
 
 	int32_t codError = crearDirectorio(request->path);
 
@@ -208,10 +212,7 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
 void serve_readdir(int socket, struct nipc_readdir *request) {
 	log_debug(logger, "readdir %s", request->path);
 
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+	do_sleep();
 
 	t_list *entradas = listarDirectorio(request->path);
 
@@ -248,10 +249,7 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
 void serve_rmdir(int socket, struct nipc_rmdir *request) {
 	log_debug(logger, "rmdir %s", request->path);
 
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+	do_sleep();
 
 	int32_t codError = eliminarDirectorio(request->path);
 
@@ -269,6 +267,9 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
 void serve_getattr(int socket, struct nipc_getattr *request) {
 	log_debug(logger, "getattr %s", request->path);
 	char *path = request->path;
+
+	do_sleep();
+
 	struct INode *inodo = getInodoDeLaDireccionDelPath(path);
 	if (inodo == NULL) {
 		send_no_ok(socket, ENOENT);
@@ -291,10 +292,8 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
  */
 void serve_truncate(int socket, struct nipc_truncate *request) {
 	log_debug(logger, "truncate %s", request->path);
-	//en microsegundos
-	usleep(sleep_time);
-	//en milisegundos
-	//usleep(sleep_time*1000)
+
+	do_sleep();
 
 	int32_t codError = truncarArchivo(request->path, request->offset);
 	if (codError != 0)
@@ -393,7 +392,9 @@ void initialize_configuration() {
 	char *log_file = config_get_string_value(config, "logger.file");
 	char *log_name = config_get_string_value(config, "logger.name");
 	int log_has_console = config_get_int_value(config, "logger.has_console");
+
 	sleep_time = config_get_int_value(config, "sleep_time");
+	sleep_type = config_get_string_value(config, "sleep_type");
 
 	logger = log_create(log_file, log_name, log_has_console,
 			log_level_from_string(log_level));
@@ -435,6 +436,7 @@ void initialize_configuration() {
 
 	config_destroy(config);
 }
+
 
 int32_t main(void) {
 	initialize_configuration();

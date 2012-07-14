@@ -11,6 +11,7 @@
 #include <string.h>
 #include "src/commons/log.h"
 #include "src/commons/config.h"
+#include <libmemcached/memcached.h>
 
 // FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
 #define PATH_CONFIG "conf/fsc.conf"
@@ -19,7 +20,8 @@ t_log *logger;
 char *fileSystemIP;
 u_int16_t fileSystemPort;
 int maximumReadWriteSize = 32 * 1024;
-
+memcached_st *remote_cache;
+memcached_return_t memcached_response;
 
 /**
  * FIXME: falta hacer free() a todos los response
@@ -31,32 +33,38 @@ int maximumReadWriteSize = 32 * 1024;
  * FIXME: falta hacer free() a todos los response
  */
 void logger_operation(const char *operation, const char *path) {
-    log_debug(logger, "Operacion recibida: %s en %s", operation, path);
+	log_debug(logger, "Operacion recibida: %s en %s", operation, path);
 }
 
-void logger_operation_read_write(const char *operation, const char *path, size_t size, off_t offset) {
-    log_debug(logger, "Operacion recibida: %s en %s (@%lu, %lu bytes)", operation, path, offset, size);
+void logger_operation_read_write(const char *operation, const char *path,
+		size_t size, off_t offset) {
+	log_debug(logger, "Operacion recibida: %s en %s (@%lu, %lu bytes)",
+			operation, path, offset, size);
 }
 
-int check_error(const char *operation, const char *path, struct nipc_packet *response) {
-    if(response->type == nipc_error) {
-        log_error(logger, "%s en %s: %s", operation, path, (char*)response->data);
-        return -1;
-    } else {
-    	if(response->type == nipc_getattr_error){
-    		if((int32_t)response->data > 0)
-    			return (int32_t)response->data;
-    	}
-    	log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path, response->type);
-        return -1;
-    }
+int check_error(const char *operation, const char *path,
+		struct nipc_packet *response) {
+	if (response->type == nipc_error) {
+		log_error(logger, "%s en %s: %s", operation, path,
+				(char*) response->data);
+		return -1;
+	} else {
+		if (response->type == nipc_getattr_error) {
+			if ((int32_t) response->data > 0)
+				return (int32_t) response->data;
+		}
+		log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path,
+				response->type);
+		return -1;
+	}
 }
 
-int check_ok_error(const char *operation, const char *path, struct nipc_packet *response) {
-    if(response->type != nipc_ok) {
-        return check_error(operation, path, response);
-    }
-    return 0;
+int check_ok_error(const char *operation, const char *path,
+		struct nipc_packet *response) {
+	if (response->type != nipc_ok) {
+		return check_error(operation, path, response);
+	}
+	return 0;
 }
 
 /**
@@ -71,12 +79,14 @@ int check_ok_error(const char *operation, const char *path, struct nipc_packet *
  *
  * Introduced in version 2.5
  */
-int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo) {
-    logger_operation("create", path);
-    struct nipc_create* createData = new_nipc_create(path, mode);
-    struct nipc_packet* packet = createData->serialize(createData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("create", path, response);
+int remote_create(const char *path, mode_t mode,
+		struct fuse_file_info *fileInfo) {
+	logger_operation("create", path);
+	struct nipc_create* createData = new_nipc_create(path, mode);
+	struct nipc_packet* packet = createData->serialize(createData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("create", path, response);
 }
 
 /** File open operation
@@ -101,11 +111,12 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
  *
  */
 int remote_open(const char *path, struct fuse_file_info *fileInfo) {
-    logger_operation("open", path);
-    struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
-    struct nipc_packet* packet = openData->serialize(openData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("open", path, response);
+	logger_operation("open", path);
+	struct nipc_open* openData = new_nipc_open(path, fileInfo->flags);
+	struct nipc_packet* packet = openData->serialize(openData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("open", path, response);
 }
 
 /** Read data from an open file
@@ -137,21 +148,30 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
  * fi           input       detailed information about read operation, see fuse_file_info for more information
  * return       output      amount of bytes read, or negated error number on error
  */
-int remote_read(const char *path, char *output, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    logger_operation_read_write("read", path, size, offset);
-    if(size > maximumReadWriteSize) {
-        size = maximumReadWriteSize;
-    }
-    struct nipc_read* readData = new_nipc_read(path, size, offset);
-    struct nipc_packet* packet = readData->serialize(readData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    if(response->type == nipc_read_response) {
-        size_t readBytes = (response->data_length < size) ? response->data_length : size;
-        memcpy(output, response->data, readBytes);
-        return readBytes;
-    } else {
-        return check_error("read", path, response);
-    }
+int remote_read(const char *path, char *output, size_t size, off_t offset,
+		struct fuse_file_info *fileInfo) {
+	logger_operation_read_write("read", path, size, offset);
+	if (size > maximumReadWriteSize) {
+		size = maximumReadWriteSize;
+	}
+
+	// FIXME revisar como se maneja la cache y todo eso
+//    memcached_return_t *memcached_response = memcached_add(remote_cache, "hola", strlen("hola"), "hola puto :)", strlen("hola puto :)"), 0, 0);
+//    if(memcached_response != MEMCACHED_SUCCESS) {
+//        printf("NOOOOO %s\n", memcached_strerror(remote_cache, memcached_response));
+//    }
+	struct nipc_read* readData = new_nipc_read(path, size, offset);
+	struct nipc_packet* packet = readData->serialize(readData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	if (response->type == nipc_read_response) {
+		size_t readBytes =
+				(response->data_length < size) ? response->data_length : size;
+		memcpy(output, response->data, readBytes);
+		return readBytes;
+	} else {
+		return check_error("read", path, response);
+	}
 }
 
 /** Write data to an open file
@@ -164,20 +184,22 @@ int remote_read(const char *path, char *output, size_t size, off_t offset, struc
  */
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
-int remote_write(const char *path, const char *input, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
-    logger_operation_read_write("write", path, size, offset);
-    if(size > maximumReadWriteSize) {
-        size = maximumReadWriteSize;
-    }
-    struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
-    struct nipc_packet* packet = writeData->serialize(writeData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    int failed = check_ok_error("write", path, response);
-    if(failed) {
-        return failed;
-    } else {
-        return size;
-    }
+int remote_write(const char *path, const char *input, size_t size, off_t offset,
+		struct fuse_file_info *fileInfo) {
+	logger_operation_read_write("write", path, size, offset);
+	if (size > maximumReadWriteSize) {
+		size = maximumReadWriteSize;
+	}
+	struct nipc_write* writeData = new_nipc_write(path, input, size, offset);
+	struct nipc_packet* packet = writeData->serialize(writeData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	int failed = check_ok_error("write", path, response);
+	if (failed) {
+		return failed;
+	} else {
+		return size;
+	}
 }
 
 /** Release an open file
@@ -195,29 +217,32 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
  * Changed in version 2.2
  */
 int remote_release(const char *path, struct fuse_file_info *fileInfo) {
-    logger_operation("release", path);
-    struct nipc_release* releaseData = new_nipc_release(path, fileInfo->flags);
-    struct nipc_packet* packet = releaseData->serialize(releaseData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("release", path, response);
+	logger_operation("release", path);
+	struct nipc_release* releaseData = new_nipc_release(path, fileInfo->flags);
+	struct nipc_packet* packet = releaseData->serialize(releaseData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("release", path, response);
 }
 
 /** Remove a file */
 int remote_unlink(const char *path) {
-    logger_operation("unlink", path);
-    struct nipc_unlink* unlinkData = new_nipc_unlink(path);
-    struct nipc_packet* packet = unlinkData->serialize(unlinkData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("unlink", path, response);
+	logger_operation("unlink", path);
+	struct nipc_unlink* unlinkData = new_nipc_unlink(path);
+	struct nipc_packet* packet = unlinkData->serialize(unlinkData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("unlink", path, response);
 }
 
 /** Create a directory */
 int remote_mkdir(const char *path, mode_t mode) {
-    logger_operation("mkdir", path);
-    struct nipc_mkdir* mkdirData = new_nipc_mkdir(path, mode);
-    struct nipc_packet* packet = mkdirData->serialize(mkdirData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("mkdir", path, response);
+	logger_operation("mkdir", path);
+	struct nipc_mkdir* mkdirData = new_nipc_mkdir(path, mode);
+	struct nipc_packet* packet = mkdirData->serialize(mkdirData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("mkdir", path, response);
 }
 
 /** Read directory
@@ -254,45 +279,86 @@ int remote_mkdir(const char *path, mode_t mode) {
  * fi         input     A struct fuse_file_info, contains detailed information why this readdir operation was invoked.
  * return     output    negated error number, or 0 if everything went OK
  */
-int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
-    logger_operation("readdir", path);
-    struct nipc_readdir* readdirData = new_nipc_readdir(path, offset);
-    struct nipc_packet* packet = readdirData->serialize(readdirData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    if(response->type == nipc_readdir_response) {
-        struct nipc_readdir_response *readdirData = deserialize_readdir_response(response);
-        int index;
-        int bufferIsFull = 0;
+#define MEMCACHED_KEY_SIZE 41
 
-        for(index = 0; index < readdirData->entriesLength && !bufferIsFull; index++) {
-            struct readdir_entry *entry = &(readdirData->entries[index]);
-            struct stat stats;
-            stats.st_nlink = entry->n_link;
-            stats.st_mode = entry->mode;
-            stats.st_size = entry->size;
-            bufferIsFull = filler(output, entry->path, &stats, 0);
-        }
+int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
+		off_t offset, struct fuse_file_info *fileInfo) {
 
-        if(bufferIsFull) {
-            // FIXME: error o info?
-            log_error(logger, "readdir: buffer lleno");
-            // FIXME: aca devuelvo -1 o como se maneja el buffer lleno?
-            return -1;
-        }
+	logger_operation("readdir", path);
 
-        return 0;
-    } else {
-        return check_error("readdir", path, response);
-    }
+	/*****************consultar a la cache, si lo tiene listo..*****************/
+	char return_key[MEMCACHED_KEY_SIZE];
+	size_t return_key_length;
+	char *return_value;
+	size_t return_value_length;
+
+	return_value = memcached_get(remote_cache, return_key, &return_key_length,
+			&return_value_length, NULL, &memcached_response);
+
+	if (memcached_response == MEMCACHED_SUCCESS) {
+		/******joya lo leo y listo *******/
+		//FIXME: tiene que ser return ? o se guarda solo?
+		return (struct readdir_entry *) return_value;
+		//struct readdir_entry *entry;
+
+	} else {
+		/******si no lo tiene ---> consultar a Remote y dsp almacenar en la cache *****/
+		struct nipc_readdir* readdirData = new_nipc_readdir(path, offset);
+		struct nipc_packet* packet = readdirData->serialize(readdirData);
+		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+				fileSystemPort);
+		if (response->type == nipc_readdir_response) {
+			struct nipc_readdir_response *readdirData =
+					deserialize_readdir_response(response);
+			int index;
+			int bufferIsFull = 0;
+
+			for (index = 0; index < readdirData->entriesLength && !bufferIsFull;
+					index++) {
+				struct readdir_entry *entry = &(readdirData->entries[index]);
+				struct stat stats;
+				stats.st_nlink = entry->n_link;
+				stats.st_mode = entry->mode;
+				stats.st_size = entry->size;
+				bufferIsFull = filler(output, entry->path, &stats, 0);
+			}
+
+			if (bufferIsFull) {
+				// FIXME: error o info?
+				log_error(logger, "readdir: buffer lleno");
+				// FIXME: aca devuelvo -1 o como se maneja el buffer lleno?
+				return -1;
+			}
+
+			/***** lo guardo en la cache ****/
+
+			memcached_response = memcached_add(remote_cache, path, strlen(path),
+					(char *) readdirData->entries, readdirData->entriesLength,
+					(time_t) 0, (uint32_t) 0);
+			if (memcached_response == MEMCACHED_SUCCESS)
+				log_error(logger, "La clave %s fue guardada correctamente",
+						path);
+			else
+				log_error(logger, "No se pudo guardar la clave %s",
+						memcached_strerror(remote_cache, memcached_response));
+
+			return 0;
+
+		} else {
+			return check_error("readdir", path, response);
+		}
+	}
+	return 0;
 }
 
 /** Remove a directory */
 int remote_rmdir(const char *path) {
-    logger_operation("rmdir", path);
-    struct nipc_rmdir* rmdirData = new_nipc_rmdir(path);
-    struct nipc_packet* packet = rmdirData->serialize(rmdirData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("rmdir", path, response);
+	logger_operation("rmdir", path);
+	struct nipc_rmdir* rmdirData = new_nipc_rmdir(path);
+	struct nipc_packet* packet = rmdirData->serialize(rmdirData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("rmdir", path, response);
 }
 
 /** Get file attributes.
@@ -313,117 +379,181 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
-    logger_operation("getattr", path);
-    struct nipc_getattr* getattrData = new_nipc_getattr(path);
-    struct nipc_packet* packet = getattrData->serialize(getattrData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    if(response->type == nipc_getattr_response) {
-        struct nipc_getattr_response *getattr = deserialize_getattr_response(response);
+	logger_operation("getattr", path);
 
-        statbuf->st_mode = getattr->entry->mode;
-        statbuf->st_nlink = getattr->entry->n_link;
-        statbuf->st_size = getattr->entry->size;
+	/*****************consultar a la cache, si lo tiene listo..*****************/
+	char return_key[MEMCACHED_KEY_SIZE];
+	size_t return_key_length;
+	char *return_value;
+	size_t return_value_length;
 
-        return 0;
-    } else if(response->type == nipc_getattr_error) {
-        return *(int*)response->data;
-    } else {
-        return check_error("getattr", path, response);
-    }
+	return_value = memcached_get(remote_cache, return_key, &return_key_length,
+			&return_value_length, NULL, &memcached_response);
+
+	if (memcached_response == MEMCACHED_SUCCESS) {
+		/******joya lo leo y listo *******/
+		//FIXME: tiene que ser return ? o se guarda solo?
+		return (struct readdir_entry*) return_value;
+
+	} else {
+		/******si no lo tiene ---> consultar a Remote y dsp almacenar en la cache *****/
+		struct nipc_getattr* getattrData = new_nipc_getattr(path);
+		struct nipc_packet* packet = getattrData->serialize(getattrData);
+		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+				fileSystemPort);
+		if (response->type == nipc_getattr_response) {
+			struct nipc_getattr_response *getattr =
+					deserialize_getattr_response(response);
+
+			statbuf->st_mode = getattr->entry->mode;
+			statbuf->st_nlink = getattr->entry->n_link;
+			statbuf->st_size = getattr->entry->size;
+
+			/***** lo guardo en la cache ****/
+			memcached_response = memcached_add(remote_cache, path, strlen(path),
+					(char *) getattr->entry, sizeof(struct readdir_entry),
+					(time_t) 0, (uint32_t) 0);
+			if (memcached_response == MEMCACHED_SUCCESS)
+				log_error(logger, "La clave %s fue guardada correctamente",
+						path);
+			else
+				log_error(logger, "No se pudo guardar la clave %s",
+						memcached_strerror(remote_cache, memcached_response));
+
+			return 0;
+		} else if (response->type == nipc_getattr_error) {
+			return *(int*) response->data;
+		} else {
+			return check_error("getattr", path, response);
+		}
+	}
 }
 
 /**
  * Change the size of a file
  */
 int remote_truncate(const char * path, off_t offset) {
-    logger_operation("truncate", path);
-    struct nipc_truncate* truncateData = new_nipc_truncate(path, offset);
-    struct nipc_packet* packet = truncateData->serialize(truncateData);
-    struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
-    return check_ok_error("truncate", path, response);
+	logger_operation("truncate", path);
+	struct nipc_truncate* truncateData = new_nipc_truncate(path, offset);
+	struct nipc_packet* packet = truncateData->serialize(truncateData);
+	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
+			fileSystemPort);
+	return check_ok_error("truncate", path, response);
 }
 
 /**
  * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Functions_list
  */
-static struct fuse_operations remote_operations = {
-		.create = remote_create,
-		.open = remote_open,
-		.read = remote_read,
-		.write = remote_write,
-		.release = remote_release,
-		.unlink = remote_unlink,
-		.mkdir = remote_mkdir,
-		.readdir = remote_readdir,
-		.rmdir = remote_rmdir,
-		.getattr = remote_getattr,
-		.truncate = remote_truncate
-};
+static struct fuse_operations remote_operations = { .create = remote_create,
+		.open = remote_open, .read = remote_read, .write = remote_write,
+		.release = remote_release, .unlink = remote_unlink, .mkdir =
+				remote_mkdir, .readdir = remote_readdir, .rmdir = remote_rmdir,
+		.getattr = remote_getattr, .truncate = remote_truncate };
 
 int remote_handshake() {
-    struct nipc_packet* response = nipc_query(new_nipc_handshake_hello(), fileSystemIP, fileSystemPort);
-    if(response->type == nipc_handshake) {
-        if(strcmp(response->data, HANDSHAKE_OK)) {
-            log_error(logger, "handshake: respuesta no reconocida");
-            void *validData = malloc(response->data_length);
-            strncpy(validData, response->data, response->data_length);
-            log_debug(logger, "hanshake: %d bytes %s", response->data_length, response->data);
-            free(validData);
-            return -1;
-        } else {
-            log_info(logger, "handshake: ok");
-            return 0;
-        }
-    } else {
-        return check_error("handshake", "", response);
-    }
+	struct nipc_packet* response = nipc_query(new_nipc_handshake_hello(),
+			fileSystemIP, fileSystemPort);
+	if (response->type == nipc_handshake) {
+		if (strcmp(response->data, HANDSHAKE_OK)) {
+			log_error(logger, "handshake: respuesta no reconocida");
+			void *validData = malloc(response->data_length);
+			strncpy(validData, response->data, response->data_length);
+			log_debug(logger, "hanshake: %d bytes %s", response->data_length,
+					response->data);
+			free(validData);
+			return -1;
+		} else {
+			log_info(logger, "handshake: ok");
+			return 0;
+		}
+	} else {
+		return check_error("handshake", "", response);
+	}
 }
 
 void initialize_configuration() {
-    t_config *config = config_create(PATH_CONFIG);
+	t_config *config = config_create(PATH_CONFIG);
 
-    char *log_level = config_get_string_value(config, "logger.level");
-    char *log_file = config_get_string_value(config, "logger.file");
-    char *log_name = config_get_string_value(config, "logger.name");
-    int log_has_console = config_get_int_value(config, "logger.has_console");
+	char *log_level = config_get_string_value(config, "logger.level");
+	char *log_file = config_get_string_value(config, "logger.file");
+	char *log_name = config_get_string_value(config, "logger.name");
+	int log_has_console = config_get_int_value(config, "logger.has_console");
 
-    logger = log_create(log_file, log_name, log_has_console, log_level_from_string(log_level));
+	logger = log_create(log_file, log_name, log_has_console,
+			log_level_from_string(log_level));
 
-    log_info(logger, "Inicializado el logger en %s con nivel %s", log_file, log_level);
+	log_info(logger, "Inicializado el logger en %s con nivel %s", log_file,
+			log_level);
 
-    char *log_socket_level = config_get_string_value(config, "logger.sockets.level");
-    char *log_socket_file = config_get_string_value(config, "logger.sockets.file");
-    char *log_socket_name = config_get_string_value(config, "logger.sockets.name");
-    int log_socket_has_console = config_get_int_value(config, "logger.sockets.has_console");
+	char *log_socket_level = config_get_string_value(config,
+			"logger.sockets.level");
+	char *log_socket_file = config_get_string_value(config,
+			"logger.sockets.file");
+	char *log_socket_name = config_get_string_value(config,
+			"logger.sockets.name");
+	int log_socket_has_console = config_get_int_value(config,
+			"logger.sockets.has_console");
 
-    socket_set_logger(log_create(log_socket_file, log_socket_name, log_socket_has_console, log_level_from_string(log_socket_level)));
+	socket_set_logger(
+			log_create(log_socket_file, log_socket_name, log_socket_has_console,
+					log_level_from_string(log_socket_level)));
 
-    log_info(logger, "Inicializado el logger de sockets en %s con nivel %s", log_socket_file, log_socket_level);
+	log_info(logger, "Inicializado el logger de sockets en %s con nivel %s",
+			log_socket_file, log_socket_level);
 
-    fileSystemIP = strdup(config_get_string_value(config, "filesystem.ip"));
-    fileSystemPort = config_get_int_value(config, "filesystem.port");
+	fileSystemIP = strdup(config_get_string_value(config, "filesystem.ip"));
+	fileSystemPort = config_get_int_value(config, "filesystem.port");
+	log_info(logger, "Ubicacion del FileSystem: %s:%u", fileSystemIP,
+			fileSystemPort);
 
-    maximumReadWriteSize = config_get_int_value(config, "readwrite.maxsize") * 1024;
+	maximumReadWriteSize = config_get_int_value(config, "readwrite.maxsize")
+			* 1024;
+	log_info(logger, "Tamano maximo de bloque para entrada/salida: %d",
+			maximumReadWriteSize);
 
-    log_info(logger, "Ubicacion del FileSystem: %s:%u", fileSystemIP, fileSystemPort);
-    config_destroy(config);
+	char *remote_cache_host = config_get_string_value(config, "cache.host");
+	u_int16_t remote_cache_port = config_get_int_value(config, "cache.port");
+
+	remote_cache = memcached_create(NULL);
+//    memcached_return_t memcached_response;
+	memcached_server_st *servers = memcached_server_list_append(servers,
+			remote_cache_host, remote_cache_port, &memcached_response);
+	if (memcached_response != MEMCACHED_SUCCESS) {
+		log_error(logger,
+				"Error intentando agregar el servidor %s:%d a la cache: %s",
+				remote_cache_host, remote_cache_port,
+				memcached_strerror(remote_cache, memcached_response));
+	} else {
+		memcached_response = memcached_server_push(remote_cache, servers);
+		if (memcached_response != MEMCACHED_SUCCESS) {
+			log_error(logger,
+					"Error intentando asignar los servidores a la cache: %s",
+					memcached_strerror(remote_cache, memcached_response));
+		} else {
+			log_info(logger, "Conexion exitosa a la cache en %s:%d",
+					remote_cache_host, remote_cache_port);
+		}
+	}
+	// FIXME: hago free de servers o lo sigo necesitando?
+	config_destroy(config);
 }
 
 int main(int argc, char *argv[]) {
-    initialize_configuration();
-    if(logger == NULL) {
-        perror("No hay logger");
-        return -1;
-    }
-    if(remote_handshake()) {
-        socket_destroy_logger();
-        log_destroy(logger);
-        return -1;
-    }
-    log_debug(logger, "Corro fuse_main");
+	initialize_configuration();
+
+	if (logger == NULL) {
+		perror("No hay logger");
+		return -1;
+	}
+	if (remote_handshake()) {
+		socket_destroy_logger();
+		log_destroy(logger);
+		return -1;
+	}
+	log_debug(logger, "Corro fuse_main");
 	int fuseReturn = fuse_main(argc, argv, &remote_operations, NULL);
 	log_debug(logger, "Termina el fsc: %d - %s", fuseReturn, strerror(errno));
 	socket_destroy_logger();
-    log_destroy(logger);
-    return fuseReturn;
+	log_destroy(logger);
+	return fuseReturn;
 }
