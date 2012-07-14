@@ -1,12 +1,25 @@
 #include <stdlib.h>
 #include "administracion.h"
 #include "../commons/src/commons/collections/list.h"
-#include <string.h>
+#include "../commons/src/commons/collections/dictionary.h"
+#include "../commons/src/commons/string.h"
+#include "../commons/src/commons/misc.h"
+
+pthread_mutex_t *lock_archivos_abiertos;
+pthread_mutex_t *lock_archivos_clientes;
+
+void inicializar_administracion() {
+    lock_archivos_abiertos = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(lock_archivos_abiertos, NULL);
+    lock_archivos_clientes = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(lock_archivos_clientes, NULL);
+}
 
 struct archivo_abierto *obtener_o_crear_archivo_abierto(t_list *archivos_abiertos, uint32_t numero_inodo) {
-    // Yeap, esto es un list_find. Pero no se cuán felices son las inner functions...
     struct archivo_abierto *nodo = NULL;
+    pthread_mutex_lock(lock_archivos_abiertos);
     t_link_element *element = archivos_abiertos->head;
+    // Yeap, esto es un list_find. Pero no se cuán felices son las inner functions...
     while(element != NULL && ((struct archivo_abierto *)element->data)->numero_inodo != numero_inodo) {
         element = element->next;
     }
@@ -21,6 +34,7 @@ struct archivo_abierto *obtener_o_crear_archivo_abierto(t_list *archivos_abierto
     } else {
         nodo = (struct archivo_abierto *)element->data;
     }
+    pthread_mutex_unlock(lock_archivos_abiertos);
 
     return nodo;
 }
@@ -52,4 +66,59 @@ void registrar_cierre(t_list *archivos_abiertos, struct archivo_abierto *nodo_ar
         // FIXME: aca tiramos un error de intentar cerrar un archivo que no estaba abierto
     }
     pthread_rwlock_unlock(nodo_archivo->lock);
+}
+
+struct archivos_cliente *obtener_o_crear_lista_del_cliente(t_dictionary *archivos_por_cliente, u_int32_t client_id) {
+
+    pthread_mutex_lock(lock_archivos_clientes);
+    char *str_client_id = string_from_uint32(client_id);
+    struct archivos_cliente *archivos_cliente = (struct archivos_cliente *) dictionary_get(archivos_por_cliente, str_client_id);
+    if(archivos_cliente == NULL) {
+        archivos_cliente = malloc(sizeof(struct archivos_cliente));
+        archivos_cliente->lock = malloc(sizeof(archivos_cliente->lock));
+        pthread_mutex_init(archivos_cliente->lock, NULL);
+        archivos_cliente->archivos = list_create();
+        dictionary_put(archivos_por_cliente, str_client_id, archivos_cliente);
+    } else {
+        free(str_client_id); // Si hice el put, no tengo que free'ear la clave
+    }
+    pthread_mutex_unlock(lock_archivos_clientes);
+    return archivos_cliente;
+}
+
+// FIXME: unificar los u_int32_t y uint32_t en uint32_t (pasan de sys/types.h a stdint.h)
+void registrar_apertura_cliente(struct archivos_cliente *archivos_cliente, u_int32_t numero_inodo) {
+    pthread_mutex_lock(archivos_cliente->lock);
+    list_add(archivos_cliente->archivos, duplicar_uint32(numero_inodo));
+    pthread_mutex_unlock(archivos_cliente->lock);
+}
+
+void registrar_cierre_cliente(t_dictionary *archivos_por_cliente, uint32_t client_id, uint32_t numero_inodo) {
+    char *str_client_id = string_from_uint32(client_id);
+    pthread_mutex_lock(lock_archivos_clientes);
+    struct archivos_cliente *archivos_cliente = dictionary_get(archivos_por_cliente, str_client_id);
+    pthread_mutex_unlock(lock_archivos_clientes);
+
+    pthread_mutex_lock(archivos_cliente->lock);
+    int index;
+    t_link_element *element = archivos_cliente->archivos->head;
+    for(index = 0; index < archivos_cliente->archivos->elements_count; index++) {
+        if(element != NULL && *((uint32_t *)element->data) == numero_inodo) {
+            list_remove(archivos_cliente->archivos, index);
+            continue;
+        }
+        element = element->next;
+    }
+    pthread_mutex_unlock(archivos_cliente->lock);
+
+    pthread_mutex_lock(lock_archivos_clientes);
+    if(archivos_cliente->archivos->elements_count < 1) {
+        struct archivos_cliente* archivos_cliente = dictionary_remove(archivos_por_cliente, str_client_id);
+        list_destroy(archivos_cliente->archivos);
+        pthread_mutex_destroy(archivos_cliente->lock);
+        free(archivos_cliente->lock);
+        free(archivos_cliente);
+    }
+    pthread_mutex_unlock(lock_archivos_clientes);
+    free(str_client_id);
 }

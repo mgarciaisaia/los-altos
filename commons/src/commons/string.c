@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 
 static void string_do(char *text, void (*closure)(char*));
 static void string_lower_element(char* ch);
@@ -254,4 +255,14 @@ int size_array_before_split(char *text, char *separator) {
 
 	free(text_to_iterate);
 	return size;
+}
+
+char *string_from_uint32(uint32_t number) {
+    char *buffer = malloc(11); // max = 4294967295 ; 10 chars
+    sprintf(buffer, "%u", number);
+    size_t number_length = strlen(buffer);
+    char *string_number = malloc(number_length + 1);
+    strncpy(string_number, buffer, number_length);
+    free(buffer);
+    return string_number;
 }

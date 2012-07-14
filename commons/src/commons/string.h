@@ -18,6 +18,7 @@
 #define STRING_H_
 
 	#include <stdbool.h>
+    #include <stdint.h>
 
 	char 	*string_repeat(char ch, int count);
 	void 	string_append(char ** original, char * string_to_add);
@@ -40,5 +41,6 @@
 	void 	string_iterate_lines(char ** strings, void (*closure)(char *));
 
 	int size_array_before_split(char *text, char *separator);
+	char    *string_from_uint32(uint32_t number);
 
 #endif /* STRING_H_ */

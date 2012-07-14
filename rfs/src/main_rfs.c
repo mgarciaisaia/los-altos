@@ -44,6 +44,7 @@ sem_t threads_count;
 t_list *archivos_abiertos;
 u_int32_t generated_client_id = 0;
 pthread_mutex_t *mutex_client_id;
+t_dictionary *archivos_por_cliente;
 
 #define ERROR1 -1 //"No es posible abrir el archivo"
 #define ERROR2 -2 //"El archivo no esta abierto"
@@ -93,6 +94,8 @@ void serve_open(int socket, struct nipc_open *request) {
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
 				archivos_abiertos, numero_inodo);
 		registrar_apertura(nodo_archivo);
+        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
+        registrar_apertura_cliente(archivos_cliente, numero_inodo);
 		send_ok(socket);
 	} else {
 		//send_no_ok(socket, ERROR1);
@@ -173,6 +176,7 @@ void serve_release(int socket, struct nipc_release *request) {
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
 				archivos_abiertos, numero_inodo);
 		registrar_cierre(archivos_abiertos, nodo_archivo);
+        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
 
 		//		send_no_ok(socket, ERROR2);
 		send_ok(socket);
@@ -457,6 +461,11 @@ void initialize_configuration() {
     mutex_client_id = malloc(sizeof(pthread_mutex_t));
     pthread_mutex_init(mutex_client_id, NULL);
 
+    // FIXME: con free() alcanza?
+    archivos_por_cliente = dictionary_create(&free);
+
+    inicializar_administracion();
+
 	config_destroy(config);
 }
 
@@ -516,7 +525,10 @@ int32_t main(void) {
 				int querySocket = events[index].data.fd;
 				pthread_t threadID;
 				sem_wait(&threads_count);
-				pthread_create(&threadID, NULL, &serveRequest, &querySocket);
+                int pthread_return = pthread_create(&threadID, NULL, &serveRequest, &querySocket);
+                if(pthread_return != 0) {
+                    printf("Wanda nara %s", strerror(pthread_return));
+                }
 			}
 		}
 	}
