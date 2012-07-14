@@ -116,6 +116,12 @@
 		char * nombre;
 	} t_ruta_separada;
 
+	typedef struct {
+		uint32_t nroInodo;
+		pthread_rwlock_t * semaforo_rw;
+		int referencias;
+	} t_nodo_archivo;
+
 	void set_logger_funciones(t_log *logger_para_funciones);
 
 	void mapear_archivo(char *);
@@ -170,8 +176,8 @@
 	int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
 	void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset);
 
-//	void crearDirectorio(char * path, mode_t mode);
-	int32_t crearDirectorio(char * path);
+	int32_t crearDirectorio(char * path, mode_t mode);
+//	int32_t crearDirectorio(char * path);
 	t_ruta_separada * separarPathParaNewDirEntry(char * path);
 	void agregarEntradaDirectorio(struct INode * inodo,char * nombre);
 	void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
@@ -196,5 +202,7 @@
 	int32_t eliminarArchivo(char * path);
 
 	int hayEspacioSuficiente(uint32_t size);
+
+	struct archivo_abierto * getRegistroArchivoAbierto(uint32_t nroInodo);
 
 #endif /* FUNCIONES_RFS_H_ */
