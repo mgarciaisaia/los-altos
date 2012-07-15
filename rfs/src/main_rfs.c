@@ -88,7 +88,6 @@ void do_sleep(void){
  */
 void serve_open(int socket, struct nipc_open *request) {
 	log_info(logger, "open %s", request->path);
-	// FIXME: contestar si puede o no abrir el archivo
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
@@ -98,7 +97,6 @@ void serve_open(int socket, struct nipc_open *request) {
         registrar_apertura_cliente(archivos_cliente, numero_inodo);
 		send_ok(socket);
 	} else {
-		//send_no_ok(socket, ERROR1);
 		send_no_ok(socket, ENOENT);
 	}
 	log_info(logger, "/open %s", request->path);
