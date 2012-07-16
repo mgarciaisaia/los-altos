@@ -35,9 +35,6 @@
 		t_log_level detail;
 		char *program_name;
 		pid_t pid;
-		char *message;
-		char *buffer;
-		pthread_mutex_t *mutex;
 	}t_log;
 
 

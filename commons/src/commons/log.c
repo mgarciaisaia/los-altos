@@ -80,11 +80,6 @@ t_log* log_create(char* file, char *program_name, bool is_active_console, t_log_
 	logger->detail = detail;
 	logger->pid = getpid();
 	logger->program_name = strdup(program_name);
-	logger->message = malloc(LOG_MAX_LENGTH_MESSAGE + 1);
-	logger->buffer = malloc(LOG_MAX_LENGTH_BUFFER + 1);
-	logger->mutex = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(logger->mutex, NULL);
-
 	return logger;
 }
 
@@ -94,11 +89,7 @@ t_log* log_create(char* file, char *program_name, bool is_active_console, t_log_
  * @DESC: Destruye una instancia de logger
  */
 void log_destroy(t_log* logger) {
-    pthread_mutex_lock(logger->mutex);
 	free(logger->program_name);
-	free(logger->buffer);
-	free(logger->message);
-	free(logger->mutex);
 	fclose(logger->file);
 	free(logger);
 }
@@ -202,31 +193,33 @@ t_log_level log_level_from_string(char *level) {
 static void log_write_in_level(t_log* logger, t_log_level level, const char* message_template, va_list list_arguments) {
 
 	if (isEnableLevelInLogger(logger, level)) {
-		char *time;
-		pthread_t thread_id;
+		char *message, *time, *buffer;
+		unsigned int thread_id;
 
-		pthread_mutex_lock(logger->mutex);
-		vsprintf(logger->message, message_template, list_arguments);
+		message = malloc(LOG_MAX_LENGTH_MESSAGE + 1);
+		vsprintf(message, message_template, list_arguments);
 		time = temporal_get_string_time();
 		thread_id = pthread_self();
 
-		sprintf(logger->buffer, "[%s] %s %s/(%u:%lu): %s\n",
+		buffer = malloc(LOG_MAX_LENGTH_BUFFER + 1);
+		sprintf(buffer, "[%s] %s %s/(%d:%d): %s\n",
 				log_level_as_string(level), time,
 				logger->program_name, logger->pid, thread_id,
-				logger->message);
+				message);
 
 		if (logger->file != NULL) {
-			fprintf(logger->file, "%s", logger->buffer);
+			fprintf(logger->file, "%s", buffer);
 			fflush(logger->file);
 		}
 
 		if (logger->is_active_console) {
-			printf("%s", logger->buffer);
+			printf("%s", buffer);
 			fflush(stdout);
 		}
-		pthread_mutex_unlock(logger->mutex);
 
 		free(time);
+		free(message);
+		free(buffer);
 	}
 }
 
