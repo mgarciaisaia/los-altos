@@ -21,9 +21,59 @@ char *fileSystemIP;
 u_int16_t fileSystemPort;
 int maximumReadWriteSize = 32 * 1024;
 memcached_st *remote_cache;
-memcached_return_t memcached_response;
 bool cache_active;
 u_int32_t client_id = 0;
+
+
+// FIXME: sacar las auxiliares de memcached a un .h
+char *key_for_memcached(const char *path, enum tipo_nipc nipc_type) {
+    char *operation = NULL;
+    if(nipc_type == nipc_getattr_response) {
+        operation = "A"; // attribute
+    } else {
+        operation = "D"; // directory
+    }
+    char *key = malloc(strlen(path) + 2);
+    strncpy(key, operation, 1);
+    strcpy(key + 1, path);
+    return key;
+}
+
+struct nipc_packet *query_memcached(memcached_st *cache, const char *path, enum tipo_nipc nipc_type) {
+    struct nipc_packet *response = NULL;
+    memcached_return_t memcached_response;
+    char *key = key_for_memcached(path, nipc_type);
+    size_t key_length = strlen(key);
+    size_t data_length;
+
+    char *cached_data = memcached_get(remote_cache, key, key_length,
+            &data_length, NULL, &memcached_response);
+
+    if(memcached_response == MEMCACHED_SUCCESS) {
+        log_debug(logger, "Cache hit buscando la clave %s (%d bytes)", key, data_length);
+        response = malloc(sizeof(struct nipc_packet));
+        response->client_id = client_id;
+        response->type = nipc_type;
+        response->data = cached_data;
+        response->data_length = data_length;
+    } else {
+        log_debug(logger, "Cache miss buscando la clave %s", key);
+    }
+
+    free(key);
+    return response;
+}
+
+void store_memcached(memcached_st *cache, const char *path, struct nipc_packet *packet) {
+    char *key = key_for_memcached(path, packet->type);
+    memcached_return_t memcached_response = memcached_add(remote_cache, key, strlen(key), packet->data, packet->data_length, (time_t)0, (uint32_t) 0);
+    if (memcached_response == MEMCACHED_SUCCESS) {
+        log_info(logger, "Se guardaron %d bytes para la clave %s", packet->data_length, key);
+    } else {
+        log_error(logger, "Error guardando datos en la clave %s: %s", key, memcached_strerror(remote_cache, memcached_response));
+    }
+    free(key);
+}
 
 
 /**
@@ -245,13 +295,6 @@ int remote_mkdir(const char *path, mode_t mode) {
 	return check_ok_error("mkdir", path, response);
 }
 
-char *key_for_memcached(const char *path, char *operation) {
-    char *key = malloc(strlen(path) + 2);
-    strncpy(key, operation, 1);
-    strcpy(key + 1, path);
-    return key;
-}
-
 /** Read directory
  *
  * This supersedes the old getdir() interface.  New applications
@@ -293,26 +336,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
 	struct nipc_packet *response = NULL;
 
 	if (cache_active) {
-        char *key = key_for_memcached(path, "readdir");
-        size_t return_key_length = strlen(key);
-        size_t return_value_length;
-
-        char *cached_data = memcached_get(remote_cache, key, return_key_length,
-                &return_value_length, NULL, &memcached_response);
-
-        if(memcached_response == MEMCACHED_SUCCESS) {
-            log_debug(logger, "Cache hit buscando la clave %s (%d bytes)", key, return_value_length);
-            response = malloc(sizeof(struct nipc_packet));
-            response->client_id = client_id;
-            response->type = nipc_readdir_response;
-            response->data = cached_data;
-            response->data_length = return_value_length;
-        } else {
-            log_debug(logger, "Cache miss buscando la clave %s", key);
-        }
-
-        free(key);
-
+	    response = query_memcached(remote_cache, path, nipc_readdir_response);
 	}
 
 	if(response == NULL) {
@@ -325,14 +349,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
         }
 
         if(cache_active) {
-            char *key = key_for_memcached(path, "readdir");
-            memcached_response = memcached_add(remote_cache, key, strlen(key), response->data, response->data_length, (time_t)0, (uint32_t) 0);
-            if (memcached_response == MEMCACHED_SUCCESS) {
-                log_info(logger, "Se guardaron %d bytes para la clave %s", response->data_length, key);
-            } else {
-                log_error(logger, "Error guardando datos en la clave %s: %s", key, memcached_strerror(remote_cache, memcached_response));
-            }
-            free(key);
+            store_memcached(remote_cache, path, response);
         }
 	}
 
@@ -397,58 +414,38 @@ int remote_rmdir(const char *path) {
  *
  */
 int remote_getattr(const char *path, struct stat *statbuf) {
-	logger_operation("getattr", path);
+    logger_operation("getattr", path);
 
-	char *return_value;
+    struct nipc_packet *response = NULL;
 
-	if (cache_active){
-	/*****************consultar a la cache, si lo tiene listo..*****************/
-	char return_key[MEMCACHED_KEY_SIZE];
-	size_t return_key_length;
-	size_t return_value_length;
+    if (cache_active) {
+        response = query_memcached(remote_cache, path, nipc_getattr_response);
+    }
 
-	return_value = memcached_get(remote_cache, return_key, &return_key_length,
-			&return_value_length, NULL, &memcached_response);
-	}
-	if (cache_active && (memcached_response == MEMCACHED_SUCCESS)) {
-		/******joya lo leo y listo *******/
-		//FIXME: tiene que ser return ? o se guarda solo?
-		return (struct readdir_entry*) return_value;
+    if(response == NULL) {
+        struct nipc_getattr* getattrData = new_nipc_getattr(client_id, path);
+        struct nipc_packet* packet = getattrData->serialize(getattrData);
+        response = nipc_query(packet, fileSystemIP, fileSystemPort);
 
-	} else {
-		/******si no lo tiene o no esta activa ---> consultar a Remote y dsp almacenar en la cache *****/
-		struct nipc_getattr* getattrData = new_nipc_getattr(client_id, path);
-		struct nipc_packet* packet = getattrData->serialize(getattrData);
-		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
-				fileSystemPort);
-		if (response->type == nipc_getattr_response) {
-			struct nipc_getattr_response *getattr =
-					deserialize_getattr_response(response);
+        if(response->type == nipc_getattr_error) {
+            log_warning(logger, "Error de getattr en %s: %s (%d)", path, strerror(*((int *) response->data)), *((int *)response->data));
+            return *(int*) response->data;
+        } else if(response->type != nipc_getattr_response) {
+            return check_error("getattr", path, response);
+        }
 
-			statbuf->st_mode = getattr->entry->mode;
-			statbuf->st_nlink = getattr->entry->n_link;
-			statbuf->st_size = getattr->entry->size;
+        if(cache_active) {
+            store_memcached(remote_cache, path, response);
+        }
+    }
 
-			if (cache_active){
-			/***** lo guardo en la cache ****/
-			memcached_response = memcached_add(remote_cache, path, strlen(path),
-					(char *) getattr->entry, sizeof(struct readdir_entry),
-					(time_t) 0, (uint32_t) 0);
+    struct nipc_getattr_response *getattr = deserialize_getattr_response(response);
 
-			if (memcached_response == MEMCACHED_SUCCESS)
-				log_error(logger, "La clave %s fue guardada correctamente",
-						path);
-			else
-				log_error(logger, "No se pudo guardar la clave %s",
-						memcached_strerror(remote_cache, memcached_response));
-			}
-			return 0;
-		} else if (response->type == nipc_getattr_error) {
-			return *(int*) response->data;
-		} else {
-			return check_error("getattr", path, response);
-		}
-	}
+    statbuf->st_mode = getattr->entry->mode;
+    statbuf->st_nlink = getattr->entry->n_link;
+    statbuf->st_size = getattr->entry->size;
+
+    return 0;
 }
 
 /**
@@ -542,32 +539,35 @@ void initialize_configuration() {
 	log_info(logger, "Tamano maximo de bloque para entrada/salida: %d",
 			maximumReadWriteSize);
 
-	char *remote_cache_host = config_get_string_value(config, "cache.host");
-	u_int16_t remote_cache_port = config_get_int_value(config, "cache.port");
 	cache_active = config_get_int_value(config, "is.active.cache");
 
-	remote_cache = memcached_create(NULL);
-//    memcached_return_t memcached_response;
-	memcached_server_st *servers = NULL;
-    servers = memcached_server_list_append(servers,
-			remote_cache_host, remote_cache_port, &memcached_response);
-	if (memcached_response != MEMCACHED_SUCCESS) {
-		log_error(logger,
-				"Error intentando agregar el servidor %s:%d a la cache: %s",
-				remote_cache_host, remote_cache_port,
-				memcached_strerror(remote_cache, memcached_response));
-	} else {
-		memcached_response = memcached_server_push(remote_cache, servers);
-		if (memcached_response != MEMCACHED_SUCCESS) {
-			log_error(logger,
-					"Error intentando asignar los servidores a la cache: %s",
-					memcached_strerror(remote_cache, memcached_response));
-		} else {
-			log_info(logger, "Conexion exitosa a la cache en %s:%d",
-					remote_cache_host, remote_cache_port);
-		}
+	if(cache_active) {
+	    remote_cache = memcached_create(NULL);
+        memcached_server_st *servers = NULL;
+        memcached_return_t memcached_response;
+
+	    char *remote_cache_host = config_get_string_value(config, "cache.host");
+        u_int16_t remote_cache_port = config_get_int_value(config, "cache.port");
+        servers = memcached_server_list_append(servers, remote_cache_host, remote_cache_port, &memcached_response);
+        if (memcached_response != MEMCACHED_SUCCESS) {
+            log_error(logger,
+                    "Error intentando agregar el servidor %s:%d a la cache: %s",
+                    remote_cache_host, remote_cache_port,
+                    memcached_strerror(remote_cache, memcached_response));
+        } else {
+            memcached_response = memcached_server_push(remote_cache, servers);
+            if (memcached_response != MEMCACHED_SUCCESS) {
+                log_error(logger,
+                        "Error intentando asignar los servidores a la cache: %s",
+                        memcached_strerror(remote_cache, memcached_response));
+            } else {
+                log_info(logger, "Conexion exitosa a la cache en %s:%d",
+                        remote_cache_host, remote_cache_port);
+            }
+        }
+        // FIXME: hago free de servers o lo sigo necesitando?
 	}
-	// FIXME: hago free de servers o lo sigo necesitando?
+
 	config_destroy(config);
 }
 
