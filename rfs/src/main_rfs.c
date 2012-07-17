@@ -59,6 +59,16 @@ void send_ok(int socket) {
 void do_sleep(void){
 
 	//aca si pregunta por inotify a ver se cambia
+//	int file_descriptor = inotify_init();
+//		if (file_descriptor < 0) {
+//			perror("inotify_init");
+//		}
+//	// Creamos un monitor sobre un path indicando que eventos queremos escuchar
+//	int watch_descriptor = inotify_add_watch(file_descriptor, PATH_CONFIG, IN_MODIFY);
+//
+//
+//
+	//aca si pregunta por inotify a ver se cambia
 	if (strcmp(sleep_type, "MICRO") == 0)
 	//en microsegundos
 		usleep(sleep_time);
@@ -196,7 +206,7 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
 
 	do_sleep();
 
-	int32_t codError = crearDirectorio(request->path);
+	int32_t codError = crearDirectorio(request->path,request->fileMode);
 
 	if (codError != 0) {
 		send_no_ok(socket, codError);
@@ -441,6 +451,8 @@ void initialize_configuration() {
 int32_t main(void) {
 	initialize_configuration();
 
+	init_semaforos();
+
 	archivos_abiertos = list_create();
 
 	int listeningSocket = socket_binded(listening_port);
@@ -496,6 +508,7 @@ int32_t main(void) {
 		}
 	}
 
+	destroy_semaforos();
 	return 0;
 
 //	read_superblock();

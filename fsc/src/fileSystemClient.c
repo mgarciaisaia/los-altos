@@ -22,6 +22,7 @@ u_int16_t fileSystemPort;
 int maximumReadWriteSize = 32 * 1024;
 memcached_st *remote_cache;
 memcached_return_t memcached_response;
+bool cache_active;
 
 /**
  * FIXME: falta hacer free() a todos los response
@@ -286,16 +287,19 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
 
 	logger_operation("readdir", path);
 
+	char *return_value;
+
+	if(cache_active){
 	/*****************consultar a la cache, si lo tiene listo..*****************/
 	char return_key[MEMCACHED_KEY_SIZE];
 	size_t return_key_length;
-	char *return_value;
 	size_t return_value_length;
 
 	return_value = memcached_get(remote_cache, return_key, &return_key_length,
 			&return_value_length, NULL, &memcached_response);
 
-	if (memcached_response == MEMCACHED_SUCCESS) {
+	}
+	if (cache_active &&(memcached_response == MEMCACHED_SUCCESS)) {
 		/******joya lo leo y listo *******/
 		//FIXME: tiene que ser return ? o se guarda solo?
 		return (struct readdir_entry *) return_value;
@@ -331,7 +335,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
 			}
 
 			/***** lo guardo en la cache ****/
-
+			if (cache_active){
 			memcached_response = memcached_add(remote_cache, path, strlen(path),
 					(char *) readdirData->entries, readdirData->entriesLength,
 					(time_t) 0, (uint32_t) 0);
@@ -341,7 +345,7 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler,
 			else
 				log_error(logger, "No se pudo guardar la clave %s",
 						memcached_strerror(remote_cache, memcached_response));
-
+			}
 			return 0;
 
 		} else {
@@ -381,22 +385,24 @@ int remote_rmdir(const char *path) {
 int remote_getattr(const char *path, struct stat *statbuf) {
 	logger_operation("getattr", path);
 
+	char *return_value;
+
+	if (cache_active){
 	/*****************consultar a la cache, si lo tiene listo..*****************/
 	char return_key[MEMCACHED_KEY_SIZE];
 	size_t return_key_length;
-	char *return_value;
 	size_t return_value_length;
 
 	return_value = memcached_get(remote_cache, return_key, &return_key_length,
 			&return_value_length, NULL, &memcached_response);
-
-	if (memcached_response == MEMCACHED_SUCCESS) {
+	}
+	if (cache_active && (memcached_response == MEMCACHED_SUCCESS)) {
 		/******joya lo leo y listo *******/
 		//FIXME: tiene que ser return ? o se guarda solo?
 		return (struct readdir_entry*) return_value;
 
 	} else {
-		/******si no lo tiene ---> consultar a Remote y dsp almacenar en la cache *****/
+		/******si no lo tiene o no esta activa---> consultar a Remote y dsp almacenar en la cache *****/
 		struct nipc_getattr* getattrData = new_nipc_getattr(path);
 		struct nipc_packet* packet = getattrData->serialize(getattrData);
 		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
@@ -409,17 +415,19 @@ int remote_getattr(const char *path, struct stat *statbuf) {
 			statbuf->st_nlink = getattr->entry->n_link;
 			statbuf->st_size = getattr->entry->size;
 
+			if (cache_active){
 			/***** lo guardo en la cache ****/
 			memcached_response = memcached_add(remote_cache, path, strlen(path),
 					(char *) getattr->entry, sizeof(struct readdir_entry),
 					(time_t) 0, (uint32_t) 0);
+
 			if (memcached_response == MEMCACHED_SUCCESS)
 				log_error(logger, "La clave %s fue guardada correctamente",
 						path);
 			else
 				log_error(logger, "No se pudo guardar la clave %s",
 						memcached_strerror(remote_cache, memcached_response));
-
+			}
 			return 0;
 		} else if (response->type == nipc_getattr_error) {
 			return *(int*) response->data;
@@ -513,6 +521,7 @@ void initialize_configuration() {
 
 	char *remote_cache_host = config_get_string_value(config, "cache.host");
 	u_int16_t remote_cache_port = config_get_int_value(config, "cache.port");
+	cache_active = config_get_int_value(config, "is.active.cache");
 
 	remote_cache = memcached_create(NULL);
 //    memcached_return_t memcached_response;
