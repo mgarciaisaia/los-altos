@@ -33,12 +33,13 @@ rfs: $(OBJS) $(USER_OBJS) ../../commons/Debug/libcommons.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
 	gcc -L"../../commons/Debug" -o "rfs" $(OBJS) $(USER_OBJS) $(LIBS) -pthread
+	cp -u ../rfs.conf .
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C_DEPS)$(EXECUTABLES) rfs
+	-$(RM) $(OBJS)$(C_DEPS)$(EXECUTABLES) rfs rfs.conf
 	-@echo ' '
 
 .PHONY: all clean dependents

@@ -30,8 +30,7 @@
 #include <string.h>
 #include <sys/inotify.h>
 
-// FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
-#define PATH_CONFIG "conf/rfs.conf"
+#define PATH_CONFIG "rfs.conf"
 
 int32_t sleep_time;
 char *sleep_type;
