@@ -569,6 +569,7 @@ int main(int argc, char *argv[]) {
 	log_debug(logger, "Corro fuse_main");
 	int fuseReturn = fuse_main(argc, argv, &remote_operations, NULL);
 	log_debug(logger, "Termina el fsc: %d - %s", fuseReturn, strerror(errno));
+	// FIXME: avisarle al rfs que se cierra
 	socket_destroy_logger();
 	log_destroy(logger);
 	return fuseReturn;

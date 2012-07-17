@@ -850,8 +850,12 @@ t_ruta_separada * separarPathParaNewDirEntry(char * path){
 	if(size_array_before_split(path,separador) <= 1){
 		char ** vector_ruta = string_split(path,separador);
 		ruta_separada->ruta = calloc(1,1);
-		ruta_separada->nombre = calloc(1,strlen(vector_ruta[0]));
-		strncpy(ruta_separada->nombre,vector_ruta[0],strlen(vector_ruta[0]));
+		if(vector_ruta[0] != NULL) {
+            ruta_separada->nombre = calloc(1,strlen(vector_ruta[0]));
+            strncpy(ruta_separada->nombre,vector_ruta[0],strlen(vector_ruta[0]));
+		} else {
+		    ruta_separada->nombre = "";
+		}
 	} else {
 		char * nombre_carpeta = rindex(path,'/');
 		uint32_t tamanio_nombre = strlen(nombre_carpeta);

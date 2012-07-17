@@ -262,7 +262,7 @@ char *string_from_uint32(uint32_t number) {
     sprintf(buffer, "%u", number);
     size_t number_length = strlen(buffer);
     char *string_number = malloc(number_length + 1);
-    strncpy(string_number, buffer, number_length);
+    strncpy(string_number, buffer, number_length + 1);
     free(buffer);
     return string_number;
 }

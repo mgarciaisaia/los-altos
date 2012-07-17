@@ -90,11 +90,11 @@ void serve_open(int socket, struct nipc_open *request) {
 	log_info(logger, "open %s", request->path);
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
-		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
-				archivos_abiertos, numero_inodo);
-		registrar_apertura(nodo_archivo);
-        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
-        registrar_apertura_cliente(archivos_cliente, numero_inodo);
+//		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
+//				archivos_abiertos, numero_inodo);
+//		registrar_apertura(nodo_archivo);
+//        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
+//        registrar_apertura_cliente(archivos_cliente, numero_inodo);
 		send_ok(socket);
 	} else {
 		send_no_ok(socket, ENOENT);
@@ -171,10 +171,10 @@ void serve_release(int socket, struct nipc_release *request) {
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
 		//FIXME:  si el archivo no esta abierto, romper
-		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
-				archivos_abiertos, numero_inodo);
-		registrar_cierre(archivos_abiertos, nodo_archivo);
-        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
+//		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
+//				archivos_abiertos, numero_inodo);
+//		registrar_cierre(archivos_abiertos, nodo_archivo);
+//        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
 
 		//		send_no_ok(socket, ERROR2);
 		send_ok(socket);
@@ -357,8 +357,8 @@ void serve_disconnected(int socket, struct nipc_packet *request) {
 
 void *serveRequest(void *socketPointer) {
 	int socket = *(int *) socketPointer;
-	log_debug(logger, "Nuevo request en el socket %d", socket);
 	struct nipc_packet *request = nipc_receive(socket);
+	log_debug(logger, "Request en el socket %d con operacion %s\n", socket, nombre_del_enum_nipc(request->type));
 	switch (request->type) {
 	case nipc_open:
 		serve_open(socket, deserialize_open(request));
@@ -460,11 +460,13 @@ void initialize_configuration() {
     pthread_mutex_init(mutex_client_id, NULL);
 
     // FIXME: con free() alcanza?
-    archivos_por_cliente = dictionary_create(&free);
+//    archivos_por_cliente = dictionary_create(&free);
 
-    inicializar_administracion();
+//    inicializar_administracion();
 
-	config_destroy(config);
+    init_semaforos();
+
+//	config_destroy(config);
 }
 
 
@@ -488,13 +490,13 @@ int32_t main(void) {
 
 	epoll = epoll_create1(EPOLL_CLOEXEC);
 
-	struct epoll_event event;
-	event.data.fd = listeningSocket;
-	event.events = EPOLLIN;
+	struct epoll_event *event = calloc(1, sizeof(struct epoll_event));
+	event->data.fd = listeningSocket;
+	event->events = EPOLLIN;
 
-	epoll_ctl(epoll, EPOLL_CTL_ADD, listeningSocket, &event);
+	epoll_ctl(epoll, EPOLL_CTL_ADD, listeningSocket, event);
 
-	struct epoll_event *events = calloc(max_connections, sizeof event);
+	struct epoll_event *events = calloc(max_connections, sizeof(struct epoll_event));
 
 	while (1) { // roll, baby roll (8)
 		int readySocketsCount = epoll_wait(epoll, events, max_events, -1);
@@ -515,9 +517,9 @@ int32_t main(void) {
 					perror("fcntl");
 					return -1;
 				}
-				event.events = EPOLLIN | EPOLLET;
-				event.data.fd = querySocket;
-				epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, &event);
+				event->events = EPOLLIN | EPOLLET;
+				event->data.fd = querySocket;
+				epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, event);
 			} else {
 				log_debug(logger, "Actividad en un socket cualquiera");
 				int querySocket = events[index].data.fd;

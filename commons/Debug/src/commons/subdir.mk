@@ -8,8 +8,8 @@ C_SRCS += \
 ../src/commons/config.c \
 ../src/commons/error.c \
 ../src/commons/log.c \
-../src/commons/string.c \
 ../src/commons/misc.c \
+../src/commons/string.c \
 ../src/commons/temporal.c 
 
 OBJS += \
@@ -17,8 +17,8 @@ OBJS += \
 ./src/commons/config.o \
 ./src/commons/error.o \
 ./src/commons/log.o \
-./src/commons/string.o \
 ./src/commons/misc.o \
+./src/commons/string.o \
 ./src/commons/temporal.o 
 
 C_DEPS += \
@@ -26,8 +26,8 @@ C_DEPS += \
 ./src/commons/config.d \
 ./src/commons/error.d \
 ./src/commons/log.d \
-./src/commons/string.d \
 ./src/commons/misc.d \
+./src/commons/string.d \
 ./src/commons/temporal.d 
 
 
