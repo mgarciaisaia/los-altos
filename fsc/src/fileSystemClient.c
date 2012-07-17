@@ -13,8 +13,7 @@
 #include "src/commons/config.h"
 #include <libmemcached/memcached.h>
 
-// FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
-#define PATH_CONFIG "conf/fsc.conf"
+#define PATH_CONFIG "fsc.conf"
 #define MEMCACHED_KEY_SIZE 41
 
 t_log *logger;

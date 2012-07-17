@@ -33,12 +33,13 @@ fsc: $(OBJS) $(USER_OBJS) ../../commons/Debug/libcommons.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
 	gcc -L"../../commons/Debug" -o "fsc" $(OBJS) $(USER_OBJS) $(LIBS)
+	cp -u ../fsc.conf .
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C_DEPS)$(EXECUTABLES) fsc
+	-$(RM) $(OBJS)$(C_DEPS)$(EXECUTABLES) fsc fsc.conf
 	-@echo ' '
 
 .PHONY: all clean dependents
