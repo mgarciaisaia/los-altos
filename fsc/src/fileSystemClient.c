@@ -15,6 +15,7 @@
 
 // FIXME: esta ruta tiene que ser en el mismo path, y el makefile tiene que copiarlo
 #define PATH_CONFIG "conf/fsc.conf"
+#define MEMCACHED_KEY_SIZE 41
 
 t_log *logger;
 char *fileSystemIP;
@@ -245,6 +246,13 @@ int remote_mkdir(const char *path, mode_t mode) {
 	return check_ok_error("mkdir", path, response);
 }
 
+char *key_for_memcached(const char *path, char *operation) {
+    char *key = malloc(strlen(path) + 2);
+    strncpy(key, operation, 1);
+    strcpy(key + 1, path);
+    return key;
+}
+
 /** Read directory
  *
  * This supersedes the old getdir() interface.  New applications
@@ -279,77 +287,87 @@ int remote_mkdir(const char *path, mode_t mode) {
  * fi         input     A struct fuse_file_info, contains detailed information why this readdir operation was invoked.
  * return     output    negated error number, or 0 if everything went OK
  */
-#define MEMCACHED_KEY_SIZE 41
-
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
 
 	logger_operation("readdir", path);
 
-	char *return_value;
+	struct nipc_packet *response = NULL;
 
-	if(cache_active){
-	/*****************consultar a la cache, si lo tiene listo..*****************/
-	char return_key[MEMCACHED_KEY_SIZE];
-	size_t return_key_length;
-	size_t return_value_length;
+	if (cache_active) {
+        char *key = key_for_memcached(path, "readdir");
+        size_t return_key_length = strlen(key);
+        size_t return_value_length;
 
-	return_value = memcached_get(remote_cache, return_key, &return_key_length,
-			&return_value_length, NULL, &memcached_response);
+        char *cached_data = memcached_get(remote_cache, key, return_key_length,
+                &return_value_length, NULL, &memcached_response);
+
+        if(memcached_response == MEMCACHED_SUCCESS) {
+            log_debug(logger, "Cache hit buscando la clave %s (%d bytes)", key, return_value_length);
+            response = malloc(sizeof(struct nipc_packet));
+            response->client_id = client_id;
+            response->type = nipc_readdir_response;
+            response->data = cached_data;
+            response->data_length = return_value_length;
+        } else {
+            log_debug(logger, "Cache miss buscando la clave %s", key);
+        }
+
+        free(key);
 
 	}
-	if (cache_active &&(memcached_response == MEMCACHED_SUCCESS)) {
-		/******joya lo leo y listo *******/
-		//FIXME: tiene que ser return ? o se guarda solo?
-		return (struct readdir_entry *) return_value;
-		//struct readdir_entry *entry;
 
-	} else {
-		/******si no lo tiene ---> consultar a Remote y dsp almacenar en la cache *****/
-		struct nipc_readdir* readdirData = new_nipc_readdir(client_id, path, offset);
-		struct nipc_packet* packet = readdirData->serialize(readdirData);
-		struct nipc_packet* response = nipc_query(packet, fileSystemIP,
-				fileSystemPort);
-		if (response->type == nipc_readdir_response) {
-			struct nipc_readdir_response *readdirData =
-					deserialize_readdir_response(response);
-			int index;
-			int bufferIsFull = 0;
+	if(response == NULL) {
+	    struct nipc_readdir* readdirData = new_nipc_readdir(client_id, path, offset);
+        struct nipc_packet* packet = readdirData->serialize(readdirData);
+        response = nipc_query(packet, fileSystemIP, fileSystemPort);
 
-			for (index = 0; index < readdirData->entriesLength && !bufferIsFull; index++) {
-				struct readdir_entry *entry = &(readdirData->entries[index]);
-				struct stat stats;
-				stats.st_nlink = entry->n_link;
-				stats.st_mode = entry->mode;
-				stats.st_size = entry->size;
-				bufferIsFull = filler(output, entry->path, &stats, 0);
-			}
+        if(response->type != nipc_readdir_response) {
+            return check_error("readdir", path, response);
+        }
 
-			if (bufferIsFull) {
-				// FIXME: error o info?
-				log_error(logger, "readdir: buffer lleno");
-				// FIXME: aca devuelvo -1 o como se maneja el buffer lleno?
-				return -1;
-			}
-
-			/***** lo guardo en la cache ****/
-			if (cache_active){
-			memcached_response = memcached_add(remote_cache, path, strlen(path),
-					(char *) readdirData->entries, readdirData->entriesLength,
-					(time_t) 0, (uint32_t) 0);
-			if (memcached_response == MEMCACHED_SUCCESS)
-				log_error(logger, "La clave %s fue guardada correctamente",
-						path);
-			else
-				log_error(logger, "No se pudo guardar la clave %s",
-						memcached_strerror(remote_cache, memcached_response));
-			}
-			return 0;
-
-		} else {
-			return check_error("readdir", path, response);
-		}
+        if(cache_active) {
+            char *key = key_for_memcached(path, "readdir");
+            memcached_response = memcached_add(remote_cache, key, strlen(key), response->data, response->data_length, (time_t)0, (uint32_t) 0);
+            if (memcached_response == MEMCACHED_SUCCESS) {
+                log_info(logger, "Se guardaron %d bytes para la clave %s", response->data_length, key);
+            } else {
+                log_error(logger, "Error guardando datos en la clave %s: %s", key, memcached_strerror(remote_cache, memcached_response));
+            }
+            free(key);
+        }
 	}
-	return 0;
+
+	struct nipc_readdir_response *readdirData = deserialize_readdir_response(response);
+
+	int index;
+    int bufferIsFull = 0;
+
+    for (index = 0; index < readdirData->entriesLength && !bufferIsFull; index++) {
+        struct readdir_entry *entry = &(readdirData->entries[index]);
+        struct stat stats;
+        stats.st_nlink = entry->n_link;
+        stats.st_mode = entry->mode;
+        stats.st_size = entry->size;
+        bufferIsFull = filler(output, entry->path, &stats, 0);
+    }
+
+    if (bufferIsFull) {
+        log_info(logger, "readdir: buffer lleno");
+        /*
+         * FIXME
+         *
+         * En <http://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/unclear.html> dicen
+         * que cuando se llena el buffer se debe devolver ENOMEM
+         *
+         * En <http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Readdir%28%29>
+         * hablan de prestar atencion al offset, para cuando es muy grande la cantidad
+         * de entradas.
+         *
+         * Habria que averiguar si hay que contemplar estos casos o no
+         */
+    }
+
+    return 0;
 }
 
 /** Remove a directory */
