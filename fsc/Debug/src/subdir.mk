@@ -4,12 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../src/memcached_utils.c \
 ../src/fileSystemClient.c 
 
 OBJS += \
+./src/memcached_utils.o \
 ./src/fileSystemClient.o 
 
 C_DEPS += \
+./src/memcached_utils.d \
 ./src/fileSystemClient.d 
 
 
