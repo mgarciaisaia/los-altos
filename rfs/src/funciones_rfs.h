@@ -123,6 +123,8 @@
 	} t_nodo_archivo;
 
 	void set_logger_funciones(t_log *logger_para_funciones);
+	void init_semaforos(void);
+	void destroy_semaforos(void);
 
 	void mapear_archivo(char *);
 	struct Superblock *read_superblock();
