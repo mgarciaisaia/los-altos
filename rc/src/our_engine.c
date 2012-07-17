@@ -26,7 +26,7 @@
 #include <time.h>
 #include <src/commons/log.h>
 
-#define PATH_CONFIG "/home/utnso/Desarrollo/Workspace/2012-1c-los-altos/rc/configuracion"
+#define PATH_CONFIG "rc.conf"
 
 /*
  * Estas son las funciones estaticas necesarias para que el engine funcione

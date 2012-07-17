@@ -33,12 +33,13 @@ librc.so: $(OBJS) $(USER_OBJS) ../../commons/Debug/libcommons.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
 	gcc -L"../../commons/Debug" -shared -o "librc.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	cp -u ../rc.conf .
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C_DEPS)$(LIBRARIES) librc.so
+	-$(RM) $(OBJS)$(C_DEPS)$(LIBRARIES) librc.so rc.conf
 	-@echo ' '
 
 .PHONY: all clean dependents
