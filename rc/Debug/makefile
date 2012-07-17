@@ -26,13 +26,13 @@ endif
 all: librc.so
 
 dependents:
-	-cd /home/utnso/workspaces/2012-1c-los-altos/commons/Debug && $(MAKE) clean all
+	-cd ../../commons/Debug && $(MAKE) clean all
 
 # Tool invocations
-librc.so: $(OBJS) $(USER_OBJS) /home/utnso/workspaces/2012-1c-los-altos/commons/Debug/libcommons.so
+librc.so: $(OBJS) $(USER_OBJS) ../../commons/Debug/libcommons.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/workspaces/2012-1c-los-altos/commons/Debug" -shared -o "librc.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"../../commons/Debug" -shared -o "librc.so" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -43,6 +43,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/utnso/workspaces/2012-1c-los-altos/commons/Debug/libcommons.so:
+../../commons/Debug/libcommons.so:
 
 -include ../makefile.targets
