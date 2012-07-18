@@ -89,9 +89,9 @@ void serve_open(int socket, struct nipc_open *request) {
 	log_info(logger, "open %s", request->path);
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
-//		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
-//				archivos_abiertos, numero_inodo);
-//		registrar_apertura(nodo_archivo);
+		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
+				archivos_abiertos, numero_inodo);
+		registrar_apertura(nodo_archivo);
 //        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
 //        registrar_apertura_cliente(archivos_cliente, numero_inodo);
 		send_ok(socket);
@@ -170,9 +170,9 @@ void serve_release(int socket, struct nipc_release *request) {
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
 		//FIXME:  si el archivo no esta abierto, romper
-//		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
-//				archivos_abiertos, numero_inodo);
-//		registrar_cierre(archivos_abiertos, nodo_archivo);
+		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
+				archivos_abiertos, numero_inodo);
+		registrar_cierre(archivos_abiertos, nodo_archivo);
 //        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
 
 		//		send_no_ok(socket, ERROR2);
@@ -459,9 +459,9 @@ void initialize_configuration() {
     pthread_mutex_init(mutex_client_id, NULL);
 
     // FIXME: con free() alcanza?
-//    archivos_por_cliente = dictionary_create(&free);
+    archivos_por_cliente = dictionary_create(&free);
 
-//    inicializar_administracion();
+    inicializar_administracion();
 
     init_semaforos();
 

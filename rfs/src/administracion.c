@@ -57,7 +57,7 @@ void registrar_cierre(t_list *archivos_abiertos, struct archivo_abierto *nodo_ar
             for(index = 0; index < archivos_abiertos->elements_count; index++) {
                 if(element != NULL && ((struct archivo_abierto *)element->data) == nodo_archivo) {
                     free(list_remove(archivos_abiertos, index));
-                    continue;
+                    return;
                 }
                 element = element->next;
             }

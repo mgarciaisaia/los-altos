@@ -285,69 +285,52 @@ t_list * cargarEntradasDirectorioALista(struct INode * directorio){
 }
 
 size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **bufferPointer) {
-
-	pthread_mutex_lock(sem_leer);
-	struct archivo_abierto * registro_archivo = getRegistroArchivoAbierto(getNroInodoDeLaDireccionDelPath(path));
-	if(registro_archivo != NULL){
-		registro_archivo->cantidad_abiertos++;
-		pthread_rwlock_rdlock(registro_archivo->lock);
-	} else
-		printf("no se q pasa");
-	pthread_mutex_unlock(sem_leer);
-
-//	pthread_mutex_lock(semaforo_leer_2);
-
     *bufferPointer = NULL;
+    uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(path);
+    struct archivo_abierto * registro_archivo = getRegistroArchivoAbierto(numero_inodo);
 
-    struct INode * inodoDeBusqueda = getInodoDeLaDireccionDelPath(path);
+    if(registro_archivo != NULL) {
+        size_t bytesLeidos = 0;
+        pthread_rwlock_rdlock(registro_archivo->lock);
+        struct INode * inodoDeBusqueda = getInodo(numero_inodo);
 
-    if(!inodoDeBusqueda->size) {
-               return 0;
-           }
+        // Si el archivo esta vacio, no leo
+        if(inodoDeBusqueda->size != 0) {
+
+            // Si me piden leer mas que el largo del archivo, achico la cantidad a leer
+            if(inodoDeBusqueda->size <= offset + bytesALeer) {
+                bytesALeer = inodoDeBusqueda->size - offset;
+            }
+
+            void *buffer = malloc(bytesALeer);
+
+            while(bytesLeidos < bytesALeer) {
+                uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset + bytesLeidos);
+                uint32_t desplazamiento = desplazamientoDentroDelBloque(offset + bytesLeidos);
+                void *ptr = posicionarme(inodoDeBusqueda, nroBloqueLogico, desplazamiento);
 
 
-           // Si me piden leer mas que el largo del archivo, achico la cantidad a leer
-           if(inodoDeBusqueda->size <= offset + bytesALeer) {
-               bytesALeer = inodoDeBusqueda->size - offset;
-           }
+                if(bytesALeer - bytesLeidos > tamanio_bloque){
+                    // El contenido sigue en otro bloque. Leo el resto de este bloque y sigo con los otros
+                    uint32_t restoDelBloque = tamanio_bloque - desplazamiento;
+                    memcpy(buffer + bytesLeidos, ptr, restoDelBloque);
+                    bytesLeidos += restoDelBloque;
+                } else {
+                    // El contenido termina en este bloque. Leo lo que falta de contenido
+                    memcpy(buffer + bytesLeidos, ptr, bytesALeer - bytesLeidos);
+                    bytesLeidos = bytesALeer;
+                }
+            }
 
-           void *buffer = malloc(bytesALeer);
-           size_t bytesLeidos = 0;
+            *bufferPointer = buffer;
+        }
 
-           while(bytesLeidos < bytesALeer) {
-                   uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset + bytesLeidos);
-                   uint32_t desplazamiento = desplazamientoDentroDelBloque(offset + bytesLeidos);
-                   void *ptr = posicionarme(inodoDeBusqueda, nroBloqueLogico, desplazamiento);
-
-                   if(bytesALeer - bytesLeidos > tamanio_bloque){
-                   // El contenido sigue en otro bloque. Leo el resto de este bloque y sigo con los otros
-                       uint32_t restoDelBloque = tamanio_bloque - desplazamiento;
-                       memcpy(buffer + bytesLeidos, ptr, restoDelBloque);
-                       bytesLeidos += restoDelBloque;
-                    } else {
-                        // El contenido termina en este bloque. Leo lo que falta de contenido
-                                              memcpy(buffer + bytesLeidos, ptr, bytesALeer - bytesLeidos);
-                                               bytesLeidos = bytesALeer;
-
-                    }
-           }
-
-           *bufferPointer = buffer;
-
-//   pthread_mutex_unlock(semaforo_leer_2);
-
-           pthread_mutex_lock(sem_leer);
-
-			registro_archivo = getRegistroArchivoAbierto(getNroInodoDeLaDireccionDelPath(path));
-            pthread_rwlock_unlock(registro_archivo->lock);
-			if(registro_archivo != NULL){
-				(registro_archivo->cantidad_abiertos)--;
-			} else
-				printf("no se q pasa");
-
-           pthread_mutex_unlock(sem_leer);
-
-                  return bytesLeidos;
+        pthread_rwlock_unlock(registro_archivo->lock);
+        return bytesLeidos;
+    } else {
+        // FIXME: el archivo no esta abierto. contestar
+        return -ENOENT;
+    }
 }
 
 uint32_t nroBloqueDentroDelInodo(uint32_t offset){
