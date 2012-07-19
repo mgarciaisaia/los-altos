@@ -27,11 +27,12 @@ struct nipc_packet *query_memcached(memcached_st *cache, const char *path, enum 
     struct nipc_packet *response = NULL;
     memcached_return_t memcached_response;
     char *key = key_for_memcached(path, nipc_type);
-    size_t key_length = strlen(key);
+    size_t key_length = strlen(key)+1;
     size_t data_length;
+    uint32_t flags;
 
     char *cached_data = memcached_get(cache, key, key_length,
-            &data_length, NULL, &memcached_response);
+            &data_length, &flags, &memcached_response);
 
     if(memcached_response == MEMCACHED_SUCCESS) {
         log_debug(memcached_logger, "Cache hit buscando la clave %s (%d bytes)", key, data_length);
