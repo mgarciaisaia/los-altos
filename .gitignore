@@ -5,3 +5,4 @@ Release/
 .settings/
 *.[oa]
 *.log
+memcached-1.6/
