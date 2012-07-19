@@ -446,21 +446,12 @@ void * desplazarme(uint32_t nroBloqueDeDato,uint32_t desplazamiento){
  * Ej: si le paso path = "carpeta/archivo", me da el inodo que gestiona a 'archivo'
  */
 struct INode * getInodoDeLaDireccionDelPath(char * path){
-	char * separador = "/";
-	char ** ruta_separada = string_split(path,separador);
-	int tamanio_ruta_separada = size_array_before_split(path,separador);
-	uint32_t nroInodoDeBusqueda = 2;	// el inodo 2 es el directorio raiz
-	struct INode * inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
-	int i;
-	for(i = 0;i < tamanio_ruta_separada;i++){
-		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
-		if(nroInodoDeBusqueda == 0){
-			log_error(logger_funciones, "error: no existe la ruta");
-			break;
-		}
-		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
-	}
-	return inodoDeBusqueda;
+    uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(path);
+    if(numero_inodo == 0) {
+        return NULL;
+    } else {
+        return getInodo(numero_inodo);
+    }
 }
 
 int32_t truncarArchivo(char * path,uint32_t offset){
