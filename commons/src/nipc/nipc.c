@@ -7,6 +7,9 @@
 static char *enum_nipc_names[19] = {"CREATE", "OPEN", "READ", "WRITE", "UNLINK", "RELEASE", "MKDIR", "RMDIR", "READDIR", "GETATTR", "TRUNCATE", "ERROR", "OK", "READ_RESPONSE", "READDIR_RESPONSE", "GETATTR_RESPONSE", "GETATTR_ERROR", "HANDSHAKE", "DISCONNECTED"};
 
 char *nombre_del_enum_nipc(enum tipo_nipc tipo) {
+    if(tipo>19) {
+        return "TIPO_INVALIDO";
+    }
     return enum_nipc_names[tipo];
 }
 
