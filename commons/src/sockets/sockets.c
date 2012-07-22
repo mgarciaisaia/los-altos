@@ -12,6 +12,7 @@
 #include "../nipc/nipc.h"
 #include "../commons/log.h"
 #include <errno.h>
+#include <netinet/tcp.h>
 
 t_log *logger_socket;
 
@@ -26,6 +27,8 @@ struct sockaddr_in *socket_address(in_addr_t ip, uint16_t port) {
 
 int socket_connect(char *remoteIP, uint16_t port) {
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    int flag = 1;
+    setsockopt(socketDescriptor, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
     const struct sockaddr_in *address = socket_address(inet_addr(remoteIP),
             port);
     connect(socketDescriptor, (struct sockaddr*) address,

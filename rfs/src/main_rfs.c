@@ -402,7 +402,6 @@ void *serveRequest(void *socketPointer) {
 		serve_unknown(socket, request);
 		break;
 	}
-	epoll_ctl(epoll, EPOLL_CTL_DEL, socket, NULL);
 	sem_post(&threads_count);
 	return NULL;
 }
@@ -522,9 +521,14 @@ int32_t main(void) {
 			} else {
 				log_debug(logger, "Actividad en un socket cualquiera");
 				int querySocket = events[index].data.fd;
+				epoll_ctl(epoll, EPOLL_CTL_DEL, querySocket, NULL);
 				pthread_t threadID;
 				sem_wait(&threads_count);
+				pthread_attr_t *thread_attributes = malloc(sizeof(pthread_attr_t));
+				pthread_attr_init(thread_attributes);
+				pthread_attr_setdetachstate(thread_attributes, PTHREAD_CREATE_DETACHED);
                 int pthread_return = pthread_create(&threadID, NULL, &serveRequest, &querySocket);
+                pthread_attr_destroy(thread_attributes);
                 if(pthread_return != 0) {
                     printf("Wanda nara %s", strerror(pthread_return));
                 }
