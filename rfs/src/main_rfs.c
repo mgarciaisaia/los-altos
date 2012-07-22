@@ -402,6 +402,7 @@ void *serveRequest(void *socketPointer) {
 		serve_unknown(socket, request);
 		break;
 	}
+	close(socket);
 	sem_post(&threads_count);
 	return NULL;
 }
@@ -505,6 +506,10 @@ int32_t main(void) {
 				// nueva conexion entrante: la acepto y meto el nuevo descriptor en el poll
 				int querySocket = accept(listeningSocket,
 						(struct sockaddr *) &address, &addressLength);
+				if(querySocket<0) {
+				    perror("Accept fallo");
+				    return -1;
+				}
 				// FIXME:
 				// setnonblocking(querySocket);
 				int flags = fcntl(querySocket, F_GETFL, 0);
