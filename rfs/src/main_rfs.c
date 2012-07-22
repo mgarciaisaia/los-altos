@@ -330,9 +330,9 @@ void serve_unknown(int socket, struct nipc_packet *request) {
 
 u_int32_t generate_client_id() {
     pthread_mutex_lock(mutex_client_id);
-    generated_client_id++;
+    uint32_t new_client_id = ++generated_client_id;
     pthread_mutex_unlock(mutex_client_id);
-    return generated_client_id;
+    return new_client_id;
 }
 
 void serve_handshake(int socket, struct nipc_packet *request) {
