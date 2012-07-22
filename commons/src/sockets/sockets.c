@@ -29,10 +29,11 @@ int socket_connect(char *remoteIP, uint16_t port) {
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
     int flag = 1;
     setsockopt(socketDescriptor, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
-    const struct sockaddr_in *address = socket_address(inet_addr(remoteIP),
+    struct sockaddr_in *address = socket_address(inet_addr(remoteIP),
             port);
     connect(socketDescriptor, (struct sockaddr*) address,
             sizeof(struct sockaddr_in));
+    free(address);
     return socketDescriptor;
 }
 
@@ -137,13 +138,14 @@ int socket_binded(uint16_t port) {
         perror("socket");
         return -1;
     }
-    const struct sockaddr_in *address = socket_address(INADDR_ANY, port);
+    struct sockaddr_in *address = socket_address(INADDR_ANY, port);
     if(bind(socketDescriptor, (struct sockaddr*) address,
             sizeof(struct sockaddr_in))) {
         perror("bind");
         close(socketDescriptor);
         return -1;
     }
+    free(address);
     return socketDescriptor;
 }
 

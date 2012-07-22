@@ -346,6 +346,8 @@ void serve_handshake(int socket, struct nipc_packet *request) {
 		log_error(logger, "handshake: HELLO no reconocido (%d)", request->type);
 		close(socket);
 	}
+	free(request->data);
+	free(request);
 	log_debug(logger, "/handshake");
 }
 

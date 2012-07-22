@@ -48,7 +48,7 @@ struct nipc_create* deserialize_create(struct nipc_packet* packet) {
     strcpy(instance->path, packet->data);
     memcpy(&(instance->fileMode), packet->data + path_length, sizeof(mode_t));
     free(packet->data);
-    free(packet); // FIXME: hago el free aca?
+    free(packet);
     return instance;
 }
 
@@ -357,7 +357,7 @@ struct nipc_mkdir* deserialize_mkdir(struct nipc_packet* packet) {
     strcpy(instance->path, packet->data);
     memcpy(&(instance->fileMode), packet->data + path_length, sizeof(mode_t));
     free(packet->data);
-    free(packet); // FIXME: hago el free aca?
+    free(packet);
     return instance;
 }
 
