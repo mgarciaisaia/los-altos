@@ -495,7 +495,7 @@ int32_t main(void) {
 
 	epoll_ctl(epoll, EPOLL_CTL_ADD, listeningSocket, event);
 
-	struct epoll_event *events = calloc(max_connections, sizeof(struct epoll_event));
+	struct epoll_event *events = calloc(max_events, sizeof(struct epoll_event));
 
 	while (1) { // roll, baby roll (8)
 		int readySocketsCount = epoll_wait(epoll, events, max_events, -1);
