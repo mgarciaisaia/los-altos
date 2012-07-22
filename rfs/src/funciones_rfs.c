@@ -34,7 +34,6 @@ extern t_list * archivos_abiertos;
 
 static uint32_t nro_de_grupo = 0;
 static pthread_mutex_t  * sem_escribir;
-static pthread_mutex_t  * sem_leer;
 static pthread_mutex_t * sem_liberar_bloque;
 static pthread_mutex_t * sem_pedir_bloque;
 static pthread_mutex_t * sem_crear_dir;
@@ -56,7 +55,6 @@ void set_logger_funciones(t_log *logger_para_funciones) {
 void init_semaforos(void) {
 
 	sem_escribir = malloc(sizeof(pthread_mutex_t));
-	sem_leer = malloc(sizeof(pthread_mutex_t));
 	sem_liberar_bloque = malloc(sizeof(pthread_mutex_t));
 	sem_pedir_bloque = malloc(sizeof(pthread_mutex_t));
 	sem_crear_dir = malloc(sizeof(pthread_mutex_t));
@@ -67,7 +65,6 @@ void init_semaforos(void) {
 	sem_eliminar_archivo = malloc(sizeof(pthread_mutex_t));
 	sem_truncar_archivo = malloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(sem_escribir, NULL);
-	pthread_mutex_init(sem_leer, NULL);
 	pthread_mutex_init(sem_liberar_bloque, NULL);
 	pthread_mutex_init(sem_pedir_bloque, NULL);
 	pthread_mutex_init(sem_crear_dir, NULL);
@@ -81,7 +78,6 @@ void init_semaforos(void) {
 
 void destroy_semaforos(void) {
 	pthread_mutex_destroy(sem_escribir);
-	pthread_mutex_destroy(sem_leer);
 	pthread_mutex_destroy(sem_liberar_bloque);
 	pthread_mutex_destroy(sem_pedir_bloque);
 	pthread_mutex_destroy(sem_crear_dir);
