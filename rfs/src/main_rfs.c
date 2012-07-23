@@ -45,16 +45,14 @@ u_int32_t generated_client_id = 0;
 pthread_mutex_t *mutex_client_id;
 t_dictionary *archivos_por_cliente;
 
-#define ERROR1 -1 //"No es posible abrir el archivo"
-#define ERROR2 -2 //"El archivo no esta abierto"
 
-void send_no_ok(int socket, int32_t errorCode) {
-	struct nipc_packet *no_ok = new_getattr_error(errorCode);
+void send_no_ok(int socket, int32_t errorCode, uint32_t client_id) {
+	struct nipc_packet *no_ok = new_getattr_error(-errorCode, client_id);
 	nipc_send(socket, no_ok);
 }
 
-void send_ok(int socket) {
-	struct nipc_packet *ok = new_nipc_ok();
+void send_ok(int socket, uint32_t client_id) {
+	struct nipc_packet *ok = new_nipc_ok(client_id);
 	nipc_send(socket, ok);
 }
 
@@ -94,11 +92,13 @@ void serve_open(int socket, struct nipc_open *request) {
 		registrar_apertura(nodo_archivo);
 //        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
 //        registrar_apertura_cliente(archivos_cliente, numero_inodo);
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 	} else {
-		send_no_ok(socket, ENOENT);
+	    send_no_ok(socket, ENOENT, request->client_id);
 	}
 	log_info(logger, "/open %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -112,11 +112,13 @@ void serve_create(int socket, struct nipc_create *request) {
 	int32_t codError = crearArchivo(request->path, request->fileMode);
 
 	if (codError != 0)
-		send_no_ok(socket, codError);
+		send_no_ok(socket, codError, request->client_id);
 	else
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 
 	log_debug(logger, "/create %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -131,14 +133,16 @@ void serve_read(int socket, struct nipc_read *request) {
 	size_t readBytes = leerArchivo(request->path, request->offset,
 			request->size, &buffer);
 
-	if (readBytes == 0)
-		send_no_ok(socket, ENOENT);
-	else {
+	if (buffer == NULL && readBytes != 0) {
+		send_no_ok(socket, readBytes, request->client_id);
+	} else {
 		struct nipc_packet *response = new_nipc_read_response(buffer,
-				readBytes);
+				readBytes, request->client_id);
 		nipc_send(socket, response);
 	}
 	log_debug(logger, "/read %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -153,11 +157,14 @@ void serve_write(int socket, struct nipc_write *request) {
 			request->size, request->offset);
 
 	if (codError != 0)
-		send_no_ok(socket, codError);
+		send_no_ok(socket, codError, request->client_id);
 	else
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 
 	log_debug(logger, "/write %s", request->path);
+	free(request->path);
+	free(request->data);
+	free(request);
 }
 
 /**
@@ -176,11 +183,13 @@ void serve_release(int socket, struct nipc_release *request) {
 //        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
 
 		//		send_no_ok(socket, ERROR2);
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 	} else {
-		send_no_ok(socket, ENOENT);
+		send_no_ok(socket, ENOENT, request->client_id);
 	}
 	log_info(logger, "/release %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -194,11 +203,13 @@ void serve_unlink(int socket, struct nipc_unlink *request) {
 	int32_t codError = eliminarArchivo(request->path);
 
 	if (codError != 0)
-		send_no_ok(socket, codError);
+		send_no_ok(socket, codError, request->client_id);
 	else
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 
 	log_debug(logger, "/unlink %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -212,11 +223,13 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
 	int32_t codError = crearDirectorio(request->path,request->fileMode);
 
 	if (codError != 0) {
-		send_no_ok(socket, codError);
+		send_no_ok(socket, codError, request->client_id);
 	} else
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 
 	log_debug(logger, "/mkdir %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -246,14 +259,16 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
 		}
 
 		struct nipc_readdir_response *response = new_nipc_readdir_response(
-				entradas->elements_count, entries);
+				entradas->elements_count, entries, request->client_id );
 		nipc_send(socket, response->serialize(response));
 		list_destroy_and_destroy_elements(entradas, &readdir_entry_destroy);
 
 	} else
-		send_no_ok(socket, ENOENT);
+		send_no_ok(socket, ENOENT, request->client_id);
 
 	log_debug(logger, "/readdir %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -267,11 +282,13 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
 	int32_t codError = eliminarDirectorio(request->path);
 
 	if (codError != 0)
-		send_no_ok(socket,codError);
+		send_no_ok(socket,codError, request->client_id);
 	else
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 
 	log_debug(logger, "/rmdir %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -285,7 +302,9 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
 
 	struct INode *inodo = getInodoDeLaDireccionDelPath(path);
 	if (inodo == NULL) {
-		send_no_ok(socket, ENOENT);
+		send_no_ok(socket, ENOENT, request->client_id);
+		free(request->path);
+		free(request);
 		return;
 	}
 	struct readdir_entry *attributes = malloc(sizeof(struct readdir_entry));
@@ -295,9 +314,11 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
 	attributes->size = inodo->size;
 
 	struct nipc_getattr_response *response = new_nipc_getattr_response(
-			attributes);
+			attributes, request->client_id);
 	nipc_send(socket, response->serialize(response));
 	log_debug(logger, "/getattr %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -310,11 +331,13 @@ void serve_truncate(int socket, struct nipc_truncate *request) {
 
 	int32_t codError = truncarArchivo(request->path, request->offset);
 	if (codError != 0)
-		send_no_ok(socket,codError);
+		send_no_ok(socket,codError, request->client_id);
 	else
-		send_ok(socket);
+		send_ok(socket, request->client_id);
 
 	log_debug(logger, "/truncate %s", request->path);
+	free(request->path);
+	free(request);
 }
 
 /**
@@ -326,6 +349,8 @@ void serve_unknown(int socket, struct nipc_packet *request) {
 	struct nipc_packet *error = new_nipc_error("Paquete desconocido");
 	nipc_send(socket, error);
 	log_debug(logger, "/unknown de tipo %d", request->type);
+	free(request->data);
+	free(request);
 }
 
 u_int32_t generate_client_id() {
@@ -353,6 +378,8 @@ void serve_handshake(int socket, struct nipc_packet *request) {
 
 void serve_disconnected(int socket, struct nipc_packet *request) {
 	log_debug(logger, "desconectado del servidor");
+	free(request->data);
+	free(request);
 	close(socket);
 }
 
@@ -418,7 +445,7 @@ void initialize_configuration() {
 	int log_has_console = config_get_int_value(config, "logger.has_console");
 
 	sleep_time = config_get_int_value(config, "sleep_time");
-	sleep_type = config_get_string_value(config, "sleep_type");
+	sleep_type = strdup(config_get_string_value(config, "sleep_type"));
 
 	logger = log_create(log_file, log_name, log_has_console,
 			log_level_from_string(log_level));
@@ -467,7 +494,7 @@ void initialize_configuration() {
 
     init_semaforos();
 
-//	config_destroy(config);
+	config_destroy(config);
 }
 
 
@@ -536,8 +563,9 @@ int32_t main(void) {
 				pthread_attr_setdetachstate(thread_attributes, PTHREAD_CREATE_DETACHED);
                 int pthread_return = pthread_create(&threadID, NULL, &serveRequest, &querySocket);
                 pthread_attr_destroy(thread_attributes);
+                free(thread_attributes);
                 if(pthread_return != 0) {
-                    printf("Wanda nara %s", strerror(pthread_return));
+                    printf("Wanda nara %s", strerror(pthread_return)); // FIXME: pimp my log
                 }
 			}
 		}

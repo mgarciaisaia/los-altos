@@ -244,13 +244,13 @@ struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize);
 
 struct nipc_packet* new_nipc_error(char *errorMessage);
 
-struct nipc_packet* new_nipc_ok();
+struct nipc_packet* new_nipc_ok(u_int32_t client_id);
 
 
 
 
 
-struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength);
+struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength, u_int32_t client_id);
 
 
 
@@ -265,6 +265,7 @@ void readdir_entry_destroy(void *target);
 
 struct nipc_readdir_response {
     enum tipo_nipc nipcType;
+    u_int32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_readdir_response*);
     u_int32_t entriesLength;
     struct readdir_entry *entries;
@@ -274,21 +275,22 @@ struct nipc_readdir_response* deserialize_readdir_response(struct nipc_packet* p
 
 struct nipc_readdir_response* empty_nipc_readdir_response();
 
-struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength, struct readdir_entry *entries);
+struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength, struct readdir_entry *entries, u_int32_t client_id);
 
 
 
 struct nipc_getattr_response {
     enum tipo_nipc nipcType;
+    u_int32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_getattr_response*);
     struct readdir_entry *entry;
 };
 
 struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* packet);
 
-struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry);
+struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry, u_int32_t client_id);
 
-struct nipc_packet *new_getattr_error(int errorNumber);
+struct nipc_packet *new_getattr_error(int errorNumber, u_int32_t client_id);
 
 struct nipc_packet *new_nipc_handshake_hello();
 

@@ -33,16 +33,16 @@
 extern t_list * archivos_abiertos;
 
 static uint32_t nro_de_grupo = 0;
-static pthread_mutex_t  * sem_escribir;
-static pthread_mutex_t * sem_liberar_bloque;
-static pthread_mutex_t * sem_pedir_bloque;
-static pthread_mutex_t * sem_crear_dir;
-static pthread_mutex_t * sem_inodo_new_dir;
-static pthread_mutex_t * sem_separar_path;
-static pthread_mutex_t * sem_liberar_inodo;
-static pthread_mutex_t * sem_crear_archivo;
-static pthread_mutex_t * sem_eliminar_archivo;
-static pthread_mutex_t * sem_truncar_archivo;
+static pthread_mutex_t sem_escribir;
+static pthread_mutex_t sem_liberar_bloque;
+static pthread_mutex_t sem_pedir_bloque;
+static pthread_mutex_t sem_crear_dir;
+static pthread_mutex_t sem_inodo_new_dir;
+static pthread_mutex_t sem_separar_path;
+static pthread_mutex_t sem_liberar_inodo;
+static pthread_mutex_t sem_crear_archivo;
+static pthread_mutex_t sem_eliminar_archivo;
+static pthread_mutex_t sem_truncar_archivo;
 
 static const int tamanio_bloque = 1024;
 uint8_t *ptr_arch;
@@ -53,40 +53,29 @@ void set_logger_funciones(t_log *logger_para_funciones) {
 }
 
 void init_semaforos(void) {
-
-	sem_escribir = malloc(sizeof(pthread_mutex_t));
-	sem_liberar_bloque = malloc(sizeof(pthread_mutex_t));
-	sem_pedir_bloque = malloc(sizeof(pthread_mutex_t));
-	sem_crear_dir = malloc(sizeof(pthread_mutex_t));
-	sem_inodo_new_dir = malloc(sizeof(pthread_mutex_t));
-	sem_separar_path = malloc(sizeof(pthread_mutex_t));
-	sem_liberar_inodo = malloc(sizeof(pthread_mutex_t));
-	sem_crear_archivo = malloc(sizeof(pthread_mutex_t));
-	sem_eliminar_archivo = malloc(sizeof(pthread_mutex_t));
-	sem_truncar_archivo = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(sem_escribir, NULL);
-	pthread_mutex_init(sem_liberar_bloque, NULL);
-	pthread_mutex_init(sem_pedir_bloque, NULL);
-	pthread_mutex_init(sem_crear_dir, NULL);
-	pthread_mutex_init(sem_inodo_new_dir, NULL);
-	pthread_mutex_init(sem_separar_path, NULL);
-	pthread_mutex_init(sem_liberar_inodo, NULL);
-	pthread_mutex_init(sem_crear_archivo, NULL);
-	pthread_mutex_init(sem_eliminar_archivo, NULL);
-	pthread_mutex_init(sem_truncar_archivo, NULL);
+	pthread_mutex_init(&sem_escribir, NULL);
+	pthread_mutex_init(&sem_liberar_bloque, NULL);
+	pthread_mutex_init(&sem_pedir_bloque, NULL);
+	pthread_mutex_init(&sem_crear_dir, NULL);
+	pthread_mutex_init(&sem_inodo_new_dir, NULL);
+	pthread_mutex_init(&sem_separar_path, NULL);
+	pthread_mutex_init(&sem_liberar_inodo, NULL);
+	pthread_mutex_init(&sem_crear_archivo, NULL);
+	pthread_mutex_init(&sem_eliminar_archivo, NULL);
+	pthread_mutex_init(&sem_truncar_archivo, NULL);
 }
 
 void destroy_semaforos(void) {
-	pthread_mutex_destroy(sem_escribir);
-	pthread_mutex_destroy(sem_liberar_bloque);
-	pthread_mutex_destroy(sem_pedir_bloque);
-	pthread_mutex_destroy(sem_crear_dir);
-	pthread_mutex_destroy(sem_inodo_new_dir);
-	pthread_mutex_destroy(sem_separar_path);
-	pthread_mutex_destroy(sem_liberar_inodo);
-	pthread_mutex_destroy(sem_crear_archivo);
-	pthread_mutex_destroy(sem_eliminar_archivo);
-	pthread_mutex_destroy(sem_truncar_archivo);
+	pthread_mutex_destroy(&sem_escribir);
+	pthread_mutex_destroy(&sem_liberar_bloque);
+	pthread_mutex_destroy(&sem_pedir_bloque);
+	pthread_mutex_destroy(&sem_crear_dir);
+	pthread_mutex_destroy(&sem_inodo_new_dir);
+	pthread_mutex_destroy(&sem_separar_path);
+	pthread_mutex_destroy(&sem_liberar_inodo);
+	pthread_mutex_destroy(&sem_crear_archivo);
+	pthread_mutex_destroy(&sem_eliminar_archivo);
+	pthread_mutex_destroy(&sem_truncar_archivo);
 }
 
 void mapear_archivo(char *ruta_archivo) {
@@ -230,10 +219,12 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 			if(string_equals_ignore_case(nombre,ruta)){
 				log_trace(logger_funciones, "nro de inodo que gestiona %s es %u\n",ruta,directorio->inode);
 				nroInodoBuscado = directorio->inode;
+				free(nombre);
 				break;
 			}
 			cantidad += directorio->entry_len;
 			ptr += directorio->entry_len;
+			free(nombre);
 		}
 
 	}
@@ -321,7 +312,7 @@ size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **buf
         return bytesLeidos;
     } else {
         // FIXME: el archivo no esta abierto. contestar
-        return -ENOENT;
+        return ENOENT;
     }
 }
 
@@ -431,7 +422,7 @@ struct INode * getInodoDeLaDireccionDelPath(char * path){
 
 int32_t truncarArchivo(char * path,uint32_t offset){
 
-	pthread_mutex_lock(sem_truncar_archivo);
+	pthread_mutex_lock(&sem_truncar_archivo);
 	int32_t resultado = 0;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
@@ -583,7 +574,7 @@ int32_t truncarArchivo(char * path,uint32_t offset){
 	free(ruta_separada->nombre);
 	free(ruta_separada);
 
-	pthread_mutex_unlock(sem_truncar_archivo);
+	pthread_mutex_unlock(&sem_truncar_archivo);
 	return resultado;
 }
 
@@ -639,7 +630,7 @@ uint32_t * getPtrNroBloqueLogicoDentroInodo(struct INode * inodo,uint32_t nroBlo
  * Libero el bloque de dato
  */
 void liberarBloque(uint32_t * ptrBloqueDeDato){
-	pthread_mutex_lock(sem_liberar_bloque);
+	pthread_mutex_lock(&sem_liberar_bloque);
 	uint32_t nroBloque = 0;
 	uint32_t * ptrNroBloque = &nroBloque;
 	uint32_t nroBloqueDeDato = *ptrBloqueDeDato;
@@ -658,12 +649,12 @@ void liberarBloque(uint32_t * ptrBloqueDeDato){
 	memcpy(ptrBloqueDeDato,ptrNroBloque,sizeof(uint32_t));
 	(grupo->free_blocks_count)++;	//aumento la cantidad de bloques libres en el group descriptor
 	(sb->free_blocks)++;			//aumento la cantidad de bloques libres en el superbloque
-	pthread_mutex_unlock(sem_liberar_bloque);
+	pthread_mutex_unlock(&sem_liberar_bloque);
 }
 
 uint32_t getBloqueLibre(){
 
-	pthread_mutex_lock(sem_pedir_bloque);
+	pthread_mutex_lock(&sem_pedir_bloque);
 	uint32_t nroBloqueDeDato = 0;
 	struct GroupDesc * gd = leerGroupDescriptor(nro_de_grupo);
 	if(gd->free_blocks_count == 0){
@@ -674,7 +665,7 @@ uint32_t getBloqueLibre(){
 	for(nro_de_grupo = 0;nroBloqueDeDato == 0;nro_de_grupo++)
 		nroBloqueDeDato = getBloqueLibreDelBitmap(nro_de_grupo);
 	actualizarEstructurasCuandoPidoBloque(nroBloqueDeDato);
-	pthread_mutex_unlock(sem_pedir_bloque);
+	pthread_mutex_unlock(&sem_pedir_bloque);
 	return nroBloqueDeDato;
 }
 
@@ -725,9 +716,9 @@ void escribirBloque(void * posicionPtr,uint32_t size){
 int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
 
 	int32_t resultado = 0;
-	pthread_mutex_lock(sem_escribir);
+	pthread_mutex_lock(&sem_escribir);
 	struct archivo_abierto * registro_archivo = getRegistroArchivoAbierto(getNroInodoDeLaDireccionDelPath(path));
-	pthread_mutex_unlock(sem_escribir);
+	pthread_mutex_unlock(&sem_escribir);
 
 	if(registro_archivo->cantidad_abiertos == 0){
 		pthread_rwlock_wrlock(registro_archivo->lock);
@@ -775,7 +766,7 @@ void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset){
 }
 
 int32_t crearDirectorio(char * path, uint32_t mode){
-	pthread_mutex_lock(sem_crear_dir);
+	pthread_mutex_lock(&sem_crear_dir);
 	int32_t resultado = 0;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
@@ -803,12 +794,12 @@ int32_t crearDirectorio(char * path, uint32_t mode){
 		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
 	}
-	pthread_mutex_unlock(sem_crear_dir);
+	pthread_mutex_unlock(&sem_crear_dir);
 	return resultado;
 }
 
 t_ruta_separada * separarPathParaNewDirEntry(char * path){
-	pthread_mutex_lock(sem_separar_path);
+	pthread_mutex_lock(&sem_separar_path);
 	t_ruta_separada * ruta_separada = malloc(sizeof(t_ruta_separada));
 	char * separador = "/";
 	if(size_array_before_split(path,separador) <= 1){
@@ -829,7 +820,7 @@ t_ruta_separada * separarPathParaNewDirEntry(char * path){
 		ruta_separada->nombre = calloc(1,strlen(nombre_carpeta) + 1);
 		strncpy(ruta_separada->nombre,nombre_carpeta,tamanio_nombre);
 	}
-	pthread_mutex_unlock(sem_separar_path);
+	pthread_mutex_unlock(&sem_separar_path);
 	return ruta_separada;
 }
 
@@ -888,7 +879,7 @@ uint32_t tamanioMinEntradaDirectorio(char * nombre){
  * Return: número de inodo al que se asigna esta nueva entrada
  */
 void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante){
-	pthread_mutex_lock(sem_inodo_new_dir);
+	pthread_mutex_lock(&sem_inodo_new_dir);
 	struct DirEntry * entrada_nueva = calloc(1,sizeof(struct DirEntry) + strlen(nombre) + 1);
 	uint32_t nroInodoLibre = getInodoLibre();
 	entrada_nueva->inode = nroInodoLibre;
@@ -899,7 +890,7 @@ void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t siz
 	struct INode * inodo = getInodo(entrada_nueva->inode);
 	inodo->size = 0;
 	free(entrada_nueva);
-	pthread_mutex_unlock(sem_inodo_new_dir);
+	pthread_mutex_unlock(&sem_inodo_new_dir);
 }
 
 uint32_t getInodoLibre(){
@@ -1114,7 +1105,7 @@ void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
 }
 
 void liberarInodo(uint32_t nroInodoDirectorio){
-	pthread_mutex_lock(sem_liberar_inodo);
+	pthread_mutex_lock(&sem_liberar_inodo);
 	struct INode * inodoDirEliminado = getInodo(nroInodoDirectorio);
 	uint32_t tamanio = inodoDirEliminado->size;
 	uint32_t offset;
@@ -1143,7 +1134,7 @@ void liberarInodo(uint32_t nroInodoDirectorio){
 	inodoDirEliminado->mode = 0;
 	inodoDirEliminado->links = 0;
 	inodoDirEliminado->size = 0;
-	pthread_mutex_unlock(sem_liberar_inodo);
+	pthread_mutex_unlock(&sem_liberar_inodo);
 
 }
 
@@ -1166,7 +1157,7 @@ int directorioVacio(uint32_t nroInodoDirectorio){
 
 int32_t crearArchivo(char * path, uint32_t mode){
 	int32_t resultado = 0;
-	pthread_mutex_lock(sem_crear_archivo);
+	pthread_mutex_lock(&sem_crear_archivo);
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
@@ -1187,7 +1178,7 @@ int32_t crearArchivo(char * path, uint32_t mode){
 		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
 	}
-	pthread_mutex_unlock(sem_crear_archivo);
+	pthread_mutex_unlock(&sem_crear_archivo);
 	return resultado;
 }
 
@@ -1206,7 +1197,7 @@ void setearInodo(struct INode * inodo, uint32_t mode){
 int32_t eliminarArchivo(char * path){
 
 	int32_t resultado = 0;
-	pthread_mutex_lock(sem_eliminar_archivo);
+	pthread_mutex_lock(&sem_eliminar_archivo);
 	struct Superblock * sb;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
@@ -1237,7 +1228,7 @@ int32_t eliminarArchivo(char * path){
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
-	pthread_mutex_lock(sem_eliminar_archivo);
+	pthread_mutex_lock(&sem_eliminar_archivo);
 
 	return resultado;
 }

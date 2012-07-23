@@ -182,8 +182,7 @@ static struct nipc_packet* serialize_write(struct nipc_write* payload) {
     packet->client_id = payload->client_id;
     int path_lenght = strlen(payload->path) + 1;
 
-    packet->data_length = path_lenght + payload->size + sizeof(payload->size)
-            + sizeof(payload->offset);
+    packet->data_length = path_lenght + payload->size + sizeof(payload->size) + sizeof(payload->offset);
 
     packet->data = malloc(packet->data_length);
 
@@ -191,11 +190,9 @@ static struct nipc_packet* serialize_write(struct nipc_write* payload) {
 
     memcpy(packet->data + path_lenght, &(payload->size), sizeof(payload->size));
 
-    memcpy(packet->data + path_lenght + sizeof(payload->size), payload->data,
-            payload->size);
+    memcpy(packet->data + path_lenght + sizeof(payload->size), payload->data, payload->size);
 
-    memcpy(packet->data + path_lenght + sizeof(payload->size) + payload->size,
-            &(payload->offset), sizeof(payload->offset));
+    memcpy(packet->data + path_lenght + sizeof(payload->size) + payload->size, &(payload->offset), sizeof(payload->offset));
 
     return packet;
 }
@@ -206,16 +203,14 @@ struct nipc_write* deserialize_write(struct nipc_packet* packet) {
     }
     struct nipc_write* instance = empty_nipc_write();
     instance->client_id = packet->client_id;
+
     size_t path_length = strlen(packet->data) + 1;
     instance->path = malloc(path_length);
     strcpy(instance->path, packet->data);
-    memcpy(&(instance->size), packet->data + path_length,
-            sizeof(instance->size));
+    memcpy(&(instance->size), packet->data + path_length, sizeof(instance->size));
     instance->data = malloc(instance->size);
-    strcpy(instance->data, packet->data + path_length + sizeof(instance->size));
-    memcpy(&(instance->offset),
-            packet->data + path_length + sizeof(instance->size)
-                    + instance->size, sizeof(instance->offset));
+    memcpy(instance->data, packet->data + path_length + sizeof(instance->size), instance->size);
+    memcpy(&(instance->offset), packet->data + path_length + sizeof(instance->size) + instance->size, sizeof(instance->offset));
     free(packet->data);
     free(packet);
     return instance;
@@ -567,7 +562,7 @@ size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket) {
         memcpy(*rawPacket + typeLenght + clientIdSize + dataLengthLength, packet->data,
             packet->data_length);
     }
-    // FIXME: free(packet->data);
+    free(packet->data);
     free(packet);
     return packetSize;
 }
@@ -595,9 +590,10 @@ struct nipc_packet* new_nipc_error(char *errorMessage) {
     return instance;
 }
 
-struct nipc_packet* new_nipc_ok() {
+struct nipc_packet* new_nipc_ok(u_int32_t client_id) {
     struct nipc_packet *instance = malloc(sizeof(struct nipc_packet));
     instance->type = nipc_ok;
+    instance->client_id = client_id;
     instance->data = NULL;
     instance->data_length = 0;
     return instance;
@@ -608,9 +604,10 @@ struct nipc_packet* new_nipc_ok() {
 
 
 
-struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength) {
+struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength, u_int32_t client_id) {
     struct nipc_packet *instance = malloc(sizeof(struct nipc_packet));
     instance->type = nipc_read_response;
+    instance->client_id = client_id;
     instance->data = data;
     instance->data_length = dataLength;
     return instance;
@@ -720,10 +717,11 @@ struct nipc_readdir_response* empty_nipc_readdir_response() {
     return instance;
 }
 
-struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength, struct readdir_entry *entries) {
+struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength, struct readdir_entry *entries, u_int32_t client_id) {
     struct nipc_readdir_response* instance = empty_nipc_readdir_response();
     instance->entriesLength = entriesLength;
     instance->entries = entries;
+    instance->client_id = client_id;
     return instance;
 }
 
@@ -734,6 +732,8 @@ struct nipc_readdir_response* new_nipc_readdir_response(u_int32_t entriesLength,
 static struct nipc_packet* serialize_getattr_response(struct nipc_getattr_response *payload) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
     packet->type = payload->nipcType;
+
+    packet->client_id = 0;
 
     packet->data_length = sizeof(payload->entry->mode) + sizeof(payload->entry->n_link) + sizeof(payload->entry->size);
     packet->data = malloc(packet->data_length);
@@ -784,16 +784,18 @@ struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* p
     return instance;
 }
 
-struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry) {
+struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry, u_int32_t client_id) {
     struct nipc_getattr_response *response = empty_nipc_getattr_response();
     response->entry = entry;
+    response->client_id = client_id;
     return response;
 }
 
-struct nipc_packet *new_getattr_error(int errorNumber) {
+struct nipc_packet *new_getattr_error(int32_t errorNumber, u_int32_t client_id) {
     struct nipc_packet* packet = malloc(sizeof(struct nipc_packet));
 
     packet->type = nipc_getattr_error;
+    packet->client_id = client_id;
     packet->data_length = sizeof(errorNumber);
     packet->data = malloc(packet->data_length);
 

@@ -51,6 +51,7 @@ int nipc_send(int socketDescriptor, struct nipc_packet *request) {
         if (sentChunkSize < 0) {
             log_error(logger_socket, "Error enviando un chunk - %s", strerror(errno));
             perror("Error enviando un chunk");
+            free(rawRequest);
             return -1;
         }
         sentBytes += sentChunkSize;
@@ -58,6 +59,7 @@ int nipc_send(int socketDescriptor, struct nipc_packet *request) {
     }
 
     log_trace(logger_socket, "Envie %d bytes (total: %d)", sentBytes, requestSize);
+    free(rawRequest);
     return sentBytes;
 }
 
@@ -73,9 +75,11 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         int received = recv(socketDescriptor, header, headerSize, MSG_PEEK);
         if (received < 0) {
             log_error(logger_socket, "Error recibiendo cabecera en %d - %s", socketDescriptor, strerror(errno));
+            free(header);
             return new_nipc_error("Error recibiendo cabecera");
         } else if(received == 0) {
             log_error(logger_socket, "Error recibiendo cabecera en %d - Desconectado del servidor", socketDescriptor);
+            free(header);
             return new_nipc_disconnected();
         }
         receivedHeaderLenght += received;
