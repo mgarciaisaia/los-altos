@@ -261,6 +261,8 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
 		struct nipc_readdir_response *response = new_nipc_readdir_response(
 				entradas->elements_count, entries, request->client_id );
 		nipc_send(socket, response->serialize(response));
+		free(response->entries);
+		free(response);
 		list_destroy_and_destroy_elements(entradas, &readdir_entry_destroy);
 
 	} else

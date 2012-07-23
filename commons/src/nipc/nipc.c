@@ -656,6 +656,7 @@ static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_respon
     }
 
     packet->type = payload->nipcType;
+    packet->client_id = payload->client_id;
     packet->data_length = entriesSize + sizeof(payload->entriesLength);
     packet->data = malloc(packet->data_length);
     void *stream = packet->data;
@@ -667,7 +668,10 @@ static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_respon
         size_t entrySize = *((size_t *)serializedEntry);
         memcpy(stream, serializedEntry, entrySize);
         stream += entrySize;
+        free(serializedEntries[index]);
     }
+
+    free(serializedEntries);
 
     return packet;
 }
