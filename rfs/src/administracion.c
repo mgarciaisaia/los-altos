@@ -56,7 +56,9 @@ void registrar_cierre(t_list *archivos_abiertos, struct archivo_abierto *nodo_ar
             t_link_element *element = archivos_abiertos->head;
             for(index = 0; index < archivos_abiertos->elements_count; index++) {
                 if(element != NULL && ((struct archivo_abierto *)element->data) == nodo_archivo) {
-                    free(list_remove(archivos_abiertos, index));
+                    struct archivo_abierto *nodo = list_remove(archivos_abiertos, index);
+                    free(nodo->lock);
+                    free(nodo);
                     return;
                 }
                 element = element->next;
@@ -75,7 +77,7 @@ struct archivos_cliente *obtener_o_crear_lista_del_cliente(t_dictionary *archivo
     struct archivos_cliente *archivos_cliente = (struct archivos_cliente *) dictionary_get(archivos_por_cliente, str_client_id);
     if(archivos_cliente == NULL) {
         archivos_cliente = malloc(sizeof(struct archivos_cliente));
-        archivos_cliente->lock = malloc(sizeof(archivos_cliente->lock));
+        archivos_cliente->lock = malloc(sizeof(pthread_mutex_t));
         pthread_mutex_init(archivos_cliente->lock, NULL);
         archivos_cliente->archivos = list_create();
         dictionary_put(archivos_por_cliente, str_client_id, archivos_cliente);
@@ -104,7 +106,7 @@ void registrar_cierre_cliente(t_dictionary *archivos_por_cliente, uint32_t clien
     t_link_element *element = archivos_cliente->archivos->head;
     for(index = 0; index < archivos_cliente->archivos->elements_count; index++) {
         if(element != NULL && *((uint32_t *)element->data) == numero_inodo) {
-            list_remove(archivos_cliente->archivos, index);
+            free(list_remove(archivos_cliente->archivos, index));
             continue;
         }
         element = element->next;

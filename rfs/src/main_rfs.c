@@ -90,8 +90,8 @@ void serve_open(int socket, struct nipc_open *request) {
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
 				archivos_abiertos, numero_inodo);
 		registrar_apertura(nodo_archivo);
-//        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
-//        registrar_apertura_cliente(archivos_cliente, numero_inodo);
+        struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
+        registrar_apertura_cliente(archivos_cliente, numero_inodo);
 		send_ok(socket, request->client_id);
 	} else {
 	    send_no_ok(socket, ENOENT, request->client_id);
@@ -180,7 +180,7 @@ void serve_release(int socket, struct nipc_release *request) {
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
 				archivos_abiertos, numero_inodo);
 		registrar_cierre(archivos_abiertos, nodo_archivo);
-//        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
+        registrar_cierre_cliente(archivos_por_cliente, request->client_id, numero_inodo);
 
 		//		send_no_ok(socket, ERROR2);
 		send_ok(socket, request->client_id);
