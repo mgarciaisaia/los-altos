@@ -180,6 +180,9 @@ t_list * listarDirectorio(char * path){
 	struct INode * inodo;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	nroInodoDeRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+    free(ruta_separada->nombre);
+	free(ruta_separada->ruta);
+	free(ruta_separada);
 	if(nroInodoDeRuta != 0){
 		nroInodoDeDirectorio = getNroInodoDeLaDireccionDelPath(path);
 		if(nroInodoDeDirectorio != 0){
@@ -783,9 +786,6 @@ int32_t crearDirectorio(char * path, uint32_t mode){
 			uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 
 			inicializarEntradasNuevoDir(inodoNuevoDir,0,nroInodoEntradaNueva,nroInodoRuta);
-			free(ruta_separada->ruta);
-			free(ruta_separada->nombre);
-			free(ruta_separada);
 		} else {
 			resultado = EEXIST;
 			log_error(logger_funciones, "ya existe la carpeta %s",ruta_separada->nombre);
@@ -794,6 +794,9 @@ int32_t crearDirectorio(char * path, uint32_t mode){
 		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
 	}
+    free(ruta_separada->ruta);
+    free(ruta_separada->nombre);
+    free(ruta_separada);
 	pthread_mutex_unlock(&sem_crear_dir);
 	return resultado;
 }
@@ -801,6 +804,8 @@ int32_t crearDirectorio(char * path, uint32_t mode){
 t_ruta_separada * separarPathParaNewDirEntry(char * path){
 	pthread_mutex_lock(&sem_separar_path);
 	t_ruta_separada * ruta_separada = malloc(sizeof(t_ruta_separada));
+	ruta_separada->nombre = NULL;
+	ruta_separada->ruta = NULL;
 	char * separador = "/";
 	if(size_array_before_split(path,separador) <= 1){
 		char ** vector_ruta = string_split(path,separador);
@@ -809,8 +814,10 @@ t_ruta_separada * separarPathParaNewDirEntry(char * path){
             ruta_separada->nombre = calloc(1,strlen(vector_ruta[0]));
             strncpy(ruta_separada->nombre,vector_ruta[0],strlen(vector_ruta[0]));
 		} else {
-		    ruta_separada->nombre = "";
+		    ruta_separada->nombre = strdup("");
 		}
+		string_iterate_lines(vector_ruta, (void*) free);
+		free(vector_ruta);
 	} else {
 		char * nombre_carpeta = rindex(path,'/');
 		uint32_t tamanio_nombre = strlen(nombre_carpeta);
@@ -1169,9 +1176,6 @@ int32_t crearArchivo(char * path, uint32_t mode){
 			uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
 			struct INode * inodoDeArchivo = getInodo(nroInodoEntradaNueva);
 			setearInodo(inodoDeArchivo,mode);
-			free(ruta_separada->ruta);
-			free(ruta_separada->nombre);
-			free(ruta_separada);
 		} else {
 			resultado = EEXIST;
 			log_error(logger_funciones, "ya existe el archivo %s",ruta_separada->nombre);
@@ -1180,6 +1184,9 @@ int32_t crearArchivo(char * path, uint32_t mode){
 		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
 	}
+    free(ruta_separada->ruta);
+    free(ruta_separada->nombre);
+    free(ruta_separada);
 	pthread_mutex_unlock(&sem_crear_archivo);
 	return resultado;
 }
