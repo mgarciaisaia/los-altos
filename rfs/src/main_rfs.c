@@ -564,6 +564,7 @@ int32_t main(void) {
 				pthread_attr_init(thread_attributes);
 				pthread_attr_setdetachstate(thread_attributes, PTHREAD_CREATE_DETACHED);
                 int pthread_return = pthread_create(&threadID, NULL, &serveRequest, &querySocket);
+                pthread_detach(threadID);
                 pthread_attr_destroy(thread_attributes);
                 free(thread_attributes);
                 if(pthread_return != 0) {
