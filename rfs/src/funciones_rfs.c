@@ -1003,6 +1003,8 @@ uint32_t getNroInodoDeLaDireccionDelPath(char * path){
 		}
 		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
 	}
+	string_iterate_lines(ruta_separada, (void*) free);
+	free(ruta_separada);
 	return nroInodoDeBusqueda;
 }
 
