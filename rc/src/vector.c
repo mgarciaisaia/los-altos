@@ -165,6 +165,9 @@ uint32_t ordenar_vector(uint32_t posicion) {
 
 	for (i = 0; i < cantRegistros; i++) {
 
+		if (i == 8000)
+			printf("valor %d \n",i);
+
 		for (j = 0; j < cantRegistros; j++) {
 
 			//&& ((key_vector[j].data_size > 0) && (key_vector[j+1].data_size > 0) ) sin eso me quedan todos los vacios adelante
@@ -200,9 +203,10 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 	while (((((posicion_new) < cantRegistros) && (posicion_new) >= 0))
 			&& !termine) {
 
-		if (((posicion_new + i) < cantRegistros)
+		if (key_vector[posicion_new].libre){
+		if ((((posicion_new + i) < cantRegistros)
 				&& (key_vector[posicion_new + i].libre
-						&& key_vector[posicion_new + i].data_size > 0)) {
+						&& key_vector[posicion_new + i].data_size > 0)) && (key_vector[posicion_new + i].data_size == key_vector[posicion_new].data_size))  {
 
 			// juntarlos y actualizar el que borre. tener en cuenta el espacio inutilizado. Crear el nuevo campo en el vector
 
@@ -212,9 +216,9 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 							+ key_vector[posicion_new + i].data_unuse;
 			key_vector[posicion_new + i].data_size = 0;
 		}
-		if (((posicion_new - i) > 0)
+		if ((((posicion_new - i) > 0)
 				&& (key_vector[posicion_new - i].libre
-						&& key_vector[posicion_new - i].data_size > 0)) {
+						&& key_vector[posicion_new - i].data_size > 0)) && (key_vector[posicion_new - i].data_size == key_vector[posicion_new].data_size))  {
 
 			// juntarlos y actualizar el que borre. tener en cuenta el espacio inutilizado.
 
@@ -224,7 +228,7 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 									+ key_vector[posicion_new - i].data_unuse);
 			key_vector[posicion_new - i].data_size = 0;
 		}
-
+		}
 		if (((!key_vector[posicion_new + i].libre)
 				&& !(key_vector[posicion_new - i].libre))
 				|| ((key_vector[posicion_new + i].data_size > 0)
@@ -232,10 +236,7 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 				|| (((posicion_new - i) < 0)
 						|| ((posicion_new + i) == cantRegistros)))
 			termine = true;
-//			 if (((posicion_new - i) < 0) || ((posicion_new + i) == cantRegistros))
-//	termine = 1;
 
-//	else
 		i++;
 
 	}
@@ -303,15 +304,20 @@ uint32_t compactarDinam(void) {
 						key_vector[posicion_new + i].data_size);
 				//actualizo el vector
 				key_element aux;
+				aux.key = key_vector[i].key;
 				aux.data_size = key_vector[i].data_size;
 				aux.data_unuse = key_vector[i].data_unuse;
 				aux.data = key_vector[i].data
 						+ key_vector[posicion_new + i].data_size;
 
+				//aca no me actualizo el estado de ocupado
 				key_vector[i] = key_vector[posicion_new + i];
 				key_vector[posicion_new + i].data_size = aux.data_size;
 				key_vector[posicion_new + i].data = aux.data;
 				key_vector[posicion_new + i].data_unuse = aux.data_unuse;
+				key_vector[posicion_new + i].key = aux.key;
+				key_vector[posicion_new + i].stored = false;
+				key_vector[posicion_new + i].libre = true;
 
 				ultimo_libre = i + posicion_new;
 			}
@@ -368,9 +374,11 @@ key_element *buscarLibreNext(size_t espacio) {
 	uint32_t i = ultima_posicion;
 	char encontrado = 0;
 
+	int32_t diferencia = 0;
 // calcula si va a haber fragmentacion
 	int32_t resto = espacio % part_minima;
-	int32_t diferencia = part_minima - resto;
+	if (resto != 0)
+		diferencia = part_minima - resto;
 
 	pthread_rwlock_rdlock(keyVector);
 // aca dentro hay funciones que usan el bloqueo de escritura,
@@ -476,9 +484,11 @@ key_element *buscarLibreWorst(size_t espacio) {
 	uint32_t mayor_tamano = 0;
 	char encontrado = 0;
 	uint32_t particion = 0;
+	int32_t diferencia = 0;
 // calcula si va a haber fragmentacion
 	int32_t resto = espacio % part_minima;
-	int32_t diferencia = part_minima - resto;
+	if (resto != 0)
+		diferencia = part_minima - resto;
 
 	pthread_rwlock_rdlock(keyVector);
 
@@ -579,7 +589,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 	key_element *resultado;
 	uint32_t i = 0;
 	char encontrado = 0;
-	uint32_t lugares = cantRegistros;;
+	uint32_t lugares = cantRegistros;
 
 	pthread_rwlock_rdlock(keyVector);
 //|| (key_vector[i].data_size > 0)
@@ -614,7 +624,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			}
 		} else {
 
-			if (((encontrado == 0) &&(key_vector[i].data_size > espacio))
+			if (((encontrado == 0) &&(key_vector[i].data_size >= espacio))
 					&& ((key_vector[i].libre))){
 				if (lugares == cantRegistros)
 				lugares = i;
@@ -635,7 +645,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 
 		uint32_t prox_particion = key_vector[lugares].data_size / 2;
 
-		if ((espacio < prox_particion) && (prox_particion >= part_minima)) {
+		if ((espacio <= prox_particion) && (prox_particion >= part_minima)) {
 			//CREAR LA PARTICION SIGUIENTE
 			prox_espacio = key_vector[lugares].data_size / 2;
 

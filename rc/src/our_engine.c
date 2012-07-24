@@ -174,6 +174,11 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 		parse_config(config_str, items, NULL);
 
+		if (engine->config.block_size_max > 0 )
+			engine->config.cache_max_size = engine->config.block_size_max;
+		else
+			engine->config.block_size_max = engine->config.cache_max_size;
+
 		mtrace();
 
 		config = config_create(PATH_CONFIG);

@@ -22,7 +22,7 @@ uint32_t cantRegistros;
 t_log *logger;
 
 void logger_operation(const char *operation, const char *key) {
-    log_debug(logger, "Operacion recibida: %s la key %s", operation, key);
+    log_debug(logger, "Operacion recibida: %s la key %s \n", operation, key);
 }
 
 bool esPotenciaDe(uint32_t valor) {
