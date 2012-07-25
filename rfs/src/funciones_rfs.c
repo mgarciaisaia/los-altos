@@ -723,7 +723,7 @@ int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offse
 	struct archivo_abierto * registro_archivo = getRegistroArchivoAbierto(getNroInodoDeLaDireccionDelPath(path));
 	pthread_mutex_unlock(&sem_escribir);
 
-	if(registro_archivo->cantidad_abiertos == 0){
+	if(registro_archivo->cantidad_abiertos > 0){
 		pthread_rwlock_wrlock(registro_archivo->lock);
 		uint32_t nroInodoPath = getNroInodoDeLaDireccionDelPath(path);
 		if(nroInodoPath == 0){
@@ -752,10 +752,10 @@ int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offse
 			}
 		}
 		pthread_rwlock_unlock(registro_archivo->lock);
-	} else
-//		ETXTBSY
-		printf("text file busy");
-
+	} else {
+	    log_error(logger_funciones, "El archivo %s no esta abierto", path);
+	    return ETXTBSY;
+	}
 
 	return resultado;
 }
