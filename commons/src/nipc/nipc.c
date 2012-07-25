@@ -84,6 +84,9 @@ static struct nipc_packet* serialize_open(struct nipc_open* payload) {
     memcpy(packet->data + path_lenght, &(payload->flags),
             sizeof(payload->flags));
 
+    free(payload->path);
+    free(payload);
+
     return packet;
 }
 
@@ -136,6 +139,9 @@ static struct nipc_packet* serialize_read(struct nipc_read* payload) {
 
     memcpy(packet->data + path_lenght + sizeof(payload->size),
             &(payload->offset), sizeof(payload->offset));
+
+    free(payload->path);
+    free(payload);
 
     return packet;
 }
@@ -291,6 +297,9 @@ static struct nipc_packet* serialize_release(struct nipc_release* payload) {
     memcpy(packet->data + path_lenght, &(payload->flags),
             sizeof(payload->flags));
 
+    free(payload->path);
+    free(payload);
+
     return packet;
 }
 
@@ -423,6 +432,7 @@ static struct nipc_packet* serialize_readdir(struct nipc_readdir* payload) {
     memcpy(packet->data + path_lenght, &(payload->offset),
             sizeof(payload->offset));
 
+    free(payload->path);
     free(payload);
 
     return packet;
@@ -468,6 +478,7 @@ static struct nipc_packet* serialize_getattr(struct nipc_getattr* payload) {
     packet->data = malloc(packet->data_length);
     memcpy(packet->data, payload->path, packet->data_length);
 
+    free(payload->path);
     free(payload);
 
     return packet;
@@ -781,6 +792,8 @@ struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* p
     data += sizeof(instance->entry->n_link);
 
     memcpy(&(instance->entry->size), data, sizeof(instance->entry->size));
+
+    instance->entry->path = NULL;
 
     free(packet->data);
     free(packet);

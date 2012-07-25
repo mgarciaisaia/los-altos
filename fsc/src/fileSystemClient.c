@@ -50,14 +50,19 @@ int check_error(const char *operation, const char *path,
 	if (response->type == nipc_error) {
 		log_error(logger, "%s en %s: %s", operation, path,
 				(char*) response->data);
+        free(response);
 		return -1;
 	} else {
 		if (response->type == nipc_getattr_error) {
-			if ((int32_t) response->data > 0)
+			if ((int32_t) response->data > 0) {
+			    free(response);
 				return (int32_t) response->data;
+			}
 		}
 		log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path,
 				response->type);
+		free(response->data);
+		free(response);
 		return -1;
 	}
 }
@@ -67,6 +72,8 @@ int check_ok_error(const char *operation, const char *path,
 	if (response->type != nipc_ok) {
 		return check_error(operation, path, response);
 	}
+	free(response->data);
+	free(response);
 	return 0;
 }
 
@@ -168,6 +175,8 @@ int remote_read(const char *path, char *output, size_t size, off_t offset,
 		size_t readBytes =
 				(response->data_length < size) ? response->data_length : size;
 		memcpy(output, response->data, readBytes);
+        free(response->data);
+        free(response);
 		return readBytes;
 	} else {
 		return check_error("read", path, response);
@@ -315,7 +324,11 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
         stats.st_mode = entry->mode;
         stats.st_size = entry->size;
         bufferIsFull = filler(output, entry->path, &stats, 0);
+        free(entry->path);
     }
+
+    free(readdirData->entries);
+    free(readdirData);
 
     if (bufferIsFull) {
         log_info(logger, "readdir: buffer lleno");
@@ -395,6 +408,11 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     statbuf->st_nlink = getattr->entry->n_link;
     statbuf->st_size = getattr->entry->size;
 
+    // No hago free() de getattr->entry->path porque en getattr ignoramos el path
+    // (es siempre NULL - se usa en readdir)
+    free(getattr->entry);
+    free(getattr);
+
     return 0;
 }
 
@@ -438,13 +456,19 @@ int remote_handshake() {
 			log_debug(logger, "hanshake: %d bytes %s", response->data_length,
 					response->data);
 			free(validData);
+			free(response->data);
+            free(response);
 			return -1;
 		} else {
             client_id = response->client_id;
             log_info(logger, "Handshake: conectado con Client ID %d", client_id);
+            free(response->data);
+            free(response);
 			return 0;
 		}
 	} else {
+	    free(response->data);
+        free(response);
 		return check_error("handshake", "", response);
 	}
 }
@@ -516,6 +540,7 @@ void initialize_configuration() {
             }
         }
         set_memcached_utils_logger(logger);
+        free(servers);
         // FIXME: hago free de servers o lo sigo necesitando?
 	}
 

@@ -29,6 +29,7 @@
 #include "administracion.h"
 #include <string.h>
 #include <sys/inotify.h>
+#include <arpa/inet.h>
 
 #define PATH_CONFIG "rfs.conf"
 
@@ -44,6 +45,32 @@ t_list *archivos_abiertos;
 u_int32_t generated_client_id = 0;
 pthread_mutex_t *mutex_client_id;
 t_dictionary *archivos_por_cliente;
+
+void avisar_socket_puerto(int socket, enum tipo_nipc tipo) {
+    socklen_t len;
+    struct sockaddr_storage addr;
+    char ipstr[INET6_ADDRSTRLEN];
+    int port;
+    len = sizeof addr;
+    getsockname(socket, (struct sockaddr*)&addr, &len);
+    // deal with both IPv4 and IPv6:
+    if (addr.ss_family == AF_INET) {
+    struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+    port = ntohs(s->sin_port);
+    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
+    } else { // AF_INET6
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
+    port = ntohs(s->sin6_port);
+    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof ipstr);
+    }
+    printf("******************************\n");
+    printf("Socket: %d\n", socket);
+    printf("IP address: %s\n", ipstr);
+    printf("port: %d\n", port);
+    printf("Tipo: %s\n", nombre_del_enum_nipc(tipo));
+    printf("******************************\n");
+}
+
 
 
 void send_no_ok(int socket, int32_t errorCode, uint32_t client_id) {
@@ -84,7 +111,7 @@ void do_sleep(void){
  * y en la lista de archivos del cliente
  */
 void serve_open(int socket, struct nipc_open *request) {
-	log_info(logger, "open %s", request->path);
+	log_info(logger, "open %s con flags %o (pide %d)", request->path, request->flags, request->client_id);
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
 		struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
@@ -96,7 +123,7 @@ void serve_open(int socket, struct nipc_open *request) {
 	} else {
 	    send_no_ok(socket, ENOENT, request->client_id);
 	}
-	log_info(logger, "/open %s", request->path);
+	log_info(logger, "FIN open %s con flags %o (pide %d)", request->path, request->flags, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -105,7 +132,7 @@ void serve_open(int socket, struct nipc_open *request) {
  * Si se creo el archivo, manda un nipc_ok, sino un nipc_error
  */
 void serve_create(int socket, struct nipc_create *request) {
-	log_debug(logger, "create %s", request->path);
+	log_debug(logger, "create %s mode %o (pide %d)", request->path, request->fileMode, request->client_id);
 
 	do_sleep();
 
@@ -116,7 +143,7 @@ void serve_create(int socket, struct nipc_create *request) {
 	else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "/create %s", request->path);
+	log_debug(logger, "FIN create %s mode %o (pide %d)", request->path, request->fileMode, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -125,7 +152,7 @@ void serve_create(int socket, struct nipc_create *request) {
  * Contesta un nipc_read_response con los datos leidos, o nipc_error
  */
 void serve_read(int socket, struct nipc_read *request) {
-	log_debug(logger, "read %s", request->path);
+	log_debug(logger, "read %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 	void *buffer;
 
 	do_sleep();
@@ -140,7 +167,7 @@ void serve_read(int socket, struct nipc_read *request) {
 				readBytes, request->client_id);
 		nipc_send(socket, response);
 	}
-	log_debug(logger, "/read %s", request->path);
+	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -149,7 +176,7 @@ void serve_read(int socket, struct nipc_read *request) {
  * Manda un nipc_ok si pudo grabar, o un nipc_error
  */
 void serve_write(int socket, struct nipc_write *request) {
-	log_debug(logger, "write %s", request->path);
+	log_debug(logger, "write %s @%d+%d (pide %d): %s", request->path, request->offset, request->size, request->client_id, request->data);
 
 	do_sleep();
 
@@ -161,7 +188,7 @@ void serve_write(int socket, struct nipc_write *request) {
 	else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "/write %s", request->path);
+	log_debug(logger, "FIN write %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 	free(request->path);
 	free(request->data);
 	free(request);
@@ -173,7 +200,7 @@ void serve_write(int socket, struct nipc_write *request) {
  * contestemos cualquiera
  */
 void serve_release(int socket, struct nipc_release *request) {
-	log_info(logger, "release %s", request->path);
+	log_info(logger, "release %s flags %o (pide %d)", request->path, request->flags, request->client_id);
 	uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
 	if (numero_inodo != 0) {
 		//FIXME:  si el archivo no esta abierto, romper
@@ -187,7 +214,7 @@ void serve_release(int socket, struct nipc_release *request) {
 	} else {
 		send_no_ok(socket, ENOENT, request->client_id);
 	}
-	log_info(logger, "/release %s", request->path);
+	log_info(logger, "FIN release %s flags %o (pide %d)", request->path, request->flags, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -196,7 +223,7 @@ void serve_release(int socket, struct nipc_release *request) {
  * Manda un nipc_ok si pudo hacer unlink, o nipc_error
  */
 void serve_unlink(int socket, struct nipc_unlink *request) {
-	log_debug(logger, "unlink %s", request->path);
+	log_debug(logger, "unlink %s (pide %d)", request->path, request->client_id);
 
 	do_sleep();
 
@@ -207,7 +234,7 @@ void serve_unlink(int socket, struct nipc_unlink *request) {
 	else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "/unlink %s", request->path);
+	log_debug(logger, "FIN unlink %s (pide %d)", request->path, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -216,7 +243,7 @@ void serve_unlink(int socket, struct nipc_unlink *request) {
  * nipc_ok, o nipc_error
  */
 void serve_mkdir(int socket, struct nipc_mkdir *request) {
-	log_debug(logger, "mkdir %s", request->path);
+	log_debug(logger, "mkdir %s modo %o (pide %d)", request->path, request->fileMode, request->client_id);
 
 	do_sleep();
 
@@ -227,7 +254,7 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
 	} else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "/mkdir %s", request->path);
+	log_debug(logger, "FIN mkdir %s modo %o (pide %d)", request->path, request->fileMode, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -236,7 +263,7 @@ void serve_mkdir(int socket, struct nipc_mkdir *request) {
  * Manda un nipc_readdir_response, o nipc_error
  */
 void serve_readdir(int socket, struct nipc_readdir *request) {
-	log_debug(logger, "readdir %s", request->path);
+	log_debug(logger, "readdir %s @%d (pide %d)", request->path, request->offset, request->client_id);
 
 	do_sleep();
 
@@ -268,7 +295,7 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
 	} else
 		send_no_ok(socket, ENOENT, request->client_id);
 
-	log_debug(logger, "/readdir %s", request->path);
+	log_debug(logger, "FIN readdir %s @%d (pide %d)", request->path, request->offset, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -277,7 +304,7 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
  * nipc_ok, o nipc_error
  */
 void serve_rmdir(int socket, struct nipc_rmdir *request) {
-	log_debug(logger, "rmdir %s", request->path);
+	log_debug(logger, "rmdir %s (pide %d)", request->path, request->client_id);
 
 	do_sleep();
 
@@ -288,7 +315,7 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
 	else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "/rmdir %s", request->path);
+	log_debug(logger, "FIN rmdir %s (pide %d)", request->path, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -297,7 +324,7 @@ void serve_rmdir(int socket, struct nipc_rmdir *request) {
  * Manda un nipc_attr, o nipc_error
  */
 void serve_getattr(int socket, struct nipc_getattr *request) {
-	log_debug(logger, "getattr %s", request->path);
+	log_debug(logger, "getattr %s (pide %d)", request->path, request->client_id);
 	char *path = request->path;
 
 	do_sleep();
@@ -318,7 +345,7 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
 	struct nipc_getattr_response *response = new_nipc_getattr_response(
 			attributes, request->client_id);
 	nipc_send(socket, response->serialize(response));
-	log_debug(logger, "/getattr %s", request->path);
+	log_debug(logger, "FIN getattr %s (pide %d)", request->path, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -327,7 +354,7 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
  * nipc_ok, o nipc_error
  */
 void serve_truncate(int socket, struct nipc_truncate *request) {
-	log_debug(logger, "truncate %s", request->path);
+	log_debug(logger, "truncate %s a %d (pìde %d)", request->path, request->offset, request->client_id);
 
 	do_sleep();
 
@@ -337,7 +364,7 @@ void serve_truncate(int socket, struct nipc_truncate *request) {
 	else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "/truncate %s", request->path);
+	log_debug(logger, "FIN truncate %s a %d (pìde %d)", request->path, request->offset, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -346,15 +373,17 @@ void serve_truncate(int socket, struct nipc_truncate *request) {
  * Manda un nipc_error porque no reconocimos el tipo
  */
 void serve_unknown(int socket, struct nipc_packet *request) {
-	log_debug(logger, "unknown de tipo %d", request->type);
+	log_debug(logger, "unknown de tipo %d, %d bytes (pide %d)", request->type, request->data_length, request->client_id);
 	log_info(logger, "Llego un paquete de tipo desconocido: %d", request->type);
-	struct nipc_packet *error = new_nipc_error("Paquete desconocido");
+	printf("************* llego unknown en %d **************", socket);
+	avisar_socket_puerto(socket, request->type);
+	struct nipc_packet *error = new_nipc_error(strdup("Paquete desconocido"));
 	nipc_send(socket, error);
-	log_debug(logger, "/unknown de tipo %d", request->type);
+	log_debug(logger, "FIN unknown de tipo %d, %d bytes (pide %d)", request->type, request->data_length, request->client_id);
 	free(request->data);
 	free(request);
-}
 
+}
 u_int32_t generate_client_id() {
     pthread_mutex_lock(mutex_client_id);
     uint32_t new_client_id = ++generated_client_id;
@@ -380,6 +409,7 @@ void serve_handshake(int socket, struct nipc_packet *request) {
 
 void serve_disconnected(int socket, struct nipc_packet *request) {
 	log_debug(logger, "desconectado del servidor");
+	printf("************* desconectado en %d **************", socket);
 	free(request->data);
 	free(request);
 	close(socket);
@@ -388,6 +418,7 @@ void serve_disconnected(int socket, struct nipc_packet *request) {
 void *serveRequest(void *socketPointer) {
 	int socket = *(int *) socketPointer;
 	struct nipc_packet *request = nipc_receive(socket);
+	avisar_socket_puerto(socket, request->type);
 	log_debug(logger, "Request en el socket %d con operacion %s\n", socket, nombre_del_enum_nipc(request->type));
 	switch (request->type) {
 	case nipc_open:
