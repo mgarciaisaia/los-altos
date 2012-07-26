@@ -657,6 +657,7 @@ void liberarBloque(uint32_t * ptrBloqueDeDato){
 	memcpy(ptrBloqueDeDato,ptrNroBloque,sizeof(uint32_t));
 	(grupo->free_blocks_count)++;	//aumento la cantidad de bloques libres en el group descriptor
 	(sb->free_blocks)++;			//aumento la cantidad de bloques libres en el superbloque
+	free(ptrBit);
 	pthread_mutex_unlock(&sem_liberar_bloque);
 }
 
@@ -722,7 +723,7 @@ void escribirBloque(void * posicionPtr,uint32_t size){
 		memcpy(posicionPtr,dato,1);
 }
 
-int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset){
+int32_t escribirArchivo(char * path, void * input, uint32_t size, uint32_t offset){
 
 	int32_t resultado = 0;
 	pthread_mutex_lock(&sem_escribir);
@@ -744,17 +745,19 @@ int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offse
 				truncarArchivo(path,truncar);
 			}
 
+			size_t bytesEscritos = 0;
 			while(size > 0){
 				uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offset);
 				if(resto >= size){
-					escribir(inodoPath,input,size,offset);
+					escribir(inodoPath,input+ bytesEscritos,size,offset);
 					offset += size;
 					size -= size;
 				} else {
-					escribir(inodoPath,input,resto,offset);
+					escribir(inodoPath,input + bytesEscritos,resto,offset);
 					offset += resto;
 					size -= resto;
 				}
+                bytesEscritos += resto;
 			}
 		}
 		pthread_rwlock_unlock(registro_archivo->lock);
@@ -780,23 +783,25 @@ int32_t crearDirectorio(char * path, uint32_t mode){
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
-	if(nroInodoRuta != 0)
+	if(nroInodoRuta != 0) {
 		if(getNroInodoDeLaDireccionDelPath(path) == 0){
-			agregarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
-			struct INode * inodoNuevoDir = getInodoDeLaDireccionDelPath(path);
-			setearInodo(inodoNuevoDir,mode);
+			resultado = agregarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
+			if(resultado == 0) {
+                struct INode * inodoNuevoDir = getInodoDeLaDireccionDelPath(path);
+                setearInodo(inodoNuevoDir,mode);
 
-			// nro de inodo que cargo para . en el nuevo directorio
-			uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
-			// nro de inodo que cargo para .. en el nuevo directorio
-			uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
+                // nro de inodo que cargo para . en el nuevo directorio
+                uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
+                // nro de inodo que cargo para .. en el nuevo directorio
+                uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 
-			inicializarEntradasNuevoDir(inodoNuevoDir,0,nroInodoEntradaNueva,nroInodoRuta);
+                inicializarEntradasNuevoDir(inodoNuevoDir,0,nroInodoEntradaNueva,nroInodoRuta);
+			}
 		} else {
 			resultado = EEXIST;
 			log_error(logger_funciones, "ya existe la carpeta %s",ruta_separada->nombre);
 		}
-	else{
+    }else{
 		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
 	}
@@ -840,7 +845,7 @@ t_ruta_separada * separarPathParaNewDirEntry(char * path){
 /*
  * Agrega en las entradas de directorio de inodo, una entrada que puede ser del tipo archivo o directorio
  */
-void agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
+int agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 
 	uint32_t tamanio_nueva_entrada = tamanioMinEntradaDirectorio(nameNewEntry);
 	uint32_t tamanio_directorio = inodo->size;
@@ -859,10 +864,12 @@ void agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 			if(resto >= tamanio_nueva_entrada){
 				directorio->entry_len = sizeMinEntradaDirectorioActual;
 				void * ptrInicioNuevaEntrada = ptr + sizeMinEntradaDirectorioActual;
-				agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,resto);
-				encontroEspacio = 1;
-				free(nombre);
-				break;
+				int errorAgregar = agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,resto);
+				if(errorAgregar == 0) {
+                    encontroEspacio = 1;
+                    free(nombre);
+                    break;
+				}
 			}
 			free(nombre);
 			cantidad += directorio->entry_len;
@@ -874,9 +881,14 @@ void agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 		uint32_t nroBloqueDeDato = getBloqueLibre();
 		agregarAInodo(inodo,nroBloqueLogico,nroBloqueDeDato);
 		void * ptrInicioNuevaEntrada = posicionarme(inodo,nroBloqueLogico,0);
-		agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,tamanio_bloque);
-		inodo->size += tamanio_bloque;
+		int errorAgregar = agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,tamanio_bloque);
+		if(errorAgregar == 0) {
+            inodo->size += tamanio_bloque;
+		} else {
+		    return errorAgregar;
+		}
 	}
+	return 0;
 }
 
 uint32_t tamanioMinEntradaDirectorio(char * nombre){
@@ -891,19 +903,27 @@ uint32_t tamanioMinEntradaDirectorio(char * nombre){
  * Desc: Agrega una nueva entrada de directorio
  * Return: número de inodo al que se asigna esta nueva entrada
  */
-void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante){
+int agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante){
+    int error = -1;
 	pthread_mutex_lock(&sem_inodo_new_dir);
-	struct DirEntry * entrada_nueva = calloc(1,sizeof(struct DirEntry) + strlen(nombre) + 1);
 	uint32_t nroInodoLibre = getInodoLibre();
-	entrada_nueva->inode = nroInodoLibre;
-	entrada_nueva->entry_len = sizeRestante;
-	entrada_nueva->name_len = strlen(nombre);
-	strcat(entrada_nueva->name,nombre);
-	memcpy(ptrEntradaDirectorio,entrada_nueva,sizeof(struct DirEntry) + strlen(nombre));
-	struct INode * inodo = getInodo(entrada_nueva->inode);
-	inodo->size = 0;
-	free(entrada_nueva);
+	if(nroInodoLibre != 0) {
+        struct DirEntry * entrada_nueva = calloc(1,sizeof(struct DirEntry) + strlen(nombre) + 1);
+	    entrada_nueva->inode = nroInodoLibre;
+        entrada_nueva->entry_len = sizeRestante;
+        entrada_nueva->name_len = strlen(nombre);
+        memcpy(entrada_nueva->name,nombre, entrada_nueva->name_len);
+        memcpy(ptrEntradaDirectorio,entrada_nueva,sizeof(struct DirEntry) + entrada_nueva->name_len);
+        struct INode * inodo = getInodo(entrada_nueva->inode);
+        inodo->size = 0;
+        free(entrada_nueva);
+        error = 0;
+	} else {
+	    log_error(logger_funciones, "No pude agregar la nueva entrada para %s (%d size restante)", nombre, sizeRestante);
+	    error = ENOSPC;
+	}
 	pthread_mutex_unlock(&sem_inodo_new_dir);
+	return error;
 }
 
 uint32_t getInodoLibre(){
@@ -940,6 +960,8 @@ uint32_t getInodoLibreDelBitmap(uint32_t nro_grupo){
 		}
 	}
 
+	free(ptrBit);
+
 	return nroInodo;
 }
 
@@ -958,7 +980,7 @@ void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo){
 
 	(sb->free_inodes)--;	// Actualizando el free_blocks del superbloque
 	(grupo->free_inodes_count)--;	// Actualizando el free_blocks del group descriptor
-
+	free(ptrBit);
 }
 
 /*
@@ -1011,7 +1033,7 @@ uint32_t getNroInodoDeLaDireccionDelPath(char * path){
 		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
 		if(nroInodoDeBusqueda == 0){
 // todo: revisar, entra aca cuando hago un crearDirectorio en el raiz
-			log_error(logger_funciones, "no existe la ruta\n");
+			log_info(logger_funciones, "No existe la ruta %s\n", path);
 			break;
 		}
 		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
@@ -1176,18 +1198,20 @@ int32_t crearArchivo(char * path, uint32_t mode){
 	pthread_mutex_lock(&sem_crear_archivo);
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
-	struct INode * inodoRuta = getInodo(nroInodoRuta);
-	if(nroInodoRuta != 0)
+	if(nroInodoRuta != 0) {
+	    struct INode * inodoDirectorio = getInodo(nroInodoRuta);
 		if(getNroInodoDeLaDireccionDelPath(path) == 0){
-			agregarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
-			uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
-			struct INode * inodoDeArchivo = getInodo(nroInodoEntradaNueva);
-			setearInodo(inodoDeArchivo,mode);
+			resultado = agregarEntradaDirectorio(inodoDirectorio,ruta_separada->nombre);
+			if(resultado == 0) {
+                uint32_t nroInodoEntradaNueva = getNroInodoDeLaDireccionDelPath(path);
+                struct INode * inodoDeArchivo = getInodo(nroInodoEntradaNueva);
+                setearInodo(inodoDeArchivo,mode);
+			}
 		} else {
 			resultado = EEXIST;
 			log_error(logger_funciones, "ya existe el archivo %s",ruta_separada->nombre);
 		}
-	else {
+	} else {
 		resultado = ENOENT;
 		log_error(logger_funciones, "no existe la ruta");
 	}

@@ -175,14 +175,14 @@
 	void completarBloque(struct INode * inodo, uint32_t offset, uint32_t size);
 	void escribirBloque(void *, uint32_t);
 
-	int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offset);
+	int32_t escribirArchivo(char * path, void * input, uint32_t size, uint32_t offset);
 	void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset);
 
 	int32_t crearDirectorio(char * path, mode_t mode);
 //	int32_t crearDirectorio(char * path);
 	t_ruta_separada * separarPathParaNewDirEntry(char * path);
-	void agregarEntradaDirectorio(struct INode * inodo,char * nombre);
-	void agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
+	int agregarEntradaDirectorio(struct INode * inodo,char * nombre);
+	int agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);
 	uint32_t tamanioMinEntradaDirectorio(char * nombre);
 	uint32_t getInodoLibre(void);
 	void actualizarEstructurasCuandoPidoInodo(uint32_t nroInodo);
