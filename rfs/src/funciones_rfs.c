@@ -256,6 +256,11 @@ t_list * cargarEntradasDirectorioALista(struct INode * directorio){
 			entrada->path = calloc(1, entradaDirectorio->name_len + 1);
 			memcpy(entrada->path, entradaDirectorio->name, entradaDirectorio->name_len);
 
+			/*
+			 * TODO: si el inodo tiene todo en 0 (x ej, mode, n_link, size) la implementacion
+			 * de ext2 del kernel pareciera ignorar esa entrada (supongo que un n_link = 0
+			 * esta mal mal mal)
+			 */
 			entrada->mode = inodoEntradaDirectorio->mode;
 			entrada->n_link = inodoEntradaDirectorio->links;
 			entrada->size = inodoEntradaDirectorio->size;
@@ -691,6 +696,7 @@ uint32_t getBloqueLibreDelBitmap(uint32_t nro_grupo){
 			break;
 		}
 	}
+	free(ptrBit);
 	return nroBloqueDeDato;
 }
 
@@ -723,7 +729,7 @@ int32_t escribirArchivo(char * path, char * input, uint32_t size, uint32_t offse
 	struct archivo_abierto * registro_archivo = getRegistroArchivoAbierto(getNroInodoDeLaDireccionDelPath(path));
 	pthread_mutex_unlock(&sem_escribir);
 
-	if(registro_archivo->cantidad_abiertos > 0){
+	if(registro_archivo != NULL && registro_archivo->cantidad_abiertos > 0){
 		pthread_rwlock_wrlock(registro_archivo->lock);
 		uint32_t nroInodoPath = getNroInodoDeLaDireccionDelPath(path);
 		if(nroInodoPath == 0){
@@ -811,8 +817,8 @@ t_ruta_separada * separarPathParaNewDirEntry(char * path){
 		char ** vector_ruta = string_split(path,separador);
 		ruta_separada->ruta = calloc(1,1);
 		if(vector_ruta[0] != NULL) {
-            ruta_separada->nombre = calloc(1,strlen(vector_ruta[0]));
-            strncpy(ruta_separada->nombre,vector_ruta[0],strlen(vector_ruta[0]));
+            ruta_separada->nombre = calloc(1,strlen(vector_ruta[0]) + 1);
+            strncpy(ruta_separada->nombre,vector_ruta[0],strlen(vector_ruta[0]) + 1);
 		} else {
 		    ruta_separada->nombre = strdup("");
 		}
@@ -904,7 +910,7 @@ uint32_t getInodoLibre(){
 	uint32_t nroInodo = 0;
 	struct Superblock *sb = read_superblock();
 	if(sb->free_inodes == 0){
-		perror("error: No hay inodos disponibles");
+	    log_info(logger_funciones, "No hay inodos libres");
 	} else {
 		uint32_t nro_grupo;
 		for(nro_grupo = 0;nroInodo == 0;nro_grupo++)
@@ -1030,6 +1036,7 @@ void actualizarEstructurasCuandoPidoBloque(uint32_t nroBloqueDeDato){
 
 	(sb->free_blocks)--;	// Actualizando el free_blocks del superbloque
 	(grupo->free_blocks_count)--;	// Actualizando el free_blocks del group descriptor
+	free(ptrBit);
 }
 
 int32_t eliminarDirectorio(char * path){

@@ -200,6 +200,10 @@ static struct nipc_packet* serialize_write(struct nipc_write* payload) {
 
     memcpy(packet->data + path_lenght + sizeof(payload->size) + payload->size, &(payload->offset), sizeof(payload->offset));
 
+    free(payload->data);
+    free(payload->path);
+    free(payload);
+
     return packet;
 }
 
@@ -235,8 +239,8 @@ struct nipc_write* new_nipc_write(u_int32_t client_id, const char* path,
     instance->client_id = client_id;
     instance->path = malloc(strlen(path) + 1);
     strcpy(instance->path, path);
-    instance->data = malloc(strlen(data) + 1);
-    strcpy(instance->data, data);
+    instance->data = malloc(size);
+    memcpy(instance->data, data, size);
     instance->size = size;
     instance->offset = offset;
     return instance;
@@ -523,6 +527,7 @@ static struct nipc_packet* serialize_truncate(struct nipc_truncate* payload) {
     memcpy(packet->data + path_lenght, &(payload->offset),
             sizeof(payload->offset));
 
+    free(payload->path);
     free(payload);
 
     return packet;
@@ -669,6 +674,9 @@ static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_respon
     packet->type = payload->nipcType;
     packet->client_id = payload->client_id;
     packet->data_length = entriesSize + sizeof(payload->entriesLength);
+    /*
+     * FIXME: Validar el overflow de data_length y ver como manejarlo (si hace falta)
+     */
     packet->data = malloc(packet->data_length);
     void *stream = packet->data;
     memcpy(stream, &(payload->entriesLength), sizeof(payload->entriesLength));

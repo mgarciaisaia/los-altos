@@ -52,7 +52,11 @@ void avisar_socket_puerto(int socket, enum tipo_nipc tipo) {
     char ipstr[INET6_ADDRSTRLEN];
     int port;
     len = sizeof addr;
-    getsockname(socket, (struct sockaddr*)&addr, &len);
+    int res = getsockname(socket, (struct sockaddr*)&addr, &len);
+    if(res) {
+        perror("getsockname");
+        return;
+    }
     // deal with both IPv4 and IPv6:
     if (addr.ss_family == AF_INET) {
     struct sockaddr_in *s = (struct sockaddr_in *)&addr;
@@ -140,8 +144,20 @@ void serve_create(int socket, struct nipc_create *request) {
 
 	if (codError != 0)
 		send_no_ok(socket, codError, request->client_id);
-	else
+	else {
+	    uint32_t numero_inodo = getNroInodoDeLaDireccionDelPath(request->path);
+        if (numero_inodo != 0) {
+            struct archivo_abierto *nodo_archivo = obtener_o_crear_archivo_abierto(
+                    archivos_abiertos, numero_inodo);
+            registrar_apertura(nodo_archivo);
+            struct archivos_cliente *archivos_cliente = obtener_o_crear_lista_del_cliente(archivos_por_cliente, request->client_id);
+            registrar_apertura_cliente(archivos_cliente, numero_inodo);
+            send_ok(socket, request->client_id);
+        } else {
+            send_no_ok(socket, ENOENT, request->client_id);
+        }
 		send_ok(socket, request->client_id);
+	}
 
 	log_debug(logger, "FIN create %s mode %o (pide %d)", request->path, request->fileMode, request->client_id);
 	free(request->path);
@@ -176,7 +192,7 @@ void serve_read(int socket, struct nipc_read *request) {
  * Manda un nipc_ok si pudo grabar, o un nipc_error
  */
 void serve_write(int socket, struct nipc_write *request) {
-	log_debug(logger, "write %s @%d+%d (pide %d): %s", request->path, request->offset, request->size, request->client_id, request->data);
+	log_debug(logger, "write %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 
 	do_sleep();
 
