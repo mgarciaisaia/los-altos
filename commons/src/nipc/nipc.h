@@ -31,7 +31,7 @@ char *nombre_del_enum_nipc(enum tipo_nipc tipo);
 
 struct nipc_packet {
     enum tipo_nipc type;
-    u_int16_t data_length;
+    u_int32_t data_length;
     u_int32_t client_id;
     void* data;
 } __attribute__ ((__packed__));
