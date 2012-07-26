@@ -159,6 +159,7 @@ int remote_read(const char *path, char *output, size_t size, off_t offset,
 		struct fuse_file_info *fileInfo) {
 	logger_operation_read_write("read", path, size, offset);
 	if (size > maximumReadWriteSize) {
+		log_debug(logger, "Achico un pedido de read de %d bytes a %d", size, maximumReadWriteSize);
 		size = maximumReadWriteSize;
 	}
 
