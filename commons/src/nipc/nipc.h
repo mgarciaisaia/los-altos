@@ -23,9 +23,7 @@ enum tipo_nipc {
     nipc_read_response,
     nipc_readdir_response,
     nipc_getattr_response,
-    nipc_getattr_error,
-    nipc_handshake,
-    nipc_disconnected
+    nipc_handshake
 };
 
 char *nombre_del_enum_nipc(enum tipo_nipc tipo);
@@ -42,7 +40,7 @@ struct nipc_create {
     uint32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_create*);
     void* path;
-    mode_t fileMode;
+    uint32_t fileMode;
 };
 
 struct nipc_create* deserialize_create(struct nipc_packet* packet);
@@ -50,7 +48,7 @@ struct nipc_create* deserialize_create(struct nipc_packet* packet);
 struct nipc_create* empty_nipc_create();
 
 //XXX: manejar flags?
-struct nipc_create* new_nipc_create(uint32_t client_id, const char* path, mode_t mode);
+struct nipc_create* new_nipc_create(uint32_t client_id, const char* path, uint32_t mode);
 
 
 
@@ -75,15 +73,15 @@ struct nipc_read {
     uint32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_read*);
     char* path;
-    size_t size;
-    off_t offset;
+    uint32_t size;
+    uint32_t offset;
 };
 
 struct nipc_read* deserialize_read(struct nipc_packet* packet);
 
 struct nipc_read* empty_nipc_read();
 
-struct nipc_read* new_nipc_read(uint32_t client_id, const char* path, size_t size, off_t offset);
+struct nipc_read* new_nipc_read(uint32_t client_id, const char* path, uint32_t size, uint32_t offset);
 
 
 
@@ -94,15 +92,15 @@ struct nipc_write {
     struct nipc_packet* (*serialize)(struct nipc_write*);
     char* path;
     char* data;
-    size_t size;
-    off_t offset;
+    uint32_t size;
+    uint32_t offset;
 };
 
 struct nipc_write* deserialize_write(struct nipc_packet* packet);
 
 struct nipc_write* empty_nipc_write();
 
-struct nipc_write* new_nipc_write(uint32_t client_id, const char* path, const char* data, size_t size, off_t offset);
+struct nipc_write* new_nipc_write(uint32_t client_id, const char* path, const char* data, uint32_t size, uint32_t offset);
 
 
 
@@ -147,14 +145,14 @@ struct nipc_mkdir {
     uint32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_mkdir*);
     char* path;
-    mode_t fileMode;
+    uint32_t fileMode;
 };
 
 struct nipc_mkdir* deserialize_mkdir(struct nipc_packet* packet);
 
 struct nipc_mkdir* empty_nipc_mkdir();
 
-struct nipc_mkdir* new_nipc_mkdir(uint32_t client_id, const char* path, mode_t mode);
+struct nipc_mkdir* new_nipc_mkdir(uint32_t client_id, const char* path, uint32_t mode);
 
 
 
@@ -184,14 +182,14 @@ struct nipc_readdir {
     uint32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_readdir*);
     char* path;
-    off_t offset;
+    uint32_t offset;
 };
 
 struct nipc_readdir* deserialize_readdir(struct nipc_packet* packet);
 
 struct nipc_readdir* empty_nipc_readdir();
 
-struct nipc_readdir* new_nipc_readdir(uint32_t client_id, const char* path, off_t offset);
+struct nipc_readdir* new_nipc_readdir(uint32_t client_id, const char* path, uint32_t offset);
 
 
 
@@ -227,39 +225,36 @@ struct nipc_truncate {
     uint32_t client_id;
     struct nipc_packet* (*serialize)(struct nipc_truncate*);
     char* path;
-    off_t offset;
+    uint32_t offset;
 };
 
 struct nipc_truncate* deserialize_truncate(struct nipc_packet* packet);
 
 struct nipc_truncate* empty_nipc_truncate();
 
-struct nipc_truncate* new_nipc_truncate(uint32_t client_id, const char* path, off_t offset);
+struct nipc_truncate* new_nipc_truncate(uint32_t client_id, const char* path, uint32_t offset);
 
 
 
 
-size_t nipc_serialize(struct nipc_packet *packet, void **rawPacket);
+uint32_t nipc_serialize(struct nipc_packet *packet, void **rawPacket);
 
-struct nipc_packet *nipc_deserialize(void *rawPacket, size_t packetSize);
+struct nipc_packet *nipc_deserialize(void *rawPacket, uint32_t packetSize);
 
-struct nipc_packet* new_nipc_error(char *errorMessage);
-
-struct nipc_packet* new_nipc_ok(uint32_t client_id);
 
 
 
 
 
-struct nipc_packet *new_nipc_read_response(void *data, size_t dataLength, uint32_t client_id);
+struct nipc_packet *new_nipc_read_response(void *data, uint32_t dataLength, uint32_t client_id);
 
 
 
 struct readdir_entry {
     char *path;
-    __mode_t mode;
-    __off_t size;
-    __nlink_t n_link;
+    uint32_t mode;
+    uint32_t size;
+    uint32_t n_link;
 };
 
 void readdir_entry_destroy(void *target);
@@ -291,12 +286,33 @@ struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* p
 
 struct nipc_getattr_response* new_nipc_getattr_response(struct readdir_entry *entry, uint32_t client_id);
 
-struct nipc_packet *new_getattr_error(int errorNumber, uint32_t client_id);
-
 struct nipc_packet *new_nipc_handshake_hello();
 
 struct nipc_packet *new_nipc_handshake_ok();
 
-struct nipc_packet *new_nipc_disconnected();
+
+
+
+struct nipc_packet* new_nipc_ok(uint32_t client_id);
+
+
+
+
+
+struct nipc_error {
+    enum tipo_nipc nipcType;
+    uint32_t client_id;
+    struct nipc_packet* (*serialize)(struct nipc_error*);
+    uint32_t errorCode;
+    char *errorMessage;
+};
+
+struct nipc_error *deserialize_error(struct nipc_packet *packet);
+
+struct nipc_error* new_nipc_error_message(char *errorMessage);
+
+struct nipc_error *new_nipc_error_code(uint32_t client_id, int32_t error_code);
+
+struct nipc_error *new_nipc_error(int32_t error_code, char *error_message);
 
 #endif /* NIPC_H_ */

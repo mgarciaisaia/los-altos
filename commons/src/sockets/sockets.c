@@ -75,11 +75,13 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         if (received < 0) {
             log_error(logger_socket, "Error recibiendo cabecera en %d - %s", socketDescriptor, strerror(errno));
             free(header);
-            return new_nipc_error(strdup("Error recibiendo cabecera"));
+            struct nipc_error *error = new_nipc_error(errno, "Error recibiendo cabecera");
+            return error->serialize(error);
         } else if(received == 0) {
             log_error(logger_socket, "Error recibiendo cabecera en %d - Desconectado del servidor", socketDescriptor);
             free(header);
-            return new_nipc_disconnected();
+            struct nipc_error *error = new_nipc_error(EBADF, "Desconectado del servidor");
+            return error->serialize(error);
         }
         receivedHeaderLenght += received;
         log_trace(logger_socket, "Recibi %d / %d bytes del header (total: %d) en %d", received, receivedHeaderLenght, headerSize, socketDescriptor);
@@ -102,11 +104,13 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         if (received < 0) {
             free(message);
             log_error(logger_socket, "Error recibiendo paquete en %d - %s", socketDescriptor, strerror(errno));
-            return new_nipc_error(strdup("Error recibiendo paquete"));
+            struct nipc_error *error = new_nipc_error(errno, "Error recibiendo cabecera");
+            return error->serialize(error);
         } else if(received == 0) {
             free(message);
             log_error(logger_socket, "Error recibiendo paquete en %d - Desconectado del servidor", socketDescriptor);
-            return new_nipc_disconnected();
+            struct nipc_error *error = new_nipc_error(EBADF, "Desconectado del servidor");
+            return error->serialize(error);
         }
         receivedBytes += received;
         log_trace(logger_socket, "Recibi %d / %d bytes (total: %d) en %d", received, receivedBytes, messageSize, socketDescriptor);
@@ -127,7 +131,8 @@ struct nipc_packet *nipc_query(struct nipc_packet *request, char *remoteIP, uint
     log_debug(logger_socket, "Conectado a %s : %d en %d", remoteIP, port, socketDescriptor);
     if(nipc_send(socketDescriptor, request) < 0) {
         log_error(logger_socket, "Error enviando paquete");
-        return new_nipc_error(strdup("Error enviando paquete"));
+        struct nipc_error *error = new_nipc_error_message("Error enviando paquete");
+        return error->serialize(error);
     }
     struct nipc_packet *response = nipc_receive(socketDescriptor);
     log_debug(logger_socket, "Cierro el socket %d", socketDescriptor);

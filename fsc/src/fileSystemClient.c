@@ -44,36 +44,33 @@ void logger_operation_read_write(const char *operation, const char *path,
 			operation, path, offset, size);
 }
 
-int check_error(const char *operation, const char *path,
-		struct nipc_packet *response) {
-	if (response->type == nipc_error) {
-		log_error(logger, "%s en %s: %s", operation, path,
-				(char*) response->data);
-        free(response);
-		return -1;
-	} else {
-		if (response->type == nipc_getattr_error) {
-			if ((int32_t) response->data > 0) {
-			    free(response);
-				return (int32_t) response->data;
-			}
-		}
-		log_error(logger, "%s en %s: Paquete invalido (%d)", operation, path,
-				response->type);
-		free(response->data);
-		free(response);
-		return -1;
-	}
+int check_error(const char *operation, const char *path, struct nipc_packet *packet) {
+    if(packet->type != nipc_error) {
+        log_error(logger, "Paquete desconocido de tipo %d: %.*s", packet->type, packet->data_length, packet->data);
+        if(packet->data_length > 0) {
+            free(packet->data);
+        }
+        free(packet);
+        return -1;
+    }
+    struct nipc_error *response = deserialize_error(packet);
+    log_error(logger, "Error %d al hacer %s %s: %s", response->errorCode, operation, path, response->errorMessage);
+    int32_t return_value = response->errorCode;
+    if(return_value == 0) {
+        return_value = -1;
+    }
+
+    free(response->errorMessage);
+    free(response);
+    return return_value;
 }
 
-int check_ok_error(const char *operation, const char *path,
-		struct nipc_packet *response) {
-	if (response->type != nipc_ok) {
-		return check_error(operation, path, response);
+int check_ok_error(const char *operation, const char *path, struct nipc_packet *response) {
+	if (response->type == nipc_ok) {
+        free(response);
+        return 0;
 	}
-	free(response->data);
-	free(response);
-	return 0;
+    return check_error(operation, path, response);
 }
 
 /**
@@ -390,10 +387,7 @@ int remote_getattr(const char *path, struct stat *statbuf) {
         struct nipc_packet* packet = getattrData->serialize(getattrData);
         response = nipc_query(packet, fileSystemIP, fileSystemPort);
 
-        if(response->type == nipc_getattr_error) {
-            log_warning(logger, "Error de getattr en %s: %s (%d)", path, strerror(*((int *) response->data)), *((int *)response->data));
-            return *(int*) response->data;
-        } else if(response->type != nipc_getattr_response) {
+        if(response->type != nipc_getattr_response) {
             return check_error("getattr", path, response);
         }
 

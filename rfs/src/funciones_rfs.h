@@ -178,8 +178,7 @@
 	int32_t escribirArchivo(char * path, void * input, uint32_t size, uint32_t offset);
 	void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset);
 
-	int32_t crearDirectorio(char * path, mode_t mode);
-//	int32_t crearDirectorio(char * path);
+	int32_t crearDirectorio(char * path, uint32_t mode);
 	t_ruta_separada * separarPathParaNewDirEntry(char * path);
 	int agregarEntradaDirectorio(struct INode * inodo,char * nombre);
 	int agregarNuevaEntrada(void * ptrEntradaDirectorio,char * nombre, uint32_t sizeRestante);

@@ -77,8 +77,8 @@ void avisar_socket_puerto(int socket, enum tipo_nipc tipo) {
 
 
 void send_no_ok(int socket, int32_t errorCode, uint32_t client_id) {
-	struct nipc_packet *no_ok = new_getattr_error(-errorCode, client_id);
-	nipc_send(socket, no_ok);
+	struct nipc_error *no_ok = new_nipc_error_code(client_id, -errorCode);
+	nipc_send(socket, no_ok->serialize(no_ok));
 }
 
 void send_ok(int socket, uint32_t client_id) {
@@ -392,8 +392,8 @@ void serve_unknown(int socket, struct nipc_packet *request) {
 	log_info(logger, "Llego un paquete de tipo desconocido: %d", request->type);
 	printf("************* llego unknown en %d **************", socket);
 	avisar_socket_puerto(socket, request->type);
-	struct nipc_packet *error = new_nipc_error(strdup("Paquete desconocido"));
-	nipc_send(socket, error);
+	struct nipc_error *error = new_nipc_error_message("Paquete desconocido");
+	nipc_send(socket, error->serialize(error));
 	log_debug(logger, "FIN unknown de tipo %d, %d bytes (pide %d)", request->type, request->data_length, request->client_id);
 	free(request->data);
 	free(request);
@@ -422,18 +422,21 @@ void serve_handshake(int socket, struct nipc_packet *request) {
 	log_debug(logger, "/handshake");
 }
 
-void serve_disconnected(int socket, struct nipc_packet *request) {
-	log_debug(logger, "desconectado del servidor");
-	printf("************* desconectado en %d **************", socket);
-	free(request->data);
-	free(request);
-	close(socket);
+void serve_error(int socket, struct nipc_error *request) {
+    // FIXME manejar error (desconectado? error con codigo? mensaje?)
+    log_error(logger, "Error %d en %d (cliente %d): %s", request->errorCode, socket, request->client_id, request->errorMessage);
+    if(request->errorCode != EBADF) {
+        nipc_send(socket, request->serialize(request));
+    } else {
+        free(request->errorMessage);
+        free(request);
+    }
 }
 
 void *serveRequest(void *socketPointer) {
 	int socket = *(int *) socketPointer;
 	struct nipc_packet *request = nipc_receive(socket);
-	avisar_socket_puerto(socket, request->type);
+	//avisar_socket_puerto(socket, request->type);
 	log_debug(logger, "Request en el socket %d con operacion %s\n", socket, nombre_del_enum_nipc(request->type));
 	switch (request->type) {
 	case nipc_open:
@@ -472,9 +475,9 @@ void *serveRequest(void *socketPointer) {
 	case nipc_handshake:
 		serve_handshake(socket, request);
 		break;
-	case nipc_disconnected:
-		serve_disconnected(socket, request);
-		break;
+	case nipc_error:
+	    serve_error(socket, deserialize_error(request));
+	    break;
 	default:
 		serve_unknown(socket, request);
 		break;
