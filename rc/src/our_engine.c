@@ -351,7 +351,7 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 
 // aca necesito semaforo? porque en realidad no uso el vector pero si
 // modifico la direccion que tiene ahi
-	it->flags = flags;
+//	it->flags = flags;
 	it->exptime = 0;
 	it->nkey = nkey;
 	it->data_size = nbytes;
@@ -401,7 +401,7 @@ static bool dummy_ng_get_item_info(ENGINE_HANDLE *handler, const void *cookie,
 	item_info->clsid = 0; /* Not supported */
 
 	item_info->exptime = 0;
-	item_info->flags = it->flags;
+	item_info->flags = 0;
 	item_info->key = it->key;
 	item_info->nkey = it->nkey;
 	item_info->nbytes = it->data_size; /* Total length of the items data */

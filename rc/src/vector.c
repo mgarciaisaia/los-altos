@@ -133,12 +133,13 @@ uint32_t eliminar_particion(int32_t valor) {
 	uint32_t resultado;
 
 //si entra aca fue porque habia que borrar segun fifo o lru
-	if (valor == -1){
-	resultado = borrar();
-	char *string = config_get_string_value(config, "VICTIM");
-	log_debug(logger, "Se elimina la key: %s, usando el algoritmo %s", key_vector[resultado].key , string);
-	}else
-	resultado = valor;
+	if (valor == -1) {
+		resultado = borrar();
+		char *string = config_get_string_value(config, "VICTIM");
+		log_debug(logger, "Se elimina la key: %s, usando el algoritmo %s",
+				key_vector[resultado].key, string);
+	} else
+		resultado = valor;
 
 	if (resultado != cantRegistros) {
 //aca muere ¿porque? ya no hay semaforo de lectura.Solo para buddy no funciona
@@ -159,14 +160,12 @@ uint32_t eliminar_particion(int32_t valor) {
 
 uint32_t ordenar_vector(uint32_t posicion) {
 
-	uint32_t i, j;
+	char * clave_original = key_vector[posicion].key;
+	uint32_t i, j, posicion2 = posicion;
 
 	pthread_rwlock_wrlock(keyVector);
 
 	for (i = 0; i < cantRegistros; i++) {
-
-		if (i == 8000)
-			printf("valor %d \n",i);
 
 		for (j = 0; j < cantRegistros; j++) {
 
@@ -174,8 +173,8 @@ uint32_t ordenar_vector(uint32_t posicion) {
 			if ((key_vector[j].data > key_vector[j + 1].data)
 					&& ((key_vector[j].data_size > 0)
 							&& (key_vector[j + 1].data_size > 0))) {
-				if (j == posicion)
-					posicion = j + 1;
+				if (strcmp(key_vector[j].key, clave_original) == 0)
+					posicion2 = j + 1;
 				key_element aux = key_vector[j];
 				key_vector[j] = key_vector[j + 1];
 				key_vector[j + 1] = aux;
@@ -185,59 +184,138 @@ uint32_t ordenar_vector(uint32_t posicion) {
 
 	pthread_rwlock_unlock(keyVector);
 
-	return posicion;
+	return posicion2;
 }
 
 uint32_t elimina_buddy(uint32_t posicion_org) {
+//	log_debug(logger, "clave_before: %s , flags: %d \n",key_vector[posicion_org].key , key_vector[posicion_org].flags);
 
 	// cuando lo ordeno no pierdo la ref a mi dato?
 	int32_t posicion_new = ordenar_vector(posicion_org);
+	int32_t i = 1, j=0, k=0;
+	int32_t padre1 = 0, padre2 = 0, padre3 = 0;
 
 	// pregunto si el siguiente o el anterior estan vacios, si es asi los junto
-	int32_t i = 1;
-
 	bool termine = false;
 
 	pthread_rwlock_wrlock(keyVector);
 
-	while (((((posicion_new) < cantRegistros) && (posicion_new) >= 0))
-			&& !termine) {
+	while ((((posicion_new < cantRegistros) && posicion_new >= 0)) && !termine) {
 
-		if (key_vector[posicion_new].libre){
-		if ((((posicion_new + i) < cantRegistros)
-				&& (key_vector[posicion_new + i].libre
-						&& key_vector[posicion_new + i].data_size > 0)) && (key_vector[posicion_new + i].data_size == key_vector[posicion_new].data_size))  {
+		padre1 = key_vector[posicion_new].flags / 10;
 
-			// juntarlos y actualizar el que borre. tener en cuenta el espacio inutilizado. Crear el nuevo campo en el vector
+//		log_debug(logger, "j, k: %d , %d \n",j , k);
+//
+//		log_debug(logger, "clave: %s , flags: %d \n",key_vector[posicion_new].key , key_vector[posicion_new].flags);
+//	    log_debug(logger, "clave + i + j: %s , flags: %d \n",key_vector[posicion_new+i +j].key , key_vector[posicion_new+i +j].flags);
+//	    log_debug(logger, "clave - i - k: %s , flags %d \n",key_vector[posicion_new- i -k].key, key_vector[posicion_new- i -k].flags);
 
-			key_vector[posicion_new].data_size =
-					key_vector[posicion_new].data_size
-							+ (key_vector[posicion_new + i].data_size)
-							+ key_vector[posicion_new + i].data_unuse;
-			key_vector[posicion_new + i].data_size = 0;
+		if ((posicion_new - i -k) < 0)
+			padre3 = 100000;
+		else
+			padre3 = key_vector[posicion_new - i-k].flags / 10;
+
+		if ((posicion_new + i+j) == cantRegistros)
+			padre2 = 100000;
+		else
+		padre2 = key_vector[posicion_new + i+j].flags / 10;
+
+
+		if (key_vector[posicion_new].libre) {
+			if ((((posicion_new + i+j) < cantRegistros)
+					&& (key_vector[posicion_new + i+j].libre
+							&& key_vector[posicion_new + i+j].data_size > 0))
+					&& (key_vector[posicion_new + i+j].data_size
+							== key_vector[posicion_new].data_size)
+					&& (padre1 == padre2)) {
+
+				// juntarlos y actualizar el que borre. tener en cuenta el espacio inutilizado. Crear el nuevo campo en el vector
+				char cuenta = 1;
+			//	bool esPar = key_vector[posicion_new].flags % 2;
+				if ((key_vector[posicion_new].flags % 2))
+					cuenta = 2;
+
+				if (key_vector[posicion_new].flags > 0)
+					key_vector[posicion_new].flags = (padre1 - cuenta) * 10 + padre1;
+				else
+					key_vector[posicion_new].flags = (padre1 + cuenta) * 10 + padre1;
+
+//					key_vector[posicion_new].flags++;
+//				else
+//					key_vector[posicion_new].flags--;
+				key_vector[posicion_new].data_size =
+						key_vector[posicion_new].data_size
+								+ (key_vector[posicion_new + i+j].data_size)
+								+ key_vector[posicion_new + i+j].data_unuse;
+				key_vector[posicion_new + i+j].data_size = 0;
+			j++;
+			}
+			if ((((posicion_new - i-k) > 0)
+					&& (key_vector[posicion_new - i-k].libre
+							&& key_vector[posicion_new - i-k].data_size > 0))
+					&& (key_vector[posicion_new - i-k].data_size
+							== key_vector[posicion_new].data_size)
+					&& (padre1 == padre3)) {
+
+				// juntarlos y actualizar el que borre. tener en cuenta el espacio inutilizado.
+				char cuenta = 1;
+				if ((key_vector[posicion_new].flags % 2))
+					cuenta = 2;
+
+				if (key_vector[posicion_new].flags > 0)
+					key_vector[posicion_new].flags = (padre1 - cuenta) * 10 + padre1;
+				else
+					key_vector[posicion_new].flags = (padre1 + cuenta) * 10 + padre1;
+
+				key_vector[posicion_new].data_size =
+						key_vector[posicion_new].data_size
+								+ (key_vector[posicion_new - i-k].data_size
+										+ key_vector[posicion_new -k- i].data_unuse);
+				key_vector[posicion_new - i-k].data_size = 0;
+			k++;
+			}
 		}
-		if ((((posicion_new - i) > 0)
-				&& (key_vector[posicion_new - i].libre
-						&& key_vector[posicion_new - i].data_size > 0)) && (key_vector[posicion_new - i].data_size == key_vector[posicion_new].data_size))  {
 
-			// juntarlos y actualizar el que borre. tener en cuenta el espacio inutilizado.
-
-			key_vector[posicion_new].data_size =
-					key_vector[posicion_new].data_size
-							+ (key_vector[posicion_new - i].data_size
-									+ key_vector[posicion_new - i].data_unuse);
-			key_vector[posicion_new - i].data_size = 0;
-		}
-		}
-		if (((!key_vector[posicion_new + i].libre)
-				&& !(key_vector[posicion_new - i].libre))
-				|| ((key_vector[posicion_new + i].data_size > 0)
-						&& (key_vector[posicion_new - i].data_size > 0))
-				|| (((posicion_new - i) < 0)
-						|| ((posicion_new + i) == cantRegistros)))
+		bool condicion = (((posicion_new - i-k) >= 0) && (!(key_vector[posicion_new - i-k].libre)
+				|| (key_vector[posicion_new - i-k].data_size <= 0 || (padre1!=padre3))))
+				|| (((posicion_new - i-k) < 0) && (((posicion_new + i+j) < cantRegistros) && (!key_vector[posicion_new + i+j].libre
+						|| key_vector[posicion_new + i+j].data_size <= 0 || (padre1!=padre2))))
+						|| ((posicion_new - i-k) < 0 && (posicion_new + i+j) == cantRegistros)
+						|| (((posicion_new + i+j) < cantRegistros) && (!key_vector[posicion_new + i+j].libre
+								|| key_vector[posicion_new + i+j].data_size <= 0 || (padre1!=padre2)));
+		if (condicion)
 			termine = true;
 
-		i++;
+//		if (((padre1 == 1) && ((padre2 == 1) || (padre3 == 1)))
+//			&& ((key_vector[posicion_new].libre)
+//					&& (key_vector[posicion_new+ i+j].libre
+//							|| key_vector[posicion_new -i -k].libre)))
+//			termine = false;
+
+//		if (((!key_vector[posicion_new + i+j].libre)
+//				|| !(key_vector[posicion_new - i-k].libre))
+//				&& ((key_vector[posicion_new + i+j].data_size > 0)
+//						|| (key_vector[posicion_new - i-k].data_size > 0))){
+////				|| (((posicion_new - i) < 0)
+////						|| ((posicion_new + i) == cantRegistros)))
+//			if (((posicion_new - i-k) < 0) && (key_vector[posicion_new + i+j].libre)
+//					&& (key_vector[posicion_new + i+j].data_size > 0)){
+//
+//			}else{
+//				if ((posicion_new + i+j) == cantRegistros)
+//				termine = true;
+//			}
+//			if (((posicion_new + i+j) == cantRegistros) && ((key_vector[posicion_new - i-k].libre)
+//						&& (key_vector[posicion_new - i-k].data_size > 0))){
+//
+////				if ((posicion_new + i+j) == cantRegistros)
+////					termine = true;
+//			}else{
+//				if ((posicion_new - i-k) < 0)
+//				termine = true;
+//		}
+//		}
+//		i++;
 
 	}
 	pthread_rwlock_unlock(keyVector);
@@ -247,7 +325,7 @@ uint32_t elimina_buddy(uint32_t posicion_org) {
 
 uint32_t compactarDinam(void) {
 
-	log_info(logger,"Se compacta la cache");
+	log_info(logger, "Se compacta la cache");
 
 	// como ordenar recibe algo le mando cualquier posicion
 	int32_t posicion_new = ordenar_vector(0);
@@ -255,11 +333,10 @@ uint32_t compactarDinam(void) {
 	//empiezo desde cero y me fijo si esta vacio el siguiente
 	int32_t i = 0;
 
-		bool termine = false;
+	bool termine = false;
 
-	if ((key_vector[i].libre)
-			&& key_vector[i].data_size == cache_size)
-		termine =true;
+	if ((key_vector[i].libre) && key_vector[i].data_size == cache_size)
+		termine = true;
 
 	uint32_t ultimo_libre = i;
 
@@ -272,7 +349,7 @@ uint32_t compactarDinam(void) {
 
 //listo : si esta libre que tmb entre y los junte!!!
 
-		//al reves, pregunto si en la siguiente hay datos,y dsp si habia en la anterior y los muevo
+//al reves, pregunto si en la siguiente hay datos,y dsp si habia en la anterior y los muevo
 		if (((posicion_new + i) < cantRegistros)
 				&& (key_vector[posicion_new + i].libre)) {
 
@@ -353,7 +430,7 @@ void vector_inicializar(char *keys_space, void *cache, size_t cache_size) {
 	int32_t MAX_KEY = config_get_int_value(config, "MAX_KEY");
 
 	pthread_rwlock_wrlock(keyVector);
-
+	key_vector[0].flags = 0;
 	for (i = 1; i < cantRegistros; i++) {
 		key_vector[i].key = key_vector[i - 1].key + MAX_KEY;
 		key_vector[i].libre = true;
@@ -463,11 +540,11 @@ key_element *buscarLibreNext(size_t espacio) {
 					posicion);
 
 			key_vector[i].data_unuse = diferencia;
-		} else{
+		} else {
 			log_error(logger, "La memoria cache se encuentra llena");
 			//printf("No hay posiciones libres en el vector");
 //			return ENGINE_FAILED;
-	}
+		}
 	}
 
 	resultado = &key_vector[i];
@@ -572,7 +649,7 @@ key_element *buscarLibreWorst(size_t espacio) {
 					key_vector[pos_mayor_tamano].data_size - espacio
 							- diferencia, true, posicionn);
 			key_vector[pos_mayor_tamano].data_unuse = diferencia;
-		} else{
+		} else {
 			log_error(logger, "La memoria cache se encuentra llena");
 			//printf("No hay posiciones libres en el vector");
 //			return ENGINE_FAILED;
@@ -581,7 +658,6 @@ key_element *buscarLibreWorst(size_t espacio) {
 	resultado = &key_vector[pos_mayor_tamano];
 	return resultado;
 }
-
 
 // aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
 key_element *buscarLibreBuddy(size_t espacio) {
@@ -602,14 +678,14 @@ key_element *buscarLibreBuddy(size_t espacio) {
 
 				// entra aca si no encontro espacio
 
-					pthread_rwlock_unlock(keyVector);
+				pthread_rwlock_unlock(keyVector);
 
 				i = eliminar_particion(-1);
 
 				//Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
 				uint32_t new_pos = elimina_buddy(i);
 				i = new_pos;
-					pthread_rwlock_rdlock(keyVector);
+				pthread_rwlock_rdlock(keyVector);
 
 				// pregunto si en el nuevo lugar entra
 				if ((key_vector[i].data_size > espacio)
@@ -624,12 +700,13 @@ key_element *buscarLibreBuddy(size_t espacio) {
 			}
 		} else {
 
-			if (((encontrado == 0) &&(key_vector[i].data_size >= espacio))
-					&& ((key_vector[i].libre))){
+			if (((encontrado == 0) && (key_vector[i].data_size >= espacio))
+					&& ((key_vector[i].libre))) {
 				if (lugares == cantRegistros)
-				lugares = i;
-				else{
-					if (key_vector[i].data_size <= key_vector[lugares].data_size)
+					lugares = i;
+				else {
+					if (key_vector[i].data_size
+							<= key_vector[lugares].data_size)
 						lugares = i;
 				}
 
@@ -639,8 +716,10 @@ key_element *buscarLibreBuddy(size_t espacio) {
 	}
 
 	uint32_t prox_espacio;
-
 	bool verdad = false;
+	int32_t padre;
+	char contador = 1;
+
 	do {
 
 		uint32_t prox_particion = key_vector[lugares].data_size / 2;
@@ -648,26 +727,42 @@ key_element *buscarLibreBuddy(size_t espacio) {
 		if ((espacio <= prox_particion) && (prox_particion >= part_minima)) {
 			//CREAR LA PARTICION SIGUIENTE
 			prox_espacio = key_vector[lugares].data_size / 2;
-
 			// actualizar las particiones
 			int32_t posicionn = buscarPosLibre();
 
-				pthread_rwlock_unlock(keyVector);
+			padre = key_vector[lugares].flags % 10;
+			pthread_rwlock_unlock(keyVector);
 
 			if (posicionn != -1) {
+
+				if (key_vector[lugares].flags == 0) {
+					key_vector[posicionn].flags = (padre - 1);
+					key_vector[lugares].flags = (padre + 1);
+				} else {
+					if (key_vector[lugares].flags < 0) {
+						key_vector[posicionn].flags = (padre * 10)
+								+ (padre - 1);
+						key_vector[lugares].flags = (padre * 10) + (padre - 2);
+					} else {
+						key_vector[posicionn].flags = (padre * 10)
+								+ (padre + 1);
+						key_vector[lugares].flags = (padre * 10) + (padre + 2);
+					}
+				}
 
 				cargarEnVector((key_vector[posicionn].key),
 						key_vector[lugares].data + prox_espacio, prox_espacio,
 						true, posicionn);
 			} else
 				printf("No hay posiciones libres en el vector");
+//		    log_debug(logger, "particion_posicionn, flags: %d : %d \n",posicionn , key_vector[posicionn].flags);
 
-				pthread_rwlock_wrlock(keyVector);
+			pthread_rwlock_wrlock(keyVector);
+//			key_vector[lugares].flags = key_vector[posicionn].flags;
 			key_vector[lugares].data_size = prox_espacio;
 			prox_particion = prox_espacio;
-				pthread_rwlock_unlock(keyVector);
-				pthread_rwlock_rdlock(keyVector);
-
+			pthread_rwlock_unlock(keyVector);
+			pthread_rwlock_rdlock(keyVector);
 		} else {
 			/*ya no lo puedo partir mas o mi espacio es mayor a la particion que cree.*/
 			pthread_rwlock_unlock(keyVector);
@@ -675,21 +770,39 @@ key_element *buscarLibreBuddy(size_t espacio) {
 //						perror("trylock");
 //					else
 //						printf("Entro try lock\n");
-
+//			padre = key_vector[lugares].flags % 10;
 			pthread_rwlock_wrlock(keyVector);
+
+//			if (key_vector[lugares].flags == 0)
+//				key_vector[lugares].flags = (padre + 1);
+//
+//			else {
+//			if (key_vector[lugares].flags > 0)
+//				key_vector[lugares].flags = (padre * 10) + (padre + 2);
+//			else
+//				key_vector[lugares].flags = (padre * 10) + (padre - 2);
+////			}
+
 			if (espacio > prox_particion)
 				key_vector[lugares].data_unuse = key_vector[lugares].data_size
 						- espacio;
 			else
 				key_vector[lugares].data_unuse = prox_particion - espacio;
 
-				pthread_rwlock_unlock(keyVector);
-				pthread_rwlock_rdlock(keyVector);
+			pthread_rwlock_unlock(keyVector);
+			pthread_rwlock_rdlock(keyVector);
+	//	    log_debug(logger, "particion_lugares, flags: %d : %d \n",lugares , key_vector[lugares].flags);
 
 			resultado = &key_vector[lugares];
 
 			verdad = true;
 		}
+
+		if (contador == 1)
+			contador = 2;
+		else
+			contador = 1;
+
 	} while (!verdad);
 
 	pthread_rwlock_unlock(keyVector);
