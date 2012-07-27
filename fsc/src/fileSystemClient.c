@@ -223,6 +223,8 @@ int remote_write(const char *path, const char *input, size_t size, off_t offset,
             return check_error("write", path, response);
         }
     }
+	if(cache_active)
+			delete_memcached(remote_cache, path,nipc_getattr_response);
 
     logger_operation_read_write("FIN write", path, bytesWrote, offset);
 
@@ -259,6 +261,9 @@ int remote_unlink(const char *path) {
 	struct nipc_packet* packet = unlinkData->serialize(unlinkData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
+	if(cache_active)
+			delete_memcached(remote_cache, path,nipc_getattr_response);
+
 	return check_ok_error("unlink", path, response);
 }
 
@@ -374,6 +379,9 @@ int remote_rmdir(const char *path) {
 	struct nipc_packet* packet = rmdirData->serialize(rmdirData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
+	if(cache_active)
+			delete_memcached(remote_cache, path,nipc_readdir_response);
+
 	return check_ok_error("rmdir", path, response);
 }
 
@@ -440,6 +448,9 @@ int remote_truncate(const char * path, off_t offset) {
 	struct nipc_packet* packet = truncateData->serialize(truncateData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
+	if(cache_active) {
+		delete_memcached(remote_cache, path,nipc_getattr_response);
+	}
 	return check_ok_error("truncate", path, response);
 }
 

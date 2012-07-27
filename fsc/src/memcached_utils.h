@@ -11,4 +11,6 @@ struct nipc_packet *query_memcached(memcached_st *cache, const char *path, enum 
 
 void store_memcached(memcached_st *cache, const char *path, struct nipc_packet *packet);
 
+void delete_memcached(memcached_st *cache, const char* path, enum tipo_nipc nipc_type);
+
 #endif /* MEMCACHED_UTILS_H_ */
