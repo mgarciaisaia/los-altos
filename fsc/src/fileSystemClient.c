@@ -54,7 +54,7 @@ int check_error(const char *operation, const char *path, struct nipc_packet *pac
         return -1;
     }
     struct nipc_error *response = deserialize_error(packet);
-    log_error(logger, "Error %d al hacer %s %s: %s", response->errorCode, operation, path, response->errorMessage);
+    log_error(logger, "Error %d al hacer %s %s: %s (%s)", response->errorCode, operation, path, response->errorMessage, strerror(-response->errorCode));
     int32_t return_value = response->errorCode;
     if(return_value == 0) {
         return_value = -1;
@@ -154,30 +154,41 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
 int remote_read(const char *path, char *output, size_t size, off_t offset,
 		struct fuse_file_info *fileInfo) {
 	logger_operation_read_write("read", path, size, offset);
-	if (size > maximumReadWriteSize) {
-		log_debug(logger, "Achico un pedido de read de %d bytes a %d", size, maximumReadWriteSize);
-		size = maximumReadWriteSize;
-	}
 
 	// FIXME revisar como se maneja la cache y todo eso
 //    memcached_return_t *memcached_response = memcached_add(remote_cache, "hola", strlen("hola"), "hola puto :)", strlen("hola puto :)"), 0, 0);
 //    if(memcached_response != MEMCACHED_SUCCESS) {
 //        printf("NOOOOO %s\n", memcached_strerror(remote_cache, memcached_response));
 //    }
-	struct nipc_read* readData = new_nipc_read(client_id, path, size, offset);
-	struct nipc_packet* packet = readData->serialize(readData);
-	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
-			fileSystemPort);
-	if (response->type == nipc_read_response) {
-		size_t readBytes =
-				(response->data_length < size) ? response->data_length : size;
-		memcpy(output, response->data, readBytes);
-        free(response->data);
-        free(response);
-		return readBytes;
-	} else {
-		return check_error("read", path, response);
+
+	int bytesRead = 0;
+
+	while(bytesRead < size) {
+	    int requestSize = size - bytesRead;
+	    if(requestSize > maximumReadWriteSize) {
+	        requestSize = maximumReadWriteSize;
+	    }
+
+        struct nipc_read* readData = new_nipc_read(client_id, path, requestSize, offset + bytesRead);
+        struct nipc_packet* packet = readData->serialize(readData);
+        struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+        if (response->type == nipc_read_response) {
+            if(response->data_length == 0) {
+                free(response);
+                break;
+            }
+            memcpy(output + bytesRead, response->data, response->data_length);
+            bytesRead += response->data_length;
+            free(response->data);
+            free(response);
+        } else {
+            return check_error("read", path, response);
+        }
 	}
+
+	logger_operation_read_write("FIN read", path, bytesRead, offset);
+
+    return bytesRead;
 }
 
 /** Write data to an open file
@@ -193,19 +204,29 @@ int remote_read(const char *path, char *output, size_t size, off_t offset,
 int remote_write(const char *path, const char *input, size_t size, off_t offset,
 		struct fuse_file_info *fileInfo) {
 	logger_operation_read_write("write", path, size, offset);
-	if (size > maximumReadWriteSize) {
-		size = maximumReadWriteSize;
-	}
-	struct nipc_write* writeData = new_nipc_write(client_id, path, input, size, offset);
-	struct nipc_packet* packet = writeData->serialize(writeData);
-	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
-			fileSystemPort);
-	int failed = check_ok_error("write", path, response);
-	if (failed) {
-		return failed;
-	} else {
-		return size;
-	}
+
+	int bytesWrote = 0;
+
+    while(bytesWrote < size) {
+        int requestSize = size - bytesWrote;
+        if(requestSize > maximumReadWriteSize) {
+            requestSize = maximumReadWriteSize;
+        }
+
+        struct nipc_write *writeData = new_nipc_write(client_id, path, input, requestSize, offset + bytesWrote);
+        struct nipc_packet* packet = writeData->serialize(writeData);
+        struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+        if (response->type == nipc_ok) {
+            free(response);
+            bytesWrote += requestSize;
+        } else {
+            return check_error("write", path, response);
+        }
+    }
+
+    logger_operation_read_write("FIN write", path, bytesWrote, offset);
+
+    return bytesWrote;
 }
 
 /** Release an open file

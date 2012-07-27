@@ -425,7 +425,7 @@ void serve_handshake(int socket, struct nipc_packet *request) {
 void serve_error(int socket, struct nipc_error *request) {
     // FIXME manejar error (desconectado? error con codigo? mensaje?)
     log_error(logger, "Error %d en %d (cliente %d): %s", request->errorCode, socket, request->client_id, request->errorMessage);
-    if(request->errorCode != EBADF) {
+    if(request->errorCode != -EBADF) {
         nipc_send(socket, request->serialize(request));
     } else {
         free(request->errorMessage);

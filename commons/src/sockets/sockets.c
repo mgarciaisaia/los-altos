@@ -75,12 +75,12 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         if (received < 0) {
             log_error(logger_socket, "Error recibiendo cabecera en %d - %s", socketDescriptor, strerror(errno));
             free(header);
-            struct nipc_error *error = new_nipc_error(errno, "Error recibiendo cabecera");
+            struct nipc_error *error = new_nipc_error(-errno, "Error recibiendo cabecera");
             return error->serialize(error);
         } else if(received == 0) {
             log_error(logger_socket, "Error recibiendo cabecera en %d - Desconectado del servidor", socketDescriptor);
             free(header);
-            struct nipc_error *error = new_nipc_error(EBADF, "Desconectado del servidor");
+            struct nipc_error *error = new_nipc_error(-EBADF, "Desconectado del servidor");
             return error->serialize(error);
         }
         receivedHeaderLenght += received;
@@ -104,12 +104,12 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         if (received < 0) {
             free(message);
             log_error(logger_socket, "Error recibiendo paquete en %d - %s", socketDescriptor, strerror(errno));
-            struct nipc_error *error = new_nipc_error(errno, "Error recibiendo cabecera");
+            struct nipc_error *error = new_nipc_error(-errno, "Error recibiendo cabecera");
             return error->serialize(error);
         } else if(received == 0) {
             free(message);
             log_error(logger_socket, "Error recibiendo paquete en %d - Desconectado del servidor", socketDescriptor);
-            struct nipc_error *error = new_nipc_error(EBADF, "Desconectado del servidor");
+            struct nipc_error *error = new_nipc_error(-EBADF, "Desconectado del servidor");
             return error->serialize(error);
         }
         receivedBytes += received;
