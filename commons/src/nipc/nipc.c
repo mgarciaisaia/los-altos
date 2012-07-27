@@ -4,7 +4,7 @@
 #include "nipc.h"
 #include <stdint.h>
 
-static char *enum_nipc_names[19] = {"CREATE", "OPEN", "READ", "WRITE", "UNLINK", "RELEASE", "MKDIR", "RMDIR", "READDIR", "GETATTR", "TRUNCATE", "ERROR", "OK", "READ_RESPONSE", "READDIR_RESPONSE", "GETATTR_RESPONSE", "GETATTR_ERROR", "HANDSHAKE", "DISCONNECTED"};
+static char *enum_nipc_names[19] = {"CREATE", "OPEN", "READ", "WRITE", "UNLINK", "RELEASE", "MKDIR", "RMDIR", "READDIR", "GETATTR", "TRUNCATE", "ERROR", "OK", "READ_RESPONSE", "READDIR_RESPONSE", "GETATTR_RESPONSE", "HANDSHAKE"};
 
 char *nombre_del_enum_nipc(enum tipo_nipc tipo) {
     if(tipo>19) {
