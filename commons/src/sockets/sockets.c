@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "sockets.h"
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -89,8 +88,8 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
     log_debug(logger_socket, "Recibi un header de %d bytes en %d", headerSize, socketDescriptor);
 
 
-    u_int32_t messageSize = headerSize
-            + *(u_int32_t *) (header + sizeof(packet->type) + sizeof(packet->client_id));
+    uint32_t messageSize = headerSize
+            + *(uint32_t *) (header + sizeof(packet->type) + sizeof(packet->client_id));
     free(header);
     void *message = malloc(messageSize);
 

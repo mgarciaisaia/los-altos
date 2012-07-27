@@ -70,7 +70,7 @@ void registrar_cierre(t_list *archivos_abiertos, struct archivo_abierto *nodo_ar
     pthread_rwlock_unlock(nodo_archivo->lock);
 }
 
-struct archivos_cliente *obtener_o_crear_lista_del_cliente(t_dictionary *archivos_por_cliente, u_int32_t client_id) {
+struct archivos_cliente *obtener_o_crear_lista_del_cliente(t_dictionary *archivos_por_cliente, uint32_t client_id) {
 
     pthread_mutex_lock(lock_archivos_clientes);
     char *str_client_id = string_from_uint32(client_id);
@@ -88,8 +88,7 @@ struct archivos_cliente *obtener_o_crear_lista_del_cliente(t_dictionary *archivo
     return archivos_cliente;
 }
 
-// FIXME: unificar los u_int32_t y uint32_t en uint32_t (pasan de sys/types.h a stdint.h)
-void registrar_apertura_cliente(struct archivos_cliente *archivos_cliente, u_int32_t numero_inodo) {
+void registrar_apertura_cliente(struct archivos_cliente *archivos_cliente, uint32_t numero_inodo) {
     pthread_mutex_lock(archivos_cliente->lock);
     list_add(archivos_cliente->archivos, duplicar_uint32(numero_inodo));
     pthread_mutex_unlock(archivos_cliente->lock);

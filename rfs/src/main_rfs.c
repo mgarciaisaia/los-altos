@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include "src/nipc/nipc.h"
 #include <fcntl.h>
-#include <sys/types.h>
 #include <errno.h>
 #include "src/commons/collections/list.h"
 #include "src/commons/log.h"
@@ -37,12 +36,12 @@ int32_t sleep_time;
 char *sleep_type;
 t_log *logger;
 int epoll;
-u_int16_t listening_port;
+uint16_t listening_port;
 int max_connections;
 int max_events;
 sem_t threads_count;
 t_list *archivos_abiertos;
-u_int32_t generated_client_id = 0;
+uint32_t generated_client_id = 0;
 pthread_mutex_t *mutex_client_id;
 t_dictionary *archivos_por_cliente;
 
@@ -400,7 +399,7 @@ void serve_unknown(int socket, struct nipc_packet *request) {
 	free(request);
 
 }
-u_int32_t generate_client_id() {
+uint32_t generate_client_id() {
     pthread_mutex_lock(mutex_client_id);
     uint32_t new_client_id = ++generated_client_id;
     pthread_mutex_unlock(mutex_client_id);

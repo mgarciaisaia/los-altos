@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fuse.h>
-#include <sys/types.h>
 #include "src/nipc/nipc.h"
 #include "src/sockets/sockets.h"
 #include <errno.h>
@@ -19,11 +18,11 @@
 
 t_log *logger;
 char *fileSystemIP;
-u_int16_t fileSystemPort;
+uint16_t fileSystemPort;
 int maximumReadWriteSize = 32 * 1024;
 memcached_st *remote_cache;
 bool cache_active;
-u_int32_t client_id = 0;
+uint32_t client_id = 0;
 
 
 /**
@@ -522,7 +521,7 @@ void initialize_configuration() {
         memcached_return_t memcached_response;
 
 	    char *remote_cache_host = config_get_string_value(config, "cache.host");
-        u_int16_t remote_cache_port = config_get_int_value(config, "cache.port");
+        uint16_t remote_cache_port = config_get_int_value(config, "cache.port");
         servers = memcached_server_list_append(servers, remote_cache_host, remote_cache_port, &memcached_response);
         if (memcached_response != MEMCACHED_SUCCESS) {
             log_error(logger,
