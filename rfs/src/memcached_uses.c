@@ -4,6 +4,7 @@
 #include <libmemcached/memcached.h>
 #include "src/commons/log.h"
 #include "funciones_rfs.h"
+#include "src/commons/string.h"
 
 #define BLOQUE_SIZE 1024
 t_log *memcached_logger;
@@ -50,7 +51,7 @@ char * query_memcached(memcached_st *cache,uint32_t nroBloque){
 
 	char* cached_data = malloc(BLOQUE_SIZE);
 	memcached_return_t memcached_response;
-	char* key = (char *)nroBloque;
+	char *key = string_from_uint32(nroBloque);
 	size_t key_length = strlen(key) + 1;
 	size_t data_length;
 	uint32_t flags;
@@ -76,7 +77,7 @@ char * query_memcached(memcached_st *cache,uint32_t nroBloque){
 void store_memcached(memcached_st *cache, uint32_t nroBloque, void * buffer) {
 
 //	memcached_response *respuesta = transform_query(path,offset);
-	char *key = (char*)nroBloque;
+	char *key = string_from_uint32(nroBloque);
 	//	char *key = key_for_memcached(path, operation);
 	memcached_return_t memcached_response = memcached_add(cache, key,
 			strlen(key), buffer, BLOQUE_SIZE, (time_t) 0,
@@ -103,7 +104,7 @@ void delete_memcached(memcached_st *cache, const char* path, uint32_t offset) {
 		uint32_t bloqueBorrado = respuesta->nroBloqueInicial;
 		while(bloqueBorrado <= respuesta->nroBloqueFinal){
 
-			key = (char*)bloqueBorrado;
+			key = string_from_uint32(bloqueBorrado);
 			memcached_return_t memcached_response = memcached_delete(cache, key,
 					strlen(key), (time_t) 0);
 			if (memcached_response == MEMCACHED_SUCCESS) {

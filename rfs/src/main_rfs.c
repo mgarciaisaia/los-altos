@@ -192,11 +192,11 @@ void serve_read(int socket, struct nipc_read *request) {
 	if ((readBytes < request->size)) {
 		do_sleep();
 
-		size_t readBytes = leerArchivo(request->path, request->offset,
+		readBytes = leerArchivo(request->path, request->offset,
 				request->size, &buffer);
 
 		if (cache_active) {
-						int32_t var = almacenar_memcached(remote_cache, request->path,
+						almacenar_memcached(remote_cache, request->path,
 								request->offset, request->size, buffer);
 					}
 	}
@@ -238,7 +238,7 @@ void serve_write(int socket, struct nipc_write *request) {
 
 		if (cache_active && (codError != 0)) {
 
-			int32_t var = almacenar_memcached(remote_cache, request->path, request->offset,
+			almacenar_memcached(remote_cache, request->path, request->offset,
 					request->size, request->data);
 		}
 
