@@ -182,20 +182,24 @@ void serve_read(int socket, struct nipc_read *request) {
 	log_debug(logger, "read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
 	void *buffer;
-	uint32_t response = 0;
-
+	size_t readBytes =0;
 
 	if (cache_active) {
 
-		response = read_from_memcached(remote_cache, request->path,request->offset, request->size, &buffer);
+		readBytes = read_from_memcached(remote_cache, request->path,request->offset, request->size, &buffer);
 	}
 
-	if (response == 0) {
+	if ((readBytes < request->size)) {
 		do_sleep();
 
 		size_t readBytes = leerArchivo(request->path, request->offset,
 				request->size, &buffer);
 
+		if (cache_active) {
+						int32_t var = almacenar_memcached(remote_cache, request->path,
+								request->offset, request->size, buffer);
+					}
+	}
 		if (buffer == NULL && readBytes != 0) {
 			send_no_ok(socket, readBytes, request->client_id);
 		} else {
@@ -203,12 +207,8 @@ void serve_read(int socket, struct nipc_read *request) {
 					readBytes, request->client_id);
 			nipc_send(socket, response);
 
-			if (cache_active) {
-				int32_t var = almacenar_memcached(remote_cache, request->path,
-						request->offset, request->size, buffer);
-			}
 		}
-	}
+
 	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
 	free(request->path);
@@ -229,7 +229,7 @@ void serve_write(int socket, struct nipc_write *request) {
 				request->offset, request->size, request->data);
 	}
 
-	if (codError == -1) {
+	if ((codError == -1) || (codError < request->size)) {
 
 		do_sleep();
 
