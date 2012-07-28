@@ -298,16 +298,17 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 		const void* cookie, item **item, const void* key, const size_t nkey,
 		const size_t nbytes, const int flags, const rel_time_t exptime) {
 
-	logger_operation("Allocate",key);
+	char strkey[nkey + 1];
+		memcpy(strkey, key, nkey);
+		strkey[nkey] = '\0';
+
+	logger_operation("Allocate",strkey);
 	//valido que no sea mayor a la particion maxima
 	if (nbytes > part_maxima){
 		printf("El tamaño de los datos excede el límite \n");
 //		return MEMCACHED_FAILURE;
 //		return ENGINE_FAILED;
 	}
-	char strkey[nkey + 1];
-	memcpy(strkey, key, nkey);
-	strkey[nkey] = '\0';
 
 	key_element* (*vector_search)(uint32_t);
 
