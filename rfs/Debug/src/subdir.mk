@@ -6,16 +6,19 @@
 C_SRCS += \
 ../src/administracion.c \
 ../src/funciones_rfs.c \
+../src/memcached_uses.c \
 ../src/main_rfs.c 
 
 OBJS += \
 ./src/administracion.o \
 ./src/funciones_rfs.o \
+./src/memcached_uses.o \
 ./src/main_rfs.o 
 
 C_DEPS += \
 ./src/administracion.d \
 ./src/funciones_rfs.d \
+./src/memcached_uses.d \
 ./src/main_rfs.d 
 
 

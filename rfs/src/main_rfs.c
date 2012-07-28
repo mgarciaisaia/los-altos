@@ -30,7 +30,7 @@
 #include <sys/inotify.h>
 #include <arpa/inet.h>
 #include <libmemcached/memcached.h>
-#include "memcached_utils.h"
+#include "memcached_uses.h"
 
 #define MEMCACHED_KEY_SIZE 41
 #define PATH_CONFIG "rfs.conf"
@@ -182,14 +182,15 @@ void serve_read(int socket, struct nipc_read *request) {
 	log_debug(logger, "read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
 	void *buffer;
-//	size_t response = 0;
-//
-//	//y de aca donde tengo el numero de bloque? que le mando a la cache?
-//	if (cache_active) {
-//		response = query_memcached(remote_cache, request->path, 0, 0);
-//	}
-//
-//	if (response == 0) {
+	uint32_t response = 0;
+
+
+	if (cache_active) {
+
+		response = read_from_memcached(remote_cache, request->path,request->offset, request->size, &buffer);
+	}
+
+	if (response == 0) {
 		do_sleep();
 
 		size_t readBytes = leerArchivo(request->path, request->offset,
@@ -202,11 +203,11 @@ void serve_read(int socket, struct nipc_read *request) {
 					readBytes, request->client_id);
 			nipc_send(socket, response);
 
-//			//aca tampoco tengo el bloque
-//			if (cache_active) {
-//				store_memcached(remote_cache, "bloque", response);
-//			}
-//		}
+			if (cache_active) {
+				int32_t var = almacenar_memcached(remote_cache, request->path,
+						request->offset, request->size, buffer);
+			}
+		}
 	}
 	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
@@ -221,38 +222,39 @@ void serve_write(int socket, struct nipc_write *request) {
 	log_debug(logger, "write %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
 
-	int32_t codError;
-//
-//	//y de aca donde tengo el numero de bloque? que le mando a la cache?
-//	if (cache_active) {
-//		codError = query_memcached(remote_cache, request->path, 0, 0);
-//	}
+	int32_t codError = -1;
 
-//	if (codError == -1) {
+	if (cache_active) {
+		codError = almacenar_memcached(remote_cache, request->path,
+				request->offset, request->size, request->data);
+	}
+
+	if (codError == -1) {
 
 		do_sleep();
 
-		codError = escribirArchivo(request->path, request->data,
-				request->size, request->offset);
-//		//aca tampoco tengo el bloque
-//		if (cache_active && (codError != 0)) {
-//			store_memcached(remote_cache, "bloque", 0);
-//		}
+		codError = escribirArchivo(request->path, request->data, request->size,
+				request->offset);
 
+		if (cache_active && (codError != 0)) {
+
+			int32_t var = almacenar_memcached(remote_cache, request->path, request->offset,
+					request->size, request->data);
+		}
 
 		if (codError != 0)
 			send_no_ok(socket, codError, request->client_id);
-		else{
+		else {
 			send_ok(socket, request->client_id);
 		}
 
-	log_debug(logger, "FIN write %s @%d+%d (pide %d)", request->path,
-			request->offset, request->size, request->client_id);
-	free(request->path);
-	free(request->data);
-	free(request);
+		log_debug(logger, "FIN write %s @%d+%d (pide %d)", request->path,
+				request->offset, request->size, request->client_id);
+		free(request->path);
+		free(request->data);
+		free(request);
+	}
 }
-
 /**
  * Manda un nipc_ok si pudo hace release, o nipc_error
  * NOTA: FUSE dice ignorar el valor de retorno, si se complica contestar
@@ -634,7 +636,7 @@ void initialize_configuration() {
 						remote_cache_host, remote_cache_port);
 			}
 		}
-//        set_memcached_utils_logger(logger);
+        set_memcached_utils_logger(logger);
 		free(servers);
 		// FIXME: hago free de servers o lo sigo necesitando?
 	}
@@ -720,64 +722,6 @@ int32_t main(void) {
 	}
 
 	destroy_semaforos();
-	return 0;
-
-//	read_superblock();
-
-// Mostrar los descriptores de grupo
-
-//	uint32_t cantGrupos = cantidadDeGrupos();
-//	int nroGrupo;
-//	for(nroGrupo = 0;nroGrupo < cantGrupos;nroGrupo++){
-//		printf("grupo nro: %d\n: ",nroGrupo);
-//		leerGroupDescriptor(nroGrupo);
-//	}
-
-// Fin - Mostrar los descriptores de grupo
-
-// Busqueda de bloques libres
-
-//	t_queue * bloquesLibres = buscarBloquesLibres(4);
-//	if (!queue_is_empty(bloquesLibres)){
-//		printf("entro aca\n");
-//		printf("tam: %d\n",queue_size(bloquesLibres));
-//		queue_clean(bloquesLibres);
-//		printf("tam: %d\n",queue_size(bloquesLibres));
-//		queue_destroy(bloquesLibres);
-//	}
-
-//Fin - Busqueda de bloques libres
-
-// Busqueda inodos libres
-
-//	t_queue * inodosLibres = buscarInodosLibres(4);
-//	if (!queue_is_empty(inodosLibres)){
-//		printf("entro aca\n");
-//		printf("tam: %d\n",queue_size(inodosLibres));
-//		queue_clean(inodosLibres);
-//		printf("tam: %d\n",queue_size(inodosLibres));
-//		queue_destroy(inodosLibres);
-//	}
-
-//Fin - Busqueda inodos libres
-
-// Probando getInodo y lectura de bloques ocupados por un archivo
-
-//	uint32_t nroInodo = 12;
-//	struct INode * inodo = getInodo(nroInodo);
-//	leerBloquesInodos(inodo);
-
-//Fin - Probando getInodo y lectura de bloques ocupados por un archivo
-
-// Listar directorio
-
-//	uint32_t nroInodoRaiz = 2;
-//	struct INode * inodo = getInodo(nroInodoRaiz);
-//	leerDirectorio(inodo);
-
-//	leerDirectorio("carpeta1/carpeta2");
-
-// Fin - Listar directorio
 
 	/* Aca liberamos la memoria que mapeamos */
 	extern uint32_t *ptr_arch;
@@ -786,5 +730,5 @@ int32_t main(void) {
 	}
 
 	return EXIT_SUCCESS;
-
 }
+
