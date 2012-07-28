@@ -1078,13 +1078,17 @@ uint32_t getNroInodoDeLaDireccionDelPath(char * path){
 	struct INode * inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
 	int i;
 	for(i = 0;i < tamanio_ruta_separada;i++){
-		nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
-		if(nroInodoDeBusqueda == 0){
-// todo: revisar, entra aca cuando hago un crearDirectorio en el raiz
-			log_info(logger_funciones, "No existe la ruta %s\n", path);
-			break;
-		}
-		inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
+	    if(EXT2_INODE_HAS_MODE_FLAG(inodoDeBusqueda, S_IFDIR)) {
+            nroInodoDeBusqueda = buscarNroInodoEnEntradasDirectorio(inodoDeBusqueda,ruta_separada[i]);
+            if(nroInodoDeBusqueda == 0){
+    // todo: revisar, entra aca cuando hago un crearDirectorio en el raiz
+                log_info(logger_funciones, "No existe la ruta %s\n", path);
+                break;
+            }
+            inodoDeBusqueda = getInodo(nroInodoDeBusqueda);
+	    } else {
+	        return 0;
+	    }
 	}
 	string_iterate_lines(ruta_separada, (void*) free);
 	free(ruta_separada);
