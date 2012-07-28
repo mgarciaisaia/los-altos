@@ -12,6 +12,7 @@
 #include "src/commons/config.h"
 #include <libmemcached/memcached.h>
 #include "memcached_utils.h"
+#include <libgen.h>
 
 #define PATH_CONFIG "fsc.conf"
 #define MEMCACHED_KEY_SIZE 41
@@ -90,6 +91,12 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
     struct nipc_create* createData = new_nipc_create(client_id, path, mode);
     struct nipc_packet* packet = createData->serialize(createData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
+    if(cache_active && response->type == nipc_ok) {
+            char *pathcopy = strdup(path);
+            char *directory = dirname(pathcopy);
+            delete_memcached(remote_cache, directory, nipc_readdir_response);
+            free(pathcopy);
+        }
     return check_ok_error("create", path, response);
 }
 

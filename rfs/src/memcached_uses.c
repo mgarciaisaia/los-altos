@@ -34,8 +34,8 @@ memcached_response *transform_query(const char *path,uint32_t offset,uint32_t si
 	uint32_t * bloqueFisicoI =getPtrNroBloqueLogicoDentroInodo(inodoI,nroBloqueLogicoI);
 	respuesta->nroBloqueInicial = *bloqueFisicoI;
 
-	struct INode * inodoF = getInodoDeLaDireccionDelPath((char*)path+size);
-	uint32_t nroBloqueLogicoF = nroBloqueDentroDelInodo(offset);
+	struct INode * inodoF = getInodoDeLaDireccionDelPath((char*)path);
+	uint32_t nroBloqueLogicoF = nroBloqueDentroDelInodo(offset+size -1);
 	uint32_t * bloqueFisicoF =getPtrNroBloqueLogicoDentroInodo(inodoF,nroBloqueLogicoF);
 	respuesta->nroBloqueFinal = *bloqueFisicoF;
 
