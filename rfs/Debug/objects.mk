@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lcommons -lm
+LIBS := -lcommons -lm -lmemcached
 
