@@ -98,7 +98,7 @@
 	    uint16_t entry_len;
 	    uint8_t name_len;
 	    uint8_t type;
-	    char name[];
+	    char *name;
 	};
 
 	typedef struct readdir_stat

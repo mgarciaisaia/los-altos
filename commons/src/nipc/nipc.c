@@ -347,6 +347,7 @@ static struct nipc_packet* serialize_mkdir(struct nipc_mkdir* payload) {
     memcpy(packet->data, payload->path, path_lenght);
     memcpy(packet->data + path_lenght, &(payload->fileMode), sizeof(uint32_t));
 
+    free(payload->path);
     free(payload);
 
     return packet;
