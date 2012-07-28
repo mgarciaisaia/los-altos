@@ -30,6 +30,7 @@ static struct nipc_packet* serialize_create(struct nipc_create* payload) {
     // Donde termina el path, copio el modo
     memcpy(packet->data + path_lenght, &(payload->fileMode), sizeof(uint32_t));
 
+    free(payload->path);
     free(payload);
 
     return packet;
