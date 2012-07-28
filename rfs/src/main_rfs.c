@@ -289,6 +289,10 @@ void serve_release(int socket, struct nipc_release *request) {
 void serve_unlink(int socket, struct nipc_unlink *request) {
 	log_debug(logger, "unlink %s (pide %d)", request->path, request->client_id);
 
+	uint32_t offset = 0;
+	if (cache_active)
+		delete_memcached(remote_cache, request->path, offset);
+
 	do_sleep();
 
 	int32_t codError = eliminarArchivo(request->path);
@@ -375,6 +379,10 @@ void serve_readdir(int socket, struct nipc_readdir *request) {
 void serve_rmdir(int socket, struct nipc_rmdir *request) {
 	log_debug(logger, "rmdir %s (pide %d)", request->path, request->client_id);
 
+//	uint32_t offset = 0;
+//	if (cache_active)
+//		delete_memcached(remote_cache, request->path, offset);
+
 	do_sleep();
 
 	int32_t codError = eliminarDirectorio(request->path);
@@ -428,6 +436,10 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
 void serve_truncate(int socket, struct nipc_truncate *request) {
 	log_debug(logger, "truncate %s a %d (pìde %d)", request->path,
 			request->offset, request->client_id);
+
+//	uint32_t offset = 0;
+//	if (cache_active)
+//		delete_memcached(remote_cache, request->path, offset);
 
 	do_sleep();
 

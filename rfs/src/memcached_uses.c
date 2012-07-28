@@ -91,22 +91,32 @@ void store_memcached(memcached_st *cache, uint32_t nroBloque, void * buffer) {
 //	free(key);
 //	free(respuesta);
 }
-/*
+
 void delete_memcached(memcached_st *cache, const char* path, uint32_t offset) {
 
-	memcached_response *respuesta = transform_query(path,offset);
-	char *key = (char*)respuesta->nroBloque;
-	memcached_return_t memcached_response = memcached_delete(cache, key,
-			strlen(key), (time_t) 0);
-	if (memcached_response == MEMCACHED_SUCCESS) {
-		log_info(memcached_logger, "Se borro la clave %s", key);
-	} else {
-		log_error(memcached_logger, "Error borrando la clave %s: %s", key,
-				memcached_strerror(cache, memcached_response));
-	}
+	//calcular el tamaño del archivo asi se cuantos bloques ocupa
+	struct INode * inodo = getInodoDeLaDireccionDelPath((char*)path);
 
+	memcached_response *respuesta = transform_query(path,offset,inodo->size);
+	char *key;
+//	uint32_t i = 0;
+		uint32_t bloqueBorrado = respuesta->nroBloqueInicial;
+		while(bloqueBorrado <= respuesta->nroBloqueFinal){
+
+			key = (char*)bloqueBorrado;
+			memcached_return_t memcached_response = memcached_delete(cache, key,
+					strlen(key), (time_t) 0);
+			if (memcached_response == MEMCACHED_SUCCESS) {
+				log_info(memcached_logger, "Se borro la clave %s", key);
+			} else {
+				log_error(memcached_logger, "Error borrando la clave %s: %s", key,
+						memcached_strerror(cache, memcached_response));
+			}
+
+			bloqueBorrado++;
+		}
 }
-*/
+
 int32_t almacenar_memcached(memcached_st *cache,char *path, uint32_t offset,
 		uint32_t size, void *buffer){
 

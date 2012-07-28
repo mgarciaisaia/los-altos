@@ -28,4 +28,6 @@ int32_t almacenar_memcached(memcached_st *cache,char *path, uint32_t offset,
 uint32_t read_from_memcached(memcached_st *cache,char *path,
 		uint32_t offset, uint32_t size,void *buffer);
 
+void delete_memcached(memcached_st *cache, const char* path, uint32_t offset);
+
 #endif /* MEMCACHED_UTILS_H_ */
