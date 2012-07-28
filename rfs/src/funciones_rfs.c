@@ -835,6 +835,12 @@ int32_t crearDirectorio(char * path, uint32_t mode){
                 uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 
                 inicializarEntradasNuevoDir(inodoNuevoDir,0,nroInodoEntradaNueva,nroInodoRuta);
+
+                // para actualizar el nro de directorios del grupo
+                struct Superblock *sb = read_superblock();
+                uint32_t nroGrupo = (nroInodoRuta - 1) / sb->inodes_per_group;
+                struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
+                (grupo->used_dirs_count)++;
 			}
 		} else {
 			resultado = EEXIST;
@@ -1164,12 +1170,16 @@ void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
 				tamanio_dir_eliminado = directorio->entry_len;
 				directorioEliminado = 1;
 				free(nombre);
+				free(directorio->name);
+				free(directorio);
 				break;
 			}
 			free(nombre);
 			tamanioEntradaAnterior = directorio->entry_len;
 			cantidad += directorio->entry_len;
 			ptr += directorio->entry_len;
+			free(directorio->name);
+            free(directorio);
 		}
 	}
 	// es el caso cuando una sola entrada de directorio se encuentra en un bloque
@@ -1181,6 +1191,7 @@ void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
 		ptr -= tamanioEntradaAnterior;
 		struct DirEntry * directorio = leerEntrada(ptr);
 		directorio->entry_len += tamanio_dir_eliminado;
+		grabarEntrada(ptr, directorio);
 	}
 }
 
@@ -1214,6 +1225,7 @@ void liberarInodo(uint32_t nroInodoDirectorio){
 	inodoDirEliminado->mode = 0;
 	inodoDirEliminado->links = 0;
 	inodoDirEliminado->size = 0;
+	free(ptrBit);
 	pthread_mutex_unlock(&sem_liberar_inodo);
 
 }
@@ -1280,7 +1292,6 @@ int32_t eliminarArchivo(char * path){
 
 	int32_t resultado = 0;
 	pthread_mutex_lock(&sem_eliminar_archivo);
-	struct Superblock * sb;
 	t_ruta_separada * ruta_separada = separarPathParaNewDirEntry(path);
 	uint32_t nroInodoRuta = getNroInodoDeLaDireccionDelPath(ruta_separada->ruta);
 	struct INode * inodoRuta = getInodo(nroInodoRuta);
@@ -1291,12 +1302,6 @@ int32_t eliminarArchivo(char * path){
 			truncarArchivo(path,0);
 			liberarInodo(nroInodoArchivo);
 			eliminarEntradaDirectorio(inodoRuta,ruta_separada->nombre);
-
-			// para actualizar el nro de directorios del grupo
-			sb = read_superblock();
-			uint32_t nroGrupo = (nroInodoArchivo - 1) / sb->inodes_per_group;
-			struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
-			(grupo->used_dirs_count)--;
 
 		} else {
 			resultado = ENOENT;
@@ -1310,7 +1315,7 @@ int32_t eliminarArchivo(char * path){
 	free(ruta_separada->ruta);
 	free(ruta_separada->nombre);
 	free(ruta_separada);
-	pthread_mutex_lock(&sem_eliminar_archivo);
+	pthread_mutex_unlock(&sem_eliminar_archivo);
 
 	return resultado;
 }
