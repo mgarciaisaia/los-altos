@@ -1241,8 +1241,11 @@ int directorioVacio(uint32_t nroInodoDirectorio){
 		uint32_t tamanio_primer_entrada = 12;
 		ptr = posicionarme(inodoDirectorio,0,12);
 		struct DirEntry * directorio = leerEntrada(ptr);
-		if(directorio->entry_len != tamanio_bloque - tamanio_primer_entrada)
+		if(directorio->entry_len != tamanio_bloque - tamanio_primer_entrada) {
 			estaVacio = 0;
+		}
+		free(directorio->name);
+		free(directorio);
 	}
 	return estaVacio;
 }

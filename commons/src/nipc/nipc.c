@@ -254,6 +254,9 @@ static struct nipc_packet* serialize_unlink(struct nipc_unlink* payload) {
     packet->data = malloc(packet->data_length);
     memcpy(packet->data, payload->path, packet->data_length);
 
+    free(payload->path);
+    free(payload);
+
     return packet;
 }
 
@@ -394,6 +397,8 @@ static struct nipc_packet* serialize_rmdir(struct nipc_rmdir* payload) {
     packet->data = malloc(packet->data_length);
     memcpy(packet->data, payload->path, packet->data_length);
 
+    free(payload->path);
+    free(payload);
     return packet;
 }
 
