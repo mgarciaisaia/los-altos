@@ -59,6 +59,7 @@ key_element *alocate_vector(void) {
 
 	double cuenta = sizeof(key_element) * cantRegistros;
 	key_element *key_table = malloc(cuenta);
+	memset(key_table, 0, cuenta);
 //	key_element *key_vector = key_table;
 
 	return key_table;
