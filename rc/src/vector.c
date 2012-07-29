@@ -747,8 +747,8 @@ key_element *buscarLibreBuddy(size_t espacio) {
 //busca el item con esa key y lo devuelve.
 int32_t vector_get(char *key) {
 //	key_element *resultado;
-	int32_t resultado;
-	uint32_t encontrado = 0;
+	int32_t resultado = -1;
+	char encontrado = 0;
 	uint32_t i = 0;
 //buscar la key en el vector
 	size_t nkey = strlen(key);
@@ -756,25 +756,17 @@ int32_t vector_get(char *key) {
 
 	while ((encontrado == 0) && (i < cantRegistros)) {
 
-		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
-
-//			while ((key_vector[i].libre) && (i < cantRegistros)) {
-//				i++;
-//			}
-//			if (i == cantRegistros) {
-			//llegue al final y no la encontre
-
-			resultado = -1;
-			encontrado = 1;
+		if (key_vector[i].data_size == 0) {
+			encontrado = -1;
 		} else {
 			if ((!(key_vector[i].libre) && key_vector[i].nkey == nkey)
 					&& (strncmp(key_vector[i].key, key, nkey) == 0)) {
 				resultado = i;
 				encontrado = 1;
-			} else
-				i++;
+			}
 		}
 
+        i++;
 	}
 	pthread_rwlock_unlock(keyVector);
 
