@@ -183,7 +183,7 @@ void serve_read(int socket, struct nipc_read *request) {
 	log_debug(logger, "read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
 	void *buffer;
-	size_t readBytes = 0;
+	size_t readBytes =0; // FIXME: correjir el tamanio que nos llega (vienen 4k por default, hay que achicarlo)
 
 	if (cache_active) {
 

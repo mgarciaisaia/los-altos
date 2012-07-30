@@ -78,7 +78,7 @@ uint32_t borrar(void) {
 	uint32_t i = 0;
 	struct timespec tp;
 
-	while ((key_vector[i].libre) && i < cantRegistros) {
+	while (i < cantRegistros && (key_vector[i].libre)) {
 		i++;
 	}
 	tp = key_vector[i].tp;

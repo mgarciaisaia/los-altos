@@ -13,6 +13,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <src/commons/log.h>
+#include <string.h>
 
 extern size_t cache_size;
 extern size_t part_minima;

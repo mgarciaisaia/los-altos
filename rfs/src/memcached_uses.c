@@ -28,18 +28,26 @@ void set_memcached_utils_logger(t_log *logger) {
 */
 memcached_response *transform_query(const char *path,uint32_t offset,uint32_t size){
 
-	memcached_response *respuesta = malloc(sizeof (memcached_response));
-	struct INode * inodoI = getInodoDeLaDireccionDelPath((char*)path);
-	uint32_t nroBloqueLogicoI = nroBloqueDentroDelInodo(offset);
-	uint32_t * bloqueFisicoI =getPtrNroBloqueLogicoDentroInodo(inodoI,nroBloqueLogicoI);
-	respuesta->nroBloqueInicial = *bloqueFisicoI;
+	memcached_response *respuesta = NULL;
+	struct INode * inodo = getInodoDeLaDireccionDelPath((char*)path);
+	if(inodo != NULL && inodo->size > offset) {
+	    respuesta = malloc(sizeof (memcached_response));
 
-	struct INode * inodoF = getInodoDeLaDireccionDelPath((char*)path);
-	uint32_t nroBloqueLogicoF = nroBloqueDentroDelInodo(offset+size -1);
-	uint32_t * bloqueFisicoF =getPtrNroBloqueLogicoDentroInodo(inodoF,nroBloqueLogicoF);
-	respuesta->nroBloqueFinal = *bloqueFisicoF;
+        if(offset + size > inodo->size) {
+            size = inodo->size - offset;
+        }
 
-	respuesta->cantBloques = respuesta->nroBloqueFinal - respuesta->nroBloqueInicial;
+	    uint32_t nroBloqueLogicoI = nroBloqueDentroDelInodo(offset);
+        uint32_t * bloqueFisicoI =getPtrNroBloqueLogicoDentroInodo(inodo, nroBloqueLogicoI);
+        respuesta->nroBloqueInicial = *bloqueFisicoI;
+
+
+        uint32_t nroBloqueLogicoF = nroBloqueDentroDelInodo(offset + size - 1);
+        uint32_t * bloqueFisicoF =getPtrNroBloqueLogicoDentroInodo(inodo, nroBloqueLogicoF);
+        respuesta->nroBloqueFinal = *bloqueFisicoF;
+        respuesta->cantBloques = respuesta->nroBloqueFinal - respuesta->nroBloqueInicial + 1;
+	}
+
 	//aca para los datos
 //	respuesta->ptrDatos = posicionarInicioBloque(respuesta->nroBloque);
 
@@ -63,6 +71,7 @@ char * query_memcached(memcached_st *cache,uint32_t nroBloque){
 		log_debug(memcached_logger, "Cache hit buscando la clave %s (%d bytes)",
 				key, data_length);
 
+		// FIXME: deberia chequear la cantidad de datos leidos
 		return cached_data;
 
 	} else {
@@ -144,29 +153,30 @@ int32_t almacenar_memcached(memcached_st *cache,char *path, uint32_t offset,
 uint32_t read_from_memcached(memcached_st *cache,char *path,
 		uint32_t offset, uint32_t size,void *buffer){
 
-	uint32_t bytesLeidos = 0;
+	uint32_t bytes_leidos = 0;
 	memcached_response *respuesta = transform_query(path,offset,size);
 
-	buffer = malloc(size);
-	char *datos_leidos;
-	uint32_t i = 0;
-    size_t bloquesLeidos = respuesta->nroBloqueInicial;
+	if(respuesta != NULL) {
+        buffer = malloc(size);
+        char *datos_leidos;
+        uint32_t bloquesLeidos = respuesta->nroBloqueInicial;
 
-    while(bloquesLeidos <= respuesta->nroBloqueFinal){
+        while(bloquesLeidos <= respuesta->nroBloqueFinal){
 
-    	datos_leidos = query_memcached(cache, bloquesLeidos);
+            datos_leidos = query_memcached(cache, bloquesLeidos);
 
-    	if (datos_leidos != NULL)
-    	memcpy(buffer + i, datos_leidos, BLOQUE_SIZE);
+            if (datos_leidos == NULL) {
+                return bytes_leidos;
+            }
+            memcpy(buffer + bytes_leidos, datos_leidos, BLOQUE_SIZE);
 
-    		i=+BLOQUE_SIZE;
-    		bloquesLeidos++;
-    }
+            bytes_leidos=+BLOQUE_SIZE;
+            bloquesLeidos++;
+            free(datos_leidos);
+        }
+	}
 
-    free(datos_leidos);
-
-        bytesLeidos = bloquesLeidos * BLOQUE_SIZE;
-        return bytesLeidos;
+    return bytes_leidos;
 }
 
 
