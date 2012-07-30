@@ -36,6 +36,7 @@ memcached_response *transform_query(const char *path,uint32_t offset,uint32_t si
         if(offset + size > inodo->size) {
             size = inodo->size - offset;
         }
+        respuesta->tamanioDato = size;
 
 	    uint32_t nroBloqueLogicoI = nroBloqueDentroDelInodo(offset);
         uint32_t * bloqueFisicoI =getPtrNroBloqueLogicoDentroInodo(inodo, nroBloqueLogicoI);

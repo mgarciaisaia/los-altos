@@ -9,6 +9,7 @@ struct memcached_response{
 	uint32_t nroBloqueInicial;
 	uint32_t nroBloqueFinal;
 	uint32_t cantBloques;
+	uint32_t tamanioDato;
 //	uint8_t * ptrDatos;
 
 };

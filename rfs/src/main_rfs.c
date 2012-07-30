@@ -31,6 +31,8 @@
 #include <arpa/inet.h>
 #include <libmemcached/memcached.h>
 #include "memcached_uses.h"
+#include "../commons/src/commons/misc.h"
+#include "../commons/src/commons/string.h"
 
 #define MEMCACHED_KEY_SIZE 41
 #define PATH_CONFIG "rfs.conf"
@@ -176,40 +178,142 @@ void serve_create(int socket, struct nipc_create *request) {
 	free(request);
 }
 
+t_list *numerosDeBloques(struct INode *inodo, uint32_t offset, uint32_t size) {
+    t_list *numeros_de_bloques = list_create();
+
+    uint32_t nroBloqueLogicoInicio = nroBloqueDentroDelInodo(offset);
+    uint32_t nroBloqueLogicoFin = nroBloqueDentroDelInodo(offset + size - 1);
+
+    uint32_t numeroBloqueLogico;
+    for(numeroBloqueLogico = nroBloqueLogicoInicio; numeroBloqueLogico <= nroBloqueLogicoFin; numeroBloqueLogico++) {
+        uint32_t numero_bloque = *getPtrNroBloqueLogicoDentroInodo(inodo, nroBloqueLogicoInicio);
+        list_add(numeros_de_bloques, duplicar_uint32(numero_bloque));
+    }
+
+    return numeros_de_bloques;
+}
+
+void *traerBloqueDeCache(memcached_st *cache, uint32_t numero_bloque) {
+    void *bloque = NULL;
+    memcached_return_t memcached_response;
+    char *key = string_from_uint32(numero_bloque);
+    size_t key_length = strlen(key);
+    size_t data_length;
+    uint32_t flags;
+
+    bloque = memcached_get(cache, key, key_length, &data_length, &flags, &memcached_response);
+
+    if (memcached_response != MEMCACHED_SUCCESS) {
+        log_debug(logger, "Cache miss buscando el bloque %s", key);
+    } else if (data_length != tamanioDeBloque()) {
+        log_error(logger, "El bloque %s existe en cache, pero tiene %d (se esperaban %d)",
+                key, data_length, tamanioDeBloque());
+    } else {
+        log_debug(logger, "Cache hit buscando el bloque %s (%d bytes)", key, data_length);
+    }
+
+    free(key);
+    return bloque;
+}
+
+void guardarBloqueEnCache(memcached_st *cache, uint32_t numero_bloque, void *bloque) {
+    char *key = string_from_uint32(numero_bloque);
+    memcached_return_t memcached_response = memcached_add(cache, key, strlen(key), bloque,
+            tamanioDeBloque(), (time_t)0, (uint32_t)0);
+
+    if (memcached_response == MEMCACHED_SUCCESS) {
+        log_debug(logger, "Bloque %s cacheado con exito", key);
+    } else {
+        log_debug(logger, "Error cacheando el bloque %s (%d bytes): %s", key,
+                tamanioDeBloque(), memcached_strerror(cache, memcached_response));
+    }
+
+    free(key);
+}
+
 /**
  * Contesta un nipc_read_response con los datos leidos, o nipc_error
  */
 void serve_read(int socket, struct nipc_read *request) {
-	log_debug(logger, "read %s @%d+%d (pide %d)", request->path,
-			request->offset, request->size, request->client_id);
-	void *buffer;
-	size_t readBytes =0; // FIXME: correjir el tamanio que nos llega (vienen 4k por default, hay que achicarlo)
+	log_debug(logger, "read %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 
-	if (cache_active) {
+	struct INode *inodoArchivo = getInodoDeLaDireccionDelPath(request->path); // FIXME: hacer que use la cache
 
-		readBytes = read_from_memcached(remote_cache, request->path,
-				request->offset, request->size, &buffer);
+	size_t bytesALeer = request->size;
+	if(inodoArchivo->size < request->offset + request->size) {
+	    bytesALeer = inodoArchivo->size - request->offset;
 	}
 
-	if ((readBytes < request->size)) {
-		do_sleep();
+	t_list *numerosBloquesArchivo = numerosDeBloques(inodoArchivo, request->offset, bytesALeer);
 
-		readBytes = leerArchivo(request->path, request->offset, request->size,
-				&buffer);
+	void **bloquesArchivo = calloc(numerosBloquesArchivo->elements_count, sizeof(void *));
+
+	t_link_element *elemento = numerosBloquesArchivo->head;
+	int indice = 0;
+	while(elemento != NULL) {
+	    void *bloque = NULL;
+	    uint32_t numero_bloque = *(uint32_t *)elemento->data;
+	    if(cache_active) {
+	        bloque = traerBloqueDeCache(remote_cache, numero_bloque);
+	    }
+
+	    if(bloque == NULL) {
+	        bloque = posicionarInicioBloque(numero_bloque); // FIXME: duplicar para poder hacer free() igual que al dato que viene de cache
+
+	        if(bloque == NULL) {
+	            // FIXME: romper aca - no pude leer ese bloque
+	            break;
+	        }
 
 		if (cache_active) {
-			almacenar_memcached(remote_cache, request->path, request->offset,
-					request->size, buffer);
+	            guardarBloqueEnCache(remote_cache, numero_bloque, bloque);
 		}
 	}
-	if (buffer == NULL && readBytes != 0) {
-		send_no_ok(socket, readBytes, request->client_id);
-	} else {
-		struct nipc_packet *response = new_nipc_read_response(buffer, readBytes,
-				request->client_id);
-		nipc_send(socket, response);
 
+	    bloquesArchivo[indice++] = bloque;
+	    elemento = elemento->next;
 	}
+
+	void *output = malloc(numerosBloquesArchivo->elements_count * tamanioDeBloque());
+	size_t readBytes = 0;
+	for(indice = 0; indice < numerosBloquesArchivo->elements_count; indice++) {
+	    size_t offsetBloque = indice == 0 ? desplazamientoDentroDelBloque(request->offset) : 0;
+	    size_t sizeALeer = indice == (numerosBloquesArchivo->elements_count - 1) ? desplazamientoDentroDelBloque(bytesALeer) : tamanioDeBloque();
+	    memcpy(output + readBytes, bloquesArchivo[indice] + offsetBloque, sizeALeer + 1);
+	    readBytes += sizeALeer;
+	}
+
+	struct nipc_packet *response = new_nipc_read_response(output, readBytes, request->client_id);
+		nipc_send(socket, response);
+//
+//
+//	void *buffer;
+//	size_t readBytes =0; // FIXME: correjir el tamanio que nos llega (vienen 4k por default, hay que achicarlo)
+//
+//	if (cache_active) {
+//
+//		readBytes = read_from_memcached(remote_cache, request->path,request->offset, request->size, &buffer);
+//	}
+//
+//	if ((readBytes < request->size)) {
+//		do_sleep();
+//
+//		readBytes = leerArchivo(request->path, request->offset,
+//				request->size, &buffer);
+//
+//		if (cache_active) {
+//						almacenar_memcached(remote_cache, request->path,
+//								request->offset, request->size, buffer);
+//					}
+//	}
+//		if (buffer == NULL && readBytes != 0) {
+//			send_no_ok(socket, readBytes, request->client_id);
+//		} else {
+//			struct nipc_packet *response = new_nipc_read_response(buffer,
+//					readBytes, request->client_id);
+//			nipc_send(socket, response);
+//
+//		}
 
 	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);

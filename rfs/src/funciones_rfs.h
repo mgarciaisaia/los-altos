@@ -206,4 +206,8 @@
 
 	struct archivo_abierto * getRegistroArchivoAbierto(uint32_t nroInodo);
 
+	int tamanioDeBloque();
+
+	void *traerBloqueDeDisco(uint32_t numero_bloque);
+
 #endif /* FUNCIONES_RFS_H_ */

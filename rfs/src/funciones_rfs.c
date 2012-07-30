@@ -77,6 +77,10 @@ void destroy_semaforos(void) {
 	pthread_mutex_destroy(&sem_truncar_archivo);
 }
 
+int tamanioDeBloque() {
+    return tamanio_bloque;
+}
+
 struct DirEntry *leerEntrada(void *disco) {
     struct DirEntry *instancia = malloc(sizeof(struct DirEntry));
     size_t offset = 0;
