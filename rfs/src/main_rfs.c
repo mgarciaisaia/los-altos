@@ -34,6 +34,12 @@
 
 #define MEMCACHED_KEY_SIZE 41
 #define PATH_CONFIG "rfs.conf"
+#define EVENT_SIZE  ( sizeof (struct inotify_event) + 24 )
+
+// El tamaño del buffer es igual a la cantidad maxima de eventos simultaneos
+// que quiero manejar por el tamaño de cada uno de los eventos. En este caso
+// Puedo manejar hasta 1024 eventos simultaneos.
+#define BUF_LEN     ( 1024 * EVENT_SIZE )
 
 int32_t sleep_time;
 char *sleep_type;
@@ -49,6 +55,7 @@ pthread_mutex_t *mutex_client_id;
 t_dictionary *archivos_por_cliente;
 memcached_st *remote_cache;
 bool cache_active;
+int file_descriptor;
 
 void avisar_socket_puerto(int socket, enum tipo_nipc tipo) {
 	socklen_t len;
@@ -92,23 +99,17 @@ void send_ok(int socket, uint32_t client_id) {
 void do_sleep(void) {
 
 	//aca si pregunta por inotify a ver se cambia
-//	int file_descriptor = inotify_init();
-//		if (file_descriptor < 0) {
-//			perror("inotify_init");
-//		}
-//	// Creamos un monitor sobre un path indicando que eventos queremos escuchar
-//	int watch_descriptor = inotify_add_watch(file_descriptor, PATH_CONFIG, IN_MODIFY);
-//
-//
-//
-	//aca si pregunta por inotify a ver se cambia
+
+	uint32_t micro = 1000000;
+	uint32_t mili = 1000000000;
+
 	if (strcmp(sleep_type, "MICRO") == 0)
 		//en microsegundos
-		sleep(sleep_time);
+		usleep(sleep_time * micro);
 
 	else
 		//en milisegundos
-		usleep(sleep_time * 1000);
+		usleep(sleep_time * mili);
 
 }
 
@@ -182,32 +183,33 @@ void serve_read(int socket, struct nipc_read *request) {
 	log_debug(logger, "read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
 	void *buffer;
-	size_t readBytes =0;
+	size_t readBytes = 0;
 
 	if (cache_active) {
 
-		readBytes = read_from_memcached(remote_cache, request->path,request->offset, request->size, &buffer);
+		readBytes = read_from_memcached(remote_cache, request->path,
+				request->offset, request->size, &buffer);
 	}
 
 	if ((readBytes < request->size)) {
 		do_sleep();
 
-		readBytes = leerArchivo(request->path, request->offset,
-				request->size, &buffer);
+		readBytes = leerArchivo(request->path, request->offset, request->size,
+				&buffer);
 
 		if (cache_active) {
-						almacenar_memcached(remote_cache, request->path,
-								request->offset, request->size, buffer);
-					}
-	}
-		if (buffer == NULL && readBytes != 0) {
-			send_no_ok(socket, readBytes, request->client_id);
-		} else {
-			struct nipc_packet *response = new_nipc_read_response(buffer,
-					readBytes, request->client_id);
-			nipc_send(socket, response);
-
+			almacenar_memcached(remote_cache, request->path, request->offset,
+					request->size, buffer);
 		}
+	}
+	if (buffer == NULL && readBytes != 0) {
+		send_no_ok(socket, readBytes, request->client_id);
+	} else {
+		struct nipc_packet *response = new_nipc_read_response(buffer, readBytes,
+				request->client_id);
+		nipc_send(socket, response);
+
+	}
 
 	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path,
 			request->offset, request->size, request->client_id);
@@ -562,6 +564,69 @@ void *serveRequest(void *socketPointer) {
 	return NULL;
 }
 
+void *listen_config(void) {
+
+	log_debug(logger, "Escuchando cambio en config");
+
+	int file_descriptor = inotify_init();
+	if (file_descriptor < 0) {
+		perror("inotify_init");
+	}
+	// Creamos un monitor sobre un path indicando que eventos queremos escuchar
+	int watch_descriptor = inotify_add_watch(file_descriptor, PATH_CONFIG,
+			IN_MODIFY);
+
+	char buffer[BUF_LEN];
+	//aca si pregunta por inotify a ver se cambia
+
+	while (1) {
+		int length = read(file_descriptor, buffer, BUF_LEN);
+
+		if (length < 0) {
+			perror("read");
+		}
+		log_debug(logger, "length %d.\n", length);
+		int offset = 0;
+
+		while (offset < length) {
+			struct inotify_event *event =
+					(struct inotify_event *) &buffer[offset];
+
+			if (event->len) {
+				log_debug(logger, "event->len es CERO");
+			}
+			if (event->mask & IN_MODIFY) {
+				if (event->mask & IN_ISDIR) {
+					log_debug(logger, "The directory %s was modified.\n",
+							event->name);
+				} else {
+//					log_debug(logger, "The file %s was modified.\n",
+//							event->name);
+
+					t_config *config = config_create(PATH_CONFIG);
+
+					sleep_time = config_get_int_value(config, "sleep_time");
+					sleep_type = strdup(config_get_string_value(config, "sleep_type"));
+
+					config_destroy(config);
+
+					offset += sizeof(struct inotify_event) + event->len;
+
+				}
+			}
+
+			log_debug(logger, "sleep_time: %d , sleep_type: %s", sleep_time,
+					sleep_type);
+
+//			offset += sizeof(struct inotify_event) + event->len;
+		}
+	}
+	inotify_rm_watch(file_descriptor, watch_descriptor);
+	close(file_descriptor);
+
+	return NULL;
+}
+
 void initialize_configuration() {
 	t_config *config = config_create(PATH_CONFIG);
 
@@ -648,11 +713,16 @@ void initialize_configuration() {
 						remote_cache_host, remote_cache_port);
 			}
 		}
-        set_memcached_utils_logger(logger);
+		set_memcached_utils_logger(logger);
 		free(servers);
 		// FIXME: hago free de servers o lo sigo necesitando?
 	}
 
+//		listen_config();
+	pthread_t threadID;
+	pthread_create(&threadID, NULL, &listen_config, NULL);
+	pthread_detach(threadID);
+	//
 	config_destroy(config);
 }
 
@@ -685,6 +755,7 @@ int32_t main(void) {
 	struct epoll_event *events = calloc(max_events, sizeof(struct epoll_event));
 
 	while (1) { // roll, baby roll (8)
+
 		int readySocketsCount = epoll_wait(epoll, events, max_events, -1);
 		log_debug(logger, "Actividad del epoll");
 		int index;
