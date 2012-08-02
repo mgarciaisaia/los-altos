@@ -78,7 +78,7 @@ uint32_t borrar(void) {
 	uint32_t i = 0;
 	struct timespec tp;
 
-	while (i < cantRegistros && (key_vector[i].libre)) {
+	while ((key_vector[i].libre) && i < cantRegistros) {
 		i++;
 	}
 	tp = key_vector[i].tp;
@@ -158,30 +158,40 @@ uint32_t eliminar_particion(int32_t valor) {
 	return resultado;
 }
 
-uint32_t ordenar_vector(uint32_t posicion) {
+uint32_t ordenar_vector(int32_t posicion) {
 
-	char * clave_original = key_vector[posicion].key;
-	uint32_t i, j, posicion2 = posicion;
+	char * clave_original = NULL;
+	uint32_t i, j,posicion2 = 0;
 
+	uint32_t hasta = cantRegistros;
+	if (posicion != -1){
+		clave_original = key_vector[posicion].key;
+		posicion2 = posicion;
+	}
+
+	bool flag = false;
 	pthread_rwlock_wrlock(keyVector);
 
-	for (i = 0; i < cantRegistros; i++) {
+	for (i = 1; i < (hasta -1); i++) {
+		flag = false;
+		for (j = 0; j < hasta; j++) {
 
-		for (j = 0; j < cantRegistros; j++) {
-
-			//&& ((key_vector[j].data_size > 0) && (key_vector[j+1].data_size > 0) ) sin eso me quedan todos los vacios adelante
 			if ((key_vector[j].data > key_vector[j + 1].data)
 					&& ((key_vector[j].data_size > 0)
 							&& (key_vector[j + 1].data_size > 0))) {
-				if (strcmp(key_vector[j].key, clave_original) == 0)
-					posicion2 = j + 1;
+				flag = true;
+				if (posicion != -1){
+					if (strcmp(key_vector[j].key, clave_original) == 0)
+						posicion2 = j + 1;
+				}
 				key_element aux = key_vector[j];
 				key_vector[j] = key_vector[j + 1];
 				key_vector[j + 1] = aux;
 			}
 		}
+		if (!flag)
+			break;
 	}
-
 	pthread_rwlock_unlock(keyVector);
 
 	return posicion2;
@@ -366,7 +376,7 @@ void vector_inicializar(char *keys_space, void *cache, size_t cache_size) {
 	pthread_rwlock_wrlock(keyVector);
 	key_vector[0].flags = 0;
 	for (i = 1; i < cantRegistros; i++) {
-		key_vector[i].key = key_vector[i - 1].key + MAX_KEY;
+		key_vector[i].key = key_vector[i - 1].key + (MAX_KEY/4);
 		key_vector[i].libre = true;
 		key_vector[i].stored = false;
 		key_vector[i].data_size = 0;
@@ -747,8 +757,8 @@ key_element *buscarLibreBuddy(size_t espacio) {
 //busca el item con esa key y lo devuelve.
 int32_t vector_get(char *key) {
 //	key_element *resultado;
-	int32_t resultado = -1;
-	char encontrado = 0;
+	int32_t resultado;
+	uint32_t encontrado = 0;
 	uint32_t i = 0;
 //buscar la key en el vector
 	size_t nkey = strlen(key);
@@ -756,17 +766,25 @@ int32_t vector_get(char *key) {
 
 	while ((encontrado == 0) && (i < cantRegistros)) {
 
-		if (key_vector[i].data_size == 0) {
-			encontrado = -1;
+		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
+
+//			while ((key_vector[i].libre) && (i < cantRegistros)) {
+//				i++;
+//			}
+//			if (i == cantRegistros) {
+			//llegue al final y no la encontre
+
+			resultado = -1;
+			encontrado = 1;
 		} else {
 			if ((!(key_vector[i].libre) && key_vector[i].nkey == nkey)
 					&& (strncmp(key_vector[i].key, key, nkey) == 0)) {
 				resultado = i;
 				encontrado = 1;
-			}
+			} else
+				i++;
 		}
 
-        i++;
 	}
 	pthread_rwlock_unlock(keyVector);
 

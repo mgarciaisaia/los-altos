@@ -431,7 +431,7 @@ static ENGINE_ERROR_CODE dummy_ng_get(ENGINE_HANDLE *handle, const void* cookie,
 	int32_t res = vector_get(strkey);
 
 	if (res < 0) {
-		return ENGINE_NOT_STORED;
+		return ENGINE_KEY_ENOENT;
 	}
 	key_element *it = &key_vector[res];
 
@@ -558,7 +558,7 @@ void dummy_ng_dummp(int signal) {
 
 	fprintf (fich,"Dump: %s\n",output);
 
-	uint32_t posicion = ordenar_vector(0);
+	uint32_t posicion = ordenar_vector(-1);
 	posicion = 0;
 	uint32_t particion = 0;
 	uint32_t i;
