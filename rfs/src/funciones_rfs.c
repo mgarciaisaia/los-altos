@@ -28,6 +28,9 @@
 #include <errno.h>
 #include <pthread.h>
 #include "administracion.h"
+#include <libmemcached/memcached.h>
+#include "../commons/src/commons/misc.h"
+#include "../commons/src/commons/string.h"
 
 extern t_list * archivos_abiertos;
 
@@ -202,6 +205,13 @@ struct INode * getInodo(uint32_t nroInodo){
 	inodo = (struct INode*) dir_tabla_inodos;
 	return inodo;
 
+}
+
+void *obtenerBloque(uint32_t numero_bloque) {
+    if(numero_bloque == 0) {
+        return NULL;
+    }
+    return ptr_arch + (numero_bloque - 1) * tamanioDeBloque();
 }
 
 uint8_t * posicionarInicioBloque(uint32_t nroBloque){
@@ -1348,4 +1358,189 @@ struct archivo_abierto * getRegistroArchivoAbierto(uint32_t nroInodo){
 		}
 	}
 	return registro_archivo;
+}
+
+
+
+
+/**
+ * Funciones de a bloques
+ */
+
+t_list *numerosDeBloques(struct INode *inodo, uint32_t offset, uint32_t size) {
+    t_list *numeros_de_bloques = list_create();
+
+    uint32_t nroBloqueLogicoInicio = nroBloqueDentroDelInodo(offset);
+    uint32_t nroBloqueLogicoFin = nroBloqueDentroDelInodo(offset + size - 1);
+
+    uint32_t numeroBloqueLogico;
+    for(numeroBloqueLogico = nroBloqueLogicoInicio; numeroBloqueLogico <= nroBloqueLogicoFin; numeroBloqueLogico++) {
+        uint32_t numero_bloque = *getPtrNroBloqueLogicoDentroInodo(inodo, numeroBloqueLogico);
+        list_add(numeros_de_bloques, duplicar_uint32(numero_bloque));
+    }
+
+    return numeros_de_bloques;
+}
+
+void *traerBloqueDeCache(memcached_st *cache, uint32_t numero_bloque) {
+    void *bloque = NULL;
+    memcached_return_t memcached_response;
+    char *key = string_from_uint32(numero_bloque);
+    size_t key_length = strlen(key);
+    size_t data_length;
+    uint32_t flags;
+
+    bloque = memcached_get(cache, key, key_length, &data_length, &flags, &memcached_response);
+
+    if (memcached_response != MEMCACHED_SUCCESS) {
+        log_debug(logger_funciones, "Cache miss buscando el bloque %s", key);
+    } else if (data_length != tamanioDeBloque()) {
+        log_error(logger_funciones, "El bloque %s existe en cache, pero tiene %d (se esperaban %d)",
+                key, data_length, tamanioDeBloque()); // FIXME: poner bloque en NULL?
+    } else {
+        log_debug(logger_funciones, "Cache hit buscando el bloque %s (%d bytes)", key, data_length);
+    }
+
+    free(key);
+    return bloque;
+}
+
+void guardarBloqueEnCache(memcached_st *cache, uint32_t numero_bloque, void *bloque) {
+    char *key = string_from_uint32(numero_bloque);
+    memcached_return_t memcached_response = memcached_add(cache, key, strlen(key), bloque,
+            tamanioDeBloque(), (time_t)0, (uint32_t)0);
+
+    if (memcached_response == MEMCACHED_SUCCESS) {
+        log_debug(logger_funciones, "Bloque %s cacheado con exito", key);
+    } else {
+        log_debug(logger_funciones, "Error cacheando el bloque %s (%d bytes): %s", key,
+                tamanioDeBloque(), memcached_strerror(cache, memcached_response));
+    }
+
+    free(key);
+}
+
+uint32_t numeroInodo(char *path) {
+    // FIXME: usar la cache
+    return getNroInodoDeLaDireccionDelPath(path);
+}
+
+void bloquearLectura(uint32_t numero_inodo) {
+    // FIXME: romper si no esta abierto
+    struct archivo_abierto *archivo_abierto = obtener_o_crear_archivo_abierto(archivos_abiertos, numero_inodo);
+    pthread_rwlock_rdlock(archivo_abierto->lock);
+}
+
+struct INode *obtenerInodo(uint32_t numero_inodo) {
+    // FIXME: hacer que use la cache
+    return getInodo(numero_inodo);
+}
+
+void *traerBloqueDeDisco(uint32_t numero_bloque) {
+    void *bloque = NULL;
+    void *buffer = obtenerBloque(numero_bloque);
+    if(buffer != NULL) {
+        bloque = malloc(tamanioDeBloque());
+        /**
+         * Duplico el bloque para que pueda ser free()able como
+         * los que vienen de la cache
+         */
+        int indice;
+        for(indice = 0; indice < tamanioDeBloque(); indice++) {
+            memcpy(bloque + indice, buffer + indice, 1);
+        }
+    }
+    return bloque;
+}
+
+void desbloquear(uint32_t numero_inodo) {
+    struct archivo_abierto *archivo_abierto = obtener_o_crear_archivo_abierto(archivos_abiertos, numero_inodo);
+    pthread_rwlock_unlock(archivo_abierto->lock);
+}
+
+void bloquearEscritura(uint32_t numero_inodo) {
+    // FIXME: romper si no esta abierto
+    struct archivo_abierto *archivo_abierto = obtener_o_crear_archivo_abierto(archivos_abiertos, numero_inodo);
+    pthread_rwlock_wrlock(archivo_abierto->lock);
+}
+
+/**
+ * Busca un bloque libre y lo agrega al final del inodo, actualizando
+ * size y cantidad de bloques del inodo
+ */
+int agregarBloqueNuevo(struct INode *inodo, size_t size_objetivo) {
+    uint32_t bloqueLibre = getBloqueLibre();
+    if(bloqueLibre == 0) {
+        return ENOSPC;
+    }
+    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, inodo->nr_blocks);
+    if(punteroNumeroBloque == NULL) {
+        return EFBIG;
+    }
+    void *bloque = obtenerBloque(bloqueLibre);
+    *punteroNumeroBloque = bloqueLibre;
+    size_t tamanio_a_usar = size_objetivo - inodo->size;
+    if(tamanio_a_usar > tamanioDeBloque()) {
+        tamanio_a_usar = tamanioDeBloque();
+    }
+    int indice;
+    for(indice = 0; indice < tamanio_a_usar; indice++) {
+        memset(bloque + indice, '\0', 1);
+    }
+    inodo->size += tamanio_a_usar;
+    inodo->nr_blocks++;
+    return 0;
+}
+
+/**
+ * Remueve un bloque de un inodo y lo marca como libre.
+ */
+int removerUltimoBloque(struct INode *inodo) {
+    if(!inodo->nr_blocks) {
+        return ESPIPE;
+    }
+    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, inodo->nr_blocks - 1);
+    if(punteroNumeroBloque == NULL) {
+        return EFAULT;
+    }
+    liberarBloque(punteroNumeroBloque);
+    inodo->nr_blocks--;
+
+    // achica el size al multiplo del bloque anterior a este
+    inodo->size = ((inodo->size - 1) / tamanioDeBloque()) * tamanioDeBloque();
+    return 0;
+}
+
+void grabarInodo(uint32_t numero_inodo, struct INode *inodo) {
+    // FIXME: grabar en la cache
+    struct INode *punteroInodoDisco = getInodo(numero_inodo);
+    memcpy(punteroInodoDisco, inodo, sizeof(struct INode));
+}
+
+int truncar(char *path, size_t size) {
+    uint32_t numero_inodo = numeroInodo(path);
+
+    struct INode *inodoArchivo = obtenerInodo(numero_inodo);
+    bloquearEscritura(numero_inodo);
+    int cantidad_bloques_final = nroBloqueDentroDelInodo(size);
+
+    int codigo_error = 0;
+
+    while(!codigo_error && inodoArchivo->nr_blocks < cantidad_bloques_final) {
+        codigo_error = agregarBloqueNuevo(inodoArchivo, size);
+    }
+    while(!codigo_error && inodoArchivo->nr_blocks > cantidad_bloques_final) {
+        codigo_error = removerUltimoBloque(inodoArchivo);
+    }
+
+    if(codigo_error) {
+        return codigo_error;
+    }
+
+    inodoArchivo->size = size;
+
+    grabarInodo(numero_inodo, inodoArchivo);
+    desbloquear(numero_inodo);
+
+    return 0;
 }

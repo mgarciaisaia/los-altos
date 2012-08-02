@@ -33,6 +33,7 @@
 #include "memcached_uses.h"
 #include "../commons/src/commons/misc.h"
 #include "../commons/src/commons/string.h"
+#include <libgen.h>
 
 #define MEMCACHED_KEY_SIZE 41
 #define PATH_CONFIG "rfs.conf"
@@ -115,6 +116,74 @@ void do_sleep(void) {
 
 }
 
+
+// FIXME: extraer a funciones_rfs.c
+// FIXME: extraer a funciones_rfs.c
+// FIXME: extraer a funciones_rfs.c
+// FIXME: extraer a funciones_rfs.c
+
+
+
+void *traerBloque(uint32_t numero_bloque) {
+    void *bloque = NULL;
+    if(cache_active) {
+        bloque = traerBloqueDeCache(remote_cache, numero_bloque);
+    }
+    if(bloque == NULL) {
+        bloque = traerBloqueDeDisco(numero_bloque);
+
+        if(bloque == NULL) {
+            // FIXME: romper aca - no pude leer ese bloque
+        }
+    }
+
+    return bloque;
+}
+
+void grabarBloque(uint32_t numero_bloque, void *bloque) {
+    guardarBloqueEnCache(remote_cache, numero_bloque, bloque);
+    void *bloque_disco = obtenerBloque(numero_bloque);
+    int i;
+    for(i = 0; i < tamanioDeBloque(); i++) {
+        memcpy(bloque_disco + i, bloque + i, 1);
+    }
+}
+
+//int crear_archivo(char *path, mode_t modo) {
+//    char *ruta = strdup(path); // la copio para no modificar el path original
+//    char *directorio = dirname(ruta);
+//    char *nombre = basename(ruta);
+//    uint32_t inum_directorio = numeroInodo(directorio);
+//    bloquearEscritura(inum_directorio);
+//    struct INode *inodo_directorio = obtenerInodo(inum_directorio);
+//
+//    struct INode *inodo_archivo = NULL;
+//    uint32_t inum_archivo = nuevo_inodo(&inodo_archivo);
+//    inodo_archivo->mode = modo | S_IFREG;
+//    agregarEntrada(inodo_directorio, inum_archivo, nombre);
+//    agregarBloqueNuevo(inodo_archivo, 0);
+//    grabarInodo(inum_archivo, inodo_archivo);
+//    grabarInodo(inum_directorio, inum_directorio);
+//
+//    desbloquear(inum_directorio);
+//    return 0;
+//}
+
+
+/**
+ *
+ *
+ * FIN FIXME extraer a funciones_rfs.c
+ *
+ *
+ *
+ */
+
+
+
+
+
+
 /**
  * Registra la apertura del archivo en la lista de archivos abiertos
  * y en la lista de archivos del cliente
@@ -178,113 +247,75 @@ void serve_create(int socket, struct nipc_create *request) {
 	free(request);
 }
 
-t_list *numerosDeBloques(struct INode *inodo, uint32_t offset, uint32_t size) {
-    t_list *numeros_de_bloques = list_create();
-
-    uint32_t nroBloqueLogicoInicio = nroBloqueDentroDelInodo(offset);
-    uint32_t nroBloqueLogicoFin = nroBloqueDentroDelInodo(offset + size - 1);
-
-    uint32_t numeroBloqueLogico;
-    for(numeroBloqueLogico = nroBloqueLogicoInicio; numeroBloqueLogico <= nroBloqueLogicoFin; numeroBloqueLogico++) {
-        uint32_t numero_bloque = *getPtrNroBloqueLogicoDentroInodo(inodo, nroBloqueLogicoInicio);
-        list_add(numeros_de_bloques, duplicar_uint32(numero_bloque));
-    }
-
-    return numeros_de_bloques;
-}
-
-void *traerBloqueDeCache(memcached_st *cache, uint32_t numero_bloque) {
-    void *bloque = NULL;
-    memcached_return_t memcached_response;
-    char *key = string_from_uint32(numero_bloque);
-    size_t key_length = strlen(key);
-    size_t data_length;
-    uint32_t flags;
-
-    bloque = memcached_get(cache, key, key_length, &data_length, &flags, &memcached_response);
-
-    if (memcached_response != MEMCACHED_SUCCESS) {
-        log_debug(logger, "Cache miss buscando el bloque %s", key);
-    } else if (data_length != tamanioDeBloque()) {
-        log_error(logger, "El bloque %s existe en cache, pero tiene %d (se esperaban %d)",
-                key, data_length, tamanioDeBloque());
-    } else {
-        log_debug(logger, "Cache hit buscando el bloque %s (%d bytes)", key, data_length);
-    }
-
-    free(key);
-    return bloque;
-}
-
-void guardarBloqueEnCache(memcached_st *cache, uint32_t numero_bloque, void *bloque) {
-    char *key = string_from_uint32(numero_bloque);
-    memcached_return_t memcached_response = memcached_add(cache, key, strlen(key), bloque,
-            tamanioDeBloque(), (time_t)0, (uint32_t)0);
-
-    if (memcached_response == MEMCACHED_SUCCESS) {
-        log_debug(logger, "Bloque %s cacheado con exito", key);
-    } else {
-        log_debug(logger, "Error cacheando el bloque %s (%d bytes): %s", key,
-                tamanioDeBloque(), memcached_strerror(cache, memcached_response));
-    }
-
-    free(key);
-}
-
 /**
  * Contesta un nipc_read_response con los datos leidos, o nipc_error
  */
 void serve_read(int socket, struct nipc_read *request) {
 	log_debug(logger, "read %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 
-	struct INode *inodoArchivo = getInodoDeLaDireccionDelPath(request->path); // FIXME: hacer que use la cache
+	void *output = NULL;
+    size_t readBytes = 0;
+
+	uint32_t numero_inodo = numeroInodo(request->path);
+	bloquearLectura(numero_inodo);
+
+	struct INode *inodoArchivo = obtenerInodo(numero_inodo);
+
 
 	size_t bytesALeer = request->size;
 	if(inodoArchivo->size < request->offset + request->size) {
 	    bytesALeer = inodoArchivo->size - request->offset;
+	    log_debug(logger, "Achico el pedido de %d bytes a %d para %s@%d", request->size, bytesALeer, request->path, request->offset);
 	}
 
-	t_list *numerosBloquesArchivo = numerosDeBloques(inodoArchivo, request->offset, bytesALeer);
+	if(bytesALeer) {
 
-	void **bloquesArchivo = calloc(numerosBloquesArchivo->elements_count, sizeof(void *));
+        t_list *numerosBloquesArchivo = numerosDeBloques(inodoArchivo, request->offset, bytesALeer);
 
-	t_link_element *elemento = numerosBloquesArchivo->head;
-	int indice = 0;
-	while(elemento != NULL) {
-	    void *bloque = NULL;
-	    uint32_t numero_bloque = *(uint32_t *)elemento->data;
-	    if(cache_active) {
-	        bloque = traerBloqueDeCache(remote_cache, numero_bloque);
-	    }
+        void **bloquesArchivo = calloc(numerosBloquesArchivo->elements_count, sizeof(void *));
 
-	    if(bloque == NULL) {
-	        bloque = posicionarInicioBloque(numero_bloque); // FIXME: duplicar para poder hacer free() igual que al dato que viene de cache
+        t_link_element *elemento = numerosBloquesArchivo->head;
+        int indice = 0;
+        while(elemento != NULL) {
+            void *bloque = NULL;
+            uint32_t numero_bloque = *(uint32_t *)elemento->data;
+            if(cache_active) {
+                bloque = traerBloqueDeCache(remote_cache, numero_bloque);
+            }
 
-	        if(bloque == NULL) {
-	            // FIXME: romper aca - no pude leer ese bloque
-	            break;
-	        }
+            if(bloque == NULL) {
+                bloque = traerBloqueDeDisco(numero_bloque);
 
-		if (cache_active) {
-	            guardarBloqueEnCache(remote_cache, numero_bloque, bloque);
-		}
-	}
+                if(bloque == NULL) {
+                    // FIXME: romper aca - no pude leer ese bloque
+                    break;
+                }
 
-	    bloquesArchivo[indice++] = bloque;
-	    elemento = elemento->next;
-	}
+            if (cache_active) {
+                guardarBloqueEnCache(remote_cache, numero_bloque, bloque);
+            }
+        }
 
-	void *output = malloc(numerosBloquesArchivo->elements_count * tamanioDeBloque());
-	size_t readBytes = 0;
-	for(indice = 0; indice < numerosBloquesArchivo->elements_count; indice++) {
-	    size_t offsetBloque = indice == 0 ? desplazamientoDentroDelBloque(request->offset) : 0;
-	    size_t sizeALeer = indice == (numerosBloquesArchivo->elements_count - 1) ? desplazamientoDentroDelBloque(bytesALeer) : tamanioDeBloque();
-	    memcpy(output + readBytes, bloquesArchivo[indice] + offsetBloque, sizeALeer + 1);
-	    readBytes += sizeALeer;
+            bloquesArchivo[indice++] = bloque;
+            elemento = elemento->next;
+        }
+
+        output = malloc(numerosBloquesArchivo->elements_count * tamanioDeBloque());
+        for(indice = 0; indice < numerosBloquesArchivo->elements_count; indice++) {
+            size_t offsetBloque = indice == 0 ? desplazamientoDentroDelBloque(request->offset) : 0;
+            size_t sizeALeer = indice == (numerosBloquesArchivo->elements_count - 1) ? desplazamientoDentroDelBloque(bytesALeer) : tamanioDeBloque();
+            memcpy(output + readBytes, bloquesArchivo[indice] + offsetBloque, sizeALeer + 1);
+            readBytes += sizeALeer;
+            free(bloquesArchivo[indice]);
+        }
+        free(bloquesArchivo);
+        list_destroy_and_destroy_elements(numerosBloquesArchivo, &free);
 	}
 
 	struct nipc_packet *response = new_nipc_read_response(output, readBytes, request->client_id);
-		nipc_send(socket, response);
+    nipc_send(socket, response);
+
+	desbloquear(numero_inodo);
 //
 //
 //	void *buffer;
@@ -315,8 +346,7 @@ void serve_read(int socket, struct nipc_read *request) {
 //
 //		}
 
-	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path,
-			request->offset, request->size, request->client_id);
+	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path, request->offset, bytesALeer, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -325,42 +355,67 @@ void serve_read(int socket, struct nipc_read *request) {
  * Manda un nipc_ok si pudo grabar, o un nipc_error
  */
 void serve_write(int socket, struct nipc_write *request) {
-	log_debug(logger, "write %s @%d+%d (pide %d)", request->path,
-			request->offset, request->size, request->client_id);
+    log_debug(logger, "write %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
 
-	int32_t codError = -1;
+    // FIXME: agregar do_sleep()
+    uint32_t bytesEscritos = 0;
+    uint32_t numero_inodo = numeroInodo(request->path);
 
-	if (cache_active) {
-		codError = almacenar_memcached(remote_cache, request->path,
-				request->offset, request->size, request->data);
-	}
+    struct INode *inodoArchivo = obtenerInodo(numero_inodo);
 
-	if ((codError == -1) || (codError < request->size)) {
+    if(inodoArchivo->size < request->offset + request->size) {
+        log_debug(logger, "Trunco %s de %d bytes a %d para un write de %d en %d", request->path, inodoArchivo->size,
+                request->offset + request->size, request->size, request->offset);
+        // FIXME: chequear errores (en todo el metodo?)
+        truncarArchivo(request->path, request->offset + request->size);
+    }
 
-		do_sleep();
+    bloquearEscritura(numero_inodo);
 
-		codError = escribirArchivo(request->path, request->data, request->size,
-				request->offset);
+    t_list *numerosBloquesArchivo = numerosDeBloques(inodoArchivo, request->offset, request->size);
 
-		if (cache_active && (codError != 0)) {
+    t_link_element *elemento = numerosBloquesArchivo->head;
+    while(elemento != NULL) {
+        void *bloque = NULL;
+        uint32_t numero_bloque = *(uint32_t *)elemento->data;
+        uint32_t posicion_en_bloque = desplazamientoDentroDelBloque(request->offset + bytesEscritos);
+        uint32_t bytes_a_escribir = tamanioDeBloque() - posicion_en_bloque;
+        if(bytesEscritos + bytes_a_escribir > request->size) {
+            bytes_a_escribir = request->size - bytesEscritos;
+        }
 
-			almacenar_memcached(remote_cache, request->path, request->offset,
-					request->size, request->data);
-		}
+        if(posicion_en_bloque || (tamanioDeBloque() - bytes_a_escribir)) {
+            bloque = traerBloque(numero_bloque);
+        } else {
+            bloque = calloc(1, tamanioDeBloque());
+        }
 
-		if (codError != 0)
-			send_no_ok(socket, codError, request->client_id);
-		else {
-			send_ok(socket, request->client_id);
-		}
+        memcpy(bloque + posicion_en_bloque, request->data + bytesEscritos, bytes_a_escribir);
 
-		log_debug(logger, "FIN write %s @%d+%d (pide %d)", request->path,
-				request->offset, request->size, request->client_id);
-		free(request->path);
-		free(request->data);
-		free(request);
-	}
+        grabarBloque(numero_bloque, bloque);
+
+        bytesEscritos += bytes_a_escribir;
+        free(bloque);
+        elemento = elemento->next;
+    }
+
+    list_destroy_and_destroy_elements(numerosBloquesArchivo, &free);
+
+    // FIXME: enviar bytesLeidos, no OK/ERROR
+    if(bytesEscritos == request->size) {
+        send_ok(socket, request->client_id);
+    } else {
+        send_no_ok(socket, 1, request->client_id);
+    }
+
+    desbloquear(numero_inodo);
+
+    log_debug(logger, "FIN write %s @%d+%d (pide %d)", request->path, request->offset, request->size, request->client_id);
+    free(request->path);
+    free(request->data);
+    free(request);
 }
+
 /**
  * Manda un nipc_ok si pudo hace release, o nipc_error
  * NOTA: FUSE dice ignorar el valor de retorno, si se complica contestar
@@ -540,23 +595,17 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
  * nipc_ok, o nipc_error
  */
 void serve_truncate(int socket, struct nipc_truncate *request) {
-	log_debug(logger, "truncate %s a %d (pìde %d)", request->path,
-			request->offset, request->client_id);
-
-//	uint32_t offset = 0;
-//	if (cache_active)
-//		delete_memcached(remote_cache, request->path, offset);
+	log_debug(logger, "truncate %s a %d (pìde %d)", request->path, request->offset, request->client_id);
 
 	do_sleep();
 
-	int32_t codError = truncarArchivo(request->path, request->offset);
+	int32_t codError = truncar(request->path, request->offset);
 	if (codError != 0)
 		send_no_ok(socket, codError, request->client_id);
 	else
 		send_ok(socket, request->client_id);
 
-	log_debug(logger, "FIN truncate %s a %d (pìde %d)", request->path,
-			request->offset, request->client_id);
+	log_debug(logger, "FIN truncate %s a %d (pìde %d)", request->path, request->offset, request->client_id);
 	free(request->path);
 	free(request);
 }
@@ -668,7 +717,7 @@ void *serveRequest(void *socketPointer) {
 	return NULL;
 }
 
-void *listen_config(void) {
+void *listen_config(void *nada) {
 
 	log_debug(logger, "Escuchando cambio en config");
 
@@ -824,8 +873,13 @@ void initialize_configuration() {
 
 //		listen_config();
 	pthread_t threadID;
-	pthread_create(&threadID, NULL, &listen_config, NULL);
-	pthread_detach(threadID);
+	pthread_attr_t *thread_attributes = malloc(sizeof(pthread_attr_t));
+    pthread_attr_init(thread_attributes);
+    pthread_attr_setdetachstate(thread_attributes, PTHREAD_CREATE_DETACHED);
+    pthread_create(&threadID, thread_attributes, &listen_config, NULL);
+    pthread_detach(threadID);
+    pthread_attr_destroy(thread_attributes);
+    free(thread_attributes);
 	//
 	config_destroy(config);
 }
@@ -861,7 +915,7 @@ int32_t main(void) {
 	while (1) { // roll, baby roll (8)
 
 		int readySocketsCount = epoll_wait(epoll, events, max_events, -1);
-		log_debug(logger, "Actividad del epoll");
+		log_trace(logger, "Actividad del epoll");
 		int index;
 		for (index = 0; index < readySocketsCount; ++index) {
 			if (events[index].data.fd == listeningSocket) {
@@ -886,7 +940,7 @@ int32_t main(void) {
 				event->data.fd = querySocket;
 				epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, event);
 			} else {
-				log_debug(logger, "Actividad en un socket cualquiera");
+				log_trace(logger, "Actividad en un socket cualquiera");
 				int querySocket = events[index].data.fd;
 				epoll_ctl(epoll, EPOLL_CTL_DEL, querySocket, NULL);
 				pthread_t threadID;
@@ -918,4 +972,5 @@ int32_t main(void) {
 
 	return EXIT_SUCCESS;
 }
+
 

@@ -15,6 +15,10 @@
 #include <src/commons/collections/queue.h>
 //#include <commons/collections/queue.h>
 #include "src/commons/log.h"
+#include <libmemcached/memcached.h>
+#include "../commons/src/commons/misc.h"
+#include "../commons/src/commons/string.h"
+
 
 #define EXT2_S_IFREG 0x8000
 #define EXT2_S_IFDIR 0x4000
@@ -137,6 +141,7 @@
 	uint32_t nroInodoInicioDeGrupo(uint32_t);
 
 	struct INode * getInodo(uint32_t);
+	void *obtenerBloque(uint32_t numero_bloque);
 	uint8_t * posicionarInicioBloque(uint32_t);
 
 	uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char * ruta);
@@ -209,5 +214,47 @@
 	int tamanioDeBloque();
 
 	void *traerBloqueDeDisco(uint32_t numero_bloque);
+
+
+	/**
+	 * Funciones de a bloques
+	 */
+
+	t_list *numerosDeBloques(struct INode *inodo, uint32_t offset, uint32_t size);
+
+	void *traerBloqueDeCache(memcached_st *cache, uint32_t numero_bloque);
+
+	void guardarBloqueEnCache(memcached_st *cache, uint32_t numero_bloque, void *bloque);
+
+	uint32_t numeroInodo(char *path);
+
+	void bloquearLectura(uint32_t numero_inodo);
+
+	struct INode *obtenerInodo(uint32_t numero_inodo);
+
+	void *traerBloqueDeDisco(uint32_t numero_bloque);
+
+	void desbloquear(uint32_t numero_inodo);
+
+	void bloquearEscritura(uint32_t numero_inodo);
+
+	void *traerBloque(uint32_t numero_bloque);
+
+	void grabarBloque(uint32_t numero_bloque, void *bloque);
+
+	/**
+	 * Busca un bloque libre y lo agrega al final del inodo, actualizando
+	 * size y cantidad de bloques del inodo
+	 */
+	int agregarBloqueNuevo(struct INode *inodo, size_t size_objetivo);
+
+	/**
+	 * Remueve un bloque de un inodo y lo marca como libre.
+	 */
+	int removerUltimoBloque(struct INode *inodo);
+
+	void grabarInodo(uint32_t numero_inodo, struct INode *inodo);
+
+	int truncar(char *path, size_t size);
 
 #endif /* FUNCIONES_RFS_H_ */
