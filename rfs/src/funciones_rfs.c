@@ -46,7 +46,7 @@ static pthread_mutex_t sem_crear_archivo;
 static pthread_mutex_t sem_eliminar_archivo;
 static pthread_mutex_t sem_truncar_archivo;
 
-static const int tamanio_bloque = 1024;
+static int tamanio_bloque = 0;
 uint8_t *ptr_arch;
 t_log *logger_funciones;
 
@@ -81,6 +81,9 @@ void destroy_semaforos(void) {
 }
 
 int tamanioDeBloque() {
+    if(tamanio_bloque == 0){
+        tamanio_bloque = 1024 << read_superblock()->log_block_size;
+    }
     return tamanio_bloque;
 }
 
@@ -162,7 +165,7 @@ uint32_t cantidadDeGrupos() {
 struct GroupDesc * leerGroupDescriptor(uint32_t nroGrupo){
 	struct GroupDesc * gd = NULL;
 	if(nroGrupo < cantidadDeGrupos()){
-		uint16_t posInicialGD = (tamanio_bloque == 4096) ? tamanio_bloque : 2048;
+		uint16_t posInicialGD = (tamanioDeBloque() == 4096) ? tamanioDeBloque() : 2048;
 		uint8_t tamanioGrupo = sizeof(struct GroupDesc);
 		uint8_t * posActual = ptr_arch + posInicialGD + (tamanioGrupo * nroGrupo);
 		gd = (struct GroupDesc*) posActual;
@@ -194,7 +197,7 @@ struct INode * getInodo(uint32_t nroInodo){
 	int nroGrupo = (nroInodo - 1) / sb->inodes_per_group;
 	struct GroupDesc * grupo = leerGroupDescriptor(nroGrupo);
 	uint32_t nroBloqueTablaInodos = grupo->inode_table;
-	uint8_t *dir_tabla_inodos = ptr_arch + nroBloqueTablaInodos * tamanio_bloque;
+	uint8_t *dir_tabla_inodos = ptr_arch + nroBloqueTablaInodos * tamanioDeBloque();
 	uint8_t tamanioInodo = sizeof(struct INode);
 
 	int cantInodos = nroInodo - nroGrupo * sb->inodes_per_group;
@@ -208,14 +211,11 @@ struct INode * getInodo(uint32_t nroInodo){
 }
 
 void *obtenerBloque(uint32_t numero_bloque) {
-    if(numero_bloque == 0) {
-        return NULL;
-    }
-    return ptr_arch + (numero_bloque - 1) * tamanioDeBloque();
+    return ptr_arch + numero_bloque * tamanioDeBloque();
 }
 
 uint8_t * posicionarInicioBloque(uint32_t nroBloque){
-	return ptr_arch + nroBloque * tamanio_bloque;
+	return ptr_arch + nroBloque * tamanioDeBloque();
 }
 
 // de prueba todo: controlar que el path es un directorio
@@ -248,13 +248,13 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 	uint32_t nroInodoBuscado = 0;
 	uint32_t tamanio_directorio = inodoDeBusqueda->size;
 	uint32_t offset;
-	for(offset = 0;nroInodoBuscado == 0 && offset < tamanio_directorio;offset += tamanio_bloque){
+	for(offset = 0;nroInodoBuscado == 0 && offset < tamanio_directorio;offset += tamanioDeBloque()){
 		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		void * ptr = posicionarme(inodoDeBusqueda,nroBloqueLogico,0);
 
 		uint16_t cantidad = 0;
 		int i = 0;
-		while(tamanio_bloque > cantidad){
+		while(tamanioDeBloque() > cantidad){
 			log_trace(logger_funciones, "entrada de directorio %d\n",i++);
 			struct DirEntry * directorio = leerEntrada(ptr);
 			log_trace(logger_funciones, "nro inodo: %u\n",directorio->inode);
@@ -289,11 +289,11 @@ t_list * cargarEntradasDirectorioALista(struct INode * directorio){
 
 	uint32_t tamanio_directorio = directorio->size;
 	uint32_t offset;
-	for(offset = 0;offset < tamanio_directorio;offset += tamanio_bloque){
+	for(offset = 0;offset < tamanio_directorio;offset += tamanioDeBloque()){
 		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		void * ptr = posicionarme(directorio,nroBloqueLogico,0);
 		uint16_t cantidad = 0;
-		while(tamanio_bloque > cantidad){
+		while(tamanioDeBloque() > cantidad){
 			struct DirEntry * entradaDirectorio = leerEntrada(ptr);
 			struct INode * inodoEntradaDirectorio = getInodo(entradaDirectorio->inode);
 			if(inodoEntradaDirectorio == NULL) {
@@ -354,9 +354,9 @@ size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **buf
                 void *ptr = posicionarme(inodoDeBusqueda, nroBloqueLogico, desplazamiento);
 
 
-                if(bytesALeer - bytesLeidos > tamanio_bloque){
+                if(bytesALeer - bytesLeidos > tamanioDeBloque()){
                     // El contenido sigue en otro bloque. Leo el resto de este bloque y sigo con los otros
-                    uint32_t restoDelBloque = tamanio_bloque - desplazamiento;
+                    uint32_t restoDelBloque = tamanioDeBloque() - desplazamiento;
                     memcpy(buffer + bytesLeidos, ptr, restoDelBloque);
                     bytesLeidos += restoDelBloque;
                 } else {
@@ -378,11 +378,11 @@ size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **buf
 }
 
 uint32_t nroBloqueDentroDelInodo(uint32_t offset){
-	return offset / tamanio_bloque;
+	return offset / tamanioDeBloque();
 }
 
 uint32_t desplazamientoDentroDelBloque(uint32_t offset){
-	return offset % tamanio_bloque;
+	return offset % tamanioDeBloque();
 }
 
 int esBloqueDirecto(uint32_t nroBloque) {
@@ -390,7 +390,7 @@ int esBloqueDirecto(uint32_t nroBloque) {
 }
 
 int esIndireccionSimple(uint32_t nroBloqueLogico) {
-	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccion = tamanioDeBloque() / sizeof(uint32_t);
 	return (12 <= nroBloqueLogico) && (nroBloqueLogico < 12 + cantBloquesPorIndireccion);
 }
 
@@ -407,14 +407,14 @@ uint32_t * posicionarIndireccionSimple(uint32_t nroBloqueIndireccion,uint32_t nr
 }
 
 int esIndireccionDoble(uint32_t nroBloqueLogico){
-	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccion = tamanioDeBloque() / sizeof(uint32_t);
 	return (12 + cantBloquesPorIndireccion <= nroBloqueLogico) && (nroBloqueLogico < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2));
 }
 
 uint32_t * posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
-	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
 	int i;
 	uint32_t cantBloquesYaRecorridos = 12 + cantBloquesPorIndireccionSimple;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
@@ -426,7 +426,7 @@ uint32_t * posicionarIndireccionDoble(uint32_t nroBloqueIndireccion,uint32_t nro
 }
 
 int esIndireccionTriple(uint32_t nroBloque){
-	uint32_t cantBloquesPorIndireccion = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccion = tamanioDeBloque() / sizeof(uint32_t);
 	return (12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2) <= nroBloque) && (nroBloque < 12 + cantBloquesPorIndireccion + pow(cantBloquesPorIndireccion,2)
 			+ pow(cantBloquesPorIndireccion,3));
 }
@@ -434,7 +434,7 @@ int esIndireccionTriple(uint32_t nroBloque){
 uint32_t * posicionarIndireccionTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
-	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
 	uint32_t cantBloquesPorIndireccionDoble = pow(cantBloquesPorIndireccionSimple,2);
 	uint32_t cantBloquesYaRecorridos = 12 + cantBloquesPorIndireccionSimple + cantBloquesPorIndireccionDoble;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
@@ -496,7 +496,7 @@ int32_t truncarArchivo(char * path,uint32_t offset){
 				struct INode * inodoPath = getInodoDeLaDireccionDelPath(path);
 				uint32_t offsetEOF = inodoPath->size; // el -1 es para sacarle el EOF cuando trabajo con un archivo creado externamente
 				int32_t size = offset - offsetEOF;
-				uint32_t cantPtrEnIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
+				uint32_t cantPtrEnIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
 				uint32_t cantPtrEnIndireccionDoble = cantPtrEnIndireccionSimple * cantPtrEnIndireccionSimple;
 				if(size == 0)
 					log_trace(logger_funciones, "no hay cambio");
@@ -556,8 +556,8 @@ int32_t truncarArchivo(char * path,uint32_t offset){
 					//agrandar archivo
 					if(hayEspacioSuficiente(size)){
 						while(size > 0){
-							uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offsetEOF);
-							if(resto == tamanio_bloque){
+							uint32_t resto = tamanioDeBloque() - desplazamientoDentroDelBloque(offsetEOF);
+							if(resto == tamanioDeBloque()){
 								uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offsetEOF);
 								uint32_t nroBloqueDeDato = getBloqueLibre();
 			// manejo de la asignación de bloques para indirecciones simples, dobles y triples
@@ -643,7 +643,7 @@ int32_t truncarArchivo(char * path,uint32_t offset){
 void * getPtrBloqueIndDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
-	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
 	uint32_t cantBloquesPorIndireccionDoble = pow(cantBloquesPorIndireccionSimple,2);
 	uint32_t cantBloquesYaRecorridos = 12 + cantBloquesPorIndireccionSimple + cantBloquesPorIndireccionDoble;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
@@ -659,7 +659,7 @@ void * getPtrBloqueIndDoble(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogi
 void * getPtrBloqueIndTriple(uint32_t nroBloqueIndireccion,uint32_t nroBloqueLogico){
 	uint8_t * inicio = posicionarInicioBloque(nroBloqueIndireccion);
 	uint32_t * ptrBloque;
-	uint32_t cantBloquesPorIndireccionSimple = tamanio_bloque / sizeof(uint32_t);
+	uint32_t cantBloquesPorIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
 	uint32_t cantBloquesPorIndireccionDoble = pow(cantBloquesPorIndireccionSimple,2);
 	uint32_t cantBloquesYaRecorridos = 12 + cantBloquesPorIndireccionSimple + cantBloquesPorIndireccionDoble;
 	nroBloqueLogico -= cantBloquesYaRecorridos;
@@ -735,7 +735,7 @@ uint32_t getBloqueLibreDelBitmap(uint32_t nro_grupo){
 	uint32_t nroBloqueDeDato = 0;
 	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
 	uint32_t inicioBB = grupo->block_bitmap;
-	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
+	uint8_t *posActual = ptr_arch + inicioBB * tamanioDeBloque();
 	struct Superblock *bloque = read_superblock();
 	int cantBloques = bloque->blocks_per_group;
 	int cantBytes = cantBloques / 8;
@@ -800,7 +800,7 @@ int32_t escribirArchivo(char * path, void * input, uint32_t size, uint32_t offse
 
 			size_t bytesEscritos = 0;
 			while(size > 0){
-				uint32_t resto = tamanio_bloque - desplazamientoDentroDelBloque(offset);
+				uint32_t resto = tamanioDeBloque() - desplazamientoDentroDelBloque(offset);
 				if(resto >= size){
 					escribir(inodoPath,input+ bytesEscritos,size,offset);
 					offset += size;
@@ -910,11 +910,11 @@ int agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 	uint32_t tamanio_directorio = inodo->size;
 	uint32_t offset;
 	int encontroEspacio = 0;
-	for(offset = 0;!encontroEspacio && offset < tamanio_directorio;offset += tamanio_bloque){
+	for(offset = 0;!encontroEspacio && offset < tamanio_directorio;offset += tamanioDeBloque()){
 		uint32_t nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		void * ptr = posicionarme(inodo,nroBloqueLogico,0);
 		uint16_t cantidad = 0;
-		while(tamanio_bloque > cantidad){
+		while(tamanioDeBloque() > cantidad){
 			struct DirEntry * directorio = leerEntrada(ptr);
 			char* nombre = calloc(1, directorio->name_len + 1);
 			memcpy(nombre, directorio->name, directorio->name_len);
@@ -943,9 +943,9 @@ int agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 		uint32_t nroBloqueDeDato = getBloqueLibre();
 		agregarAInodo(inodo,nroBloqueLogico,nroBloqueDeDato);
 		void * ptrInicioNuevaEntrada = posicionarme(inodo,nroBloqueLogico,0);
-		int errorAgregar = agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,tamanio_bloque);
+		int errorAgregar = agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,tamanioDeBloque());
 		if(errorAgregar == 0) {
-            inodo->size += tamanio_bloque;
+            inodo->size += tamanioDeBloque();
 		} else {
 		    return errorAgregar;
 		}
@@ -1006,7 +1006,7 @@ uint32_t getInodoLibreDelBitmap(uint32_t nro_grupo){
 	uint32_t nroInodo = 0;
 	struct GroupDesc * grupo = leerGroupDescriptor(nro_grupo);
 	uint32_t inicioBB = grupo->inode_bitmap;
-	uint8_t *posActual = ptr_arch + inicioBB * tamanio_bloque;
+	uint8_t *posActual = ptr_arch + inicioBB * tamanioDeBloque();
 	struct Superblock *sb = read_superblock();
 	int cantInodos = sb->inodes_per_group;
 	int cantBytes = cantInodos / 8;
@@ -1073,7 +1073,7 @@ void inicializarEntradasNuevoDir(struct INode * inodo, uint32_t offset, uint32_t
 
 	entrada_nueva = malloc(sizeof(struct DirEntry));
     entrada_nueva->inode = nroInodoEntradaNueva;
-    tamanio_entrada = tamanio_bloque - tamanio_entrada;
+    tamanio_entrada = tamanioDeBloque() - tamanio_entrada;
     entrada_nueva->entry_len = tamanio_entrada;
     entrada_nueva->name_len = strlen(nombre);
     entrada_nueva->name = malloc(entrada_nueva->name_len);
@@ -1175,12 +1175,12 @@ void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
 	uint32_t nroBloqueLogico;
 	uint32_t tamanioEntradaAnterior;
 	void * ptr;
-	for(offset = 0;!directorioEliminado && offset < tamanio_directorio;offset += tamanio_bloque){
+	for(offset = 0;!directorioEliminado && offset < tamanio_directorio;offset += tamanioDeBloque()){
 		tamanioEntradaAnterior = 0;
 		nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		ptr = posicionarme(inodoRuta,nroBloqueLogico,0);
 		uint16_t cantidad = 0;
-		while(tamanio_bloque > cantidad){
+		while(tamanioDeBloque() > cantidad){
 			struct DirEntry * directorio = leerEntrada(ptr);
 			char* nombre = calloc(1, directorio->name_len + 1);
 			memcpy(nombre, directorio->name, directorio->name_len);
@@ -1201,7 +1201,7 @@ void eliminarEntradaDirectorio(struct INode * inodoRuta, char * nombre_entrada){
 		}
 	}
 	// es el caso cuando una sola entrada de directorio se encuentra en un bloque
-	if(tamanio_dir_eliminado == tamanio_bloque){
+	if(tamanio_dir_eliminado == tamanioDeBloque()){
 		uint32_t * ptrBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodoRuta,nroBloqueLogico);
 		liberarBloque(ptrBloqueLogico);
 		ptrBloqueLogico = 0;
@@ -1221,7 +1221,7 @@ void liberarInodo(uint32_t nroInodoDirectorio){
 	uint32_t nroBloqueLogico;
 	uint32_t * ptrBloqueLogico;
 // se limpia el inodo
-	for(offset = 0;offset < tamanio;offset+=tamanio_bloque){
+	for(offset = 0;offset < tamanio;offset+=tamanioDeBloque()){
 		nroBloqueLogico = nroBloqueDentroDelInodo(offset);
 		ptrBloqueLogico = getPtrNroBloqueLogicoDentroInodo(inodoDirEliminado,nroBloqueLogico);
 		liberarBloque(ptrBloqueLogico);
@@ -1251,7 +1251,7 @@ void liberarInodo(uint32_t nroInodoDirectorio){
 int directorioVacio(uint32_t nroInodoDirectorio){
 	struct INode * inodoDirectorio = getInodo(nroInodoDirectorio);
 	int estaVacio = 1;
-	if(inodoDirectorio->size > tamanio_bloque){
+	if(inodoDirectorio->size > tamanioDeBloque()){
 		estaVacio = 0;
 	} else {
 		void * ptr;
@@ -1259,7 +1259,7 @@ int directorioVacio(uint32_t nroInodoDirectorio){
 		uint32_t tamanio_primer_entrada = 12;
 		ptr = posicionarme(inodoDirectorio,0,12);
 		struct DirEntry * directorio = leerEntrada(ptr);
-		if(directorio->entry_len != tamanio_bloque - tamanio_primer_entrada) {
+		if(directorio->entry_len != tamanioDeBloque() - tamanio_primer_entrada) {
 			estaVacio = 0;
 		}
 		free(directorio->name);
@@ -1302,7 +1302,7 @@ void setearInodo(struct INode * inodo, uint32_t mode){
 	if(EXT2_INODE_HAS_MODE_FLAG(inodo,EXT2_S_IFDIR)){
 		inodo->links = 2;
 		inodo->blocks[0] = getBloqueLibre();
-		inodo->size = tamanio_bloque;
+		inodo->size = tamanioDeBloque();
 	} else {
 		inodo->links = 1;
 		inodo->size = 0;
@@ -1344,7 +1344,7 @@ int32_t eliminarArchivo(char * path){
 int hayEspacioSuficiente(uint32_t size){
 	struct Superblock * sb = read_superblock();
 	uint32_t bloquesLibres = sb->free_blocks;
-	return tamanio_bloque * bloquesLibres >= size;
+	return tamanioDeBloque() * bloquesLibres >= size;
 }
 
 struct archivo_abierto * getRegistroArchivoAbierto(uint32_t nroInodo){
@@ -1464,16 +1464,65 @@ void bloquearEscritura(uint32_t numero_inodo) {
     pthread_rwlock_wrlock(archivo_abierto->lock);
 }
 
+/*
+ * Perdon
+ */
+void manejarBloquesIndireccionesParaAgregar(struct INode *inodoPath, uint32_t nroBloqueLogico) {
+    uint32_t cantPtrEnIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
+    uint32_t cantPtrEnIndireccionDoble = cantPtrEnIndireccionSimple * cantPtrEnIndireccionSimple;
+    if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12)
+            inodoPath->iblock = getBloqueLibre();
+    if(esIndireccionDoble(nroBloqueLogico)){
+        if(nroBloqueLogico == 12 + cantPtrEnIndireccionSimple){
+            inodoPath->iiblock = getBloqueLibre();
+        }
+        // el 12 es por los bloques que ya recorrio
+        if((nroBloqueLogico - 12) % cantPtrEnIndireccionSimple == 0){
+            uint32_t posDentroIndireccionDoble = (nroBloqueLogico - (12 + cantPtrEnIndireccionSimple)) / cantPtrEnIndireccionSimple;
+            void * ptrBloque = desplazarme(inodoPath->iiblock,posDentroIndireccionDoble * 4);
+            uint32_t nroBloqueLibre = getBloqueLibre();
+            uint32_t * ptrNroBloqueLibre = &nroBloqueLibre;
+            memcpy(ptrBloque,ptrNroBloqueLibre,sizeof(uint32_t));
+        }
+    }
+    if(esIndireccionTriple(nroBloqueLogico)){
+        if(nroBloqueLogico == 12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble){
+            inodoPath->iiiblock = getBloqueLibre();
+        }
+        uint32_t nroBloqueLibre;
+        if((nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) % cantPtrEnIndireccionDoble == 0){
+            uint32_t posDentroIndireccionTriple = (nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) / cantPtrEnIndireccionDoble;
+            void * ptrBloque = desplazarme(inodoPath->iiiblock,posDentroIndireccionTriple * 4);
+            nroBloqueLibre = getBloqueLibre();
+            uint32_t * ptrNroBloqueLibre = &nroBloqueLibre;
+            memcpy(ptrBloque,ptrNroBloqueLibre,sizeof(uint32_t));
+        }
+        if((nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) % cantPtrEnIndireccionSimple == 0){
+            void * ptrIndTriple = getPtrBloqueIndTriple(inodoPath->iiiblock,nroBloqueLogico);
+            uint32_t * nroBloqueIndTriple = (uint32_t *)ptrIndTriple;
+            uint32_t nroBloqueRelativo = nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble);
+            while(nroBloqueRelativo >= cantPtrEnIndireccionDoble)
+                nroBloqueRelativo -= cantPtrEnIndireccionDoble;
+            uint32_t posDentroIndireccionDoble = nroBloqueRelativo / cantPtrEnIndireccionSimple;
+            void * ptrBloque = desplazarme(*nroBloqueIndTriple,posDentroIndireccionDoble * 4);
+            uint32_t nroBloqueLibreIndDoble = getBloqueLibre();
+            uint32_t * ptrNroBloqueLibre = &nroBloqueLibreIndDoble;
+            memcpy(ptrBloque,ptrNroBloqueLibre,sizeof(uint32_t));
+        }
+    }
+}
+
 /**
  * Busca un bloque libre y lo agrega al final del inodo, actualizando
  * size y cantidad de bloques del inodo
  */
 int agregarBloqueNuevo(struct INode *inodo, size_t size_objetivo) {
+    manejarBloquesIndireccionesParaAgregar(inodo, inodo->nr_blocks * 512 / tamanioDeBloque());
     uint32_t bloqueLibre = getBloqueLibre();
     if(bloqueLibre == 0) {
         return ENOSPC;
     }
-    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, inodo->nr_blocks);
+    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, inodo->nr_blocks * 512 / tamanioDeBloque());
     if(punteroNumeroBloque == NULL) {
         return EFBIG;
     }
@@ -1488,8 +1537,44 @@ int agregarBloqueNuevo(struct INode *inodo, size_t size_objetivo) {
         memset(bloque + indice, '\0', 1);
     }
     inodo->size += tamanio_a_usar;
-    inodo->nr_blocks++;
+    // nr_blocks es cantidad de bloques de 512b
+    inodo->nr_blocks += tamanioDeBloque() / 512;
     return 0;
+}
+
+void manejarBloquesIndireccionesParaEliminar(struct INode *inodoPath, uint32_t nroBloqueLogico) {
+    uint32_t cantPtrEnIndireccionSimple = tamanioDeBloque() / sizeof(uint32_t);
+    uint32_t cantPtrEnIndireccionDoble = cantPtrEnIndireccionSimple * cantPtrEnIndireccionSimple;
+    if(esIndireccionSimple(nroBloqueLogico) && nroBloqueLogico == 12){
+        liberarBloque(&inodoPath->iblock);
+    }
+    if(esIndireccionDoble(nroBloqueLogico)){
+        // el 12 es por los bloques que ya recorrio
+        if((nroBloqueLogico - 12) % cantPtrEnIndireccionSimple == 0){
+            uint32_t posDentroIndireccionDoble = (nroBloqueLogico - (12 + cantPtrEnIndireccionSimple)) / cantPtrEnIndireccionSimple;
+            void * ptrBloque = desplazarme(inodoPath->iiblock,posDentroIndireccionDoble * 4);
+            uint32_t * nroBloque = (uint32_t *)ptrBloque;
+            liberarBloque(nroBloque);
+        }
+        if(nroBloqueLogico == 12 + cantPtrEnIndireccionSimple){
+            liberarBloque(&inodoPath->iiblock);
+        }
+    }
+    if(esIndireccionTriple(nroBloqueLogico)){
+        void * ptrIndDoble = getPtrBloqueIndDoble(inodoPath->iiiblock,nroBloqueLogico);
+        uint32_t * nroBloqueIndDoble = (uint32_t *)ptrIndDoble;
+        void * ptrIndTriple = getPtrBloqueIndTriple(inodoPath->iiiblock,nroBloqueLogico);
+        uint32_t * nroBloqueIndTriple = (uint32_t *)ptrIndTriple;
+        if((nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) % cantPtrEnIndireccionSimple == 0){
+            liberarBloque(nroBloqueIndDoble);
+        }
+        if((nroBloqueLogico - (12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble)) % cantPtrEnIndireccionDoble == 0){
+            liberarBloque(nroBloqueIndTriple);
+        }
+        if(nroBloqueLogico == 12 + cantPtrEnIndireccionSimple + cantPtrEnIndireccionDoble){
+            liberarBloque(&inodoPath->iiiblock);
+        }
+    }
 }
 
 /**
@@ -1499,12 +1584,12 @@ int removerUltimoBloque(struct INode *inodo) {
     if(!inodo->nr_blocks) {
         return ESPIPE;
     }
-    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, inodo->nr_blocks - 1);
+    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, (inodo->nr_blocks * 512 / tamanioDeBloque() - 1));
     if(punteroNumeroBloque == NULL) {
         return EFAULT;
     }
     liberarBloque(punteroNumeroBloque);
-    inodo->nr_blocks--;
+    inodo->nr_blocks -= tamanioDeBloque() / 512;
 
     // achica el size al multiplo del bloque anterior a este
     inodo->size = ((inodo->size - 1) / tamanioDeBloque()) * tamanioDeBloque();
@@ -1522,14 +1607,14 @@ int truncar(char *path, size_t size) {
 
     struct INode *inodoArchivo = obtenerInodo(numero_inodo);
     bloquearEscritura(numero_inodo);
-    int cantidad_bloques_final = nroBloqueDentroDelInodo(size);
+    int cantidad_bloques_final = nroBloqueDentroDelInodo(size) + 1;
 
     int codigo_error = 0;
 
-    while(!codigo_error && inodoArchivo->nr_blocks < cantidad_bloques_final) {
+    while(!codigo_error && inodoArchivo->nr_blocks < cantidad_bloques_final * tamanioDeBloque() / 512) {
         codigo_error = agregarBloqueNuevo(inodoArchivo, size);
     }
-    while(!codigo_error && inodoArchivo->nr_blocks > cantidad_bloques_final) {
+    while(!codigo_error && inodoArchivo->nr_blocks > cantidad_bloques_final * tamanioDeBloque() / 512) {
         codigo_error = removerUltimoBloque(inodoArchivo);
     }
 

@@ -303,8 +303,8 @@ void serve_read(int socket, struct nipc_read *request) {
         output = malloc(numerosBloquesArchivo->elements_count * tamanioDeBloque());
         for(indice = 0; indice < numerosBloquesArchivo->elements_count; indice++) {
             size_t offsetBloque = indice == 0 ? desplazamientoDentroDelBloque(request->offset) : 0;
-            size_t sizeALeer = indice == (numerosBloquesArchivo->elements_count - 1) ? desplazamientoDentroDelBloque(bytesALeer) : tamanioDeBloque();
-            memcpy(output + readBytes, bloquesArchivo[indice] + offsetBloque, sizeALeer + 1);
+            size_t sizeALeer = indice == (numerosBloquesArchivo->elements_count - 1) ? desplazamientoDentroDelBloque(bytesALeer - 1) + 1 : tamanioDeBloque();
+            memcpy(output + readBytes, bloquesArchivo[indice] + offsetBloque, sizeALeer);
             readBytes += sizeALeer;
             free(bloquesArchivo[indice]);
         }
@@ -367,7 +367,7 @@ void serve_write(int socket, struct nipc_write *request) {
         log_debug(logger, "Trunco %s de %d bytes a %d para un write de %d en %d", request->path, inodoArchivo->size,
                 request->offset + request->size, request->size, request->offset);
         // FIXME: chequear errores (en todo el metodo?)
-        truncarArchivo(request->path, request->offset + request->size);
+        truncar(request->path, request->offset + request->size);
     }
 
     bloquearEscritura(numero_inodo);
@@ -390,7 +390,10 @@ void serve_write(int socket, struct nipc_write *request) {
             bloque = calloc(1, tamanioDeBloque());
         }
 
-        memcpy(bloque + posicion_en_bloque, request->data + bytesEscritos, bytes_a_escribir);
+        int index;
+        for(index = 0; index < bytes_a_escribir; index++) {
+            memcpy(bloque + posicion_en_bloque + index, request->data + bytesEscritos + index, 1);
+        }
 
         grabarBloque(numero_bloque, bloque);
 
