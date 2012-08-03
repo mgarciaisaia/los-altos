@@ -412,6 +412,9 @@ key_element *buscarLibreNext(size_t espacio) {
 		while (!(key_vector[i].libre) && i < cantRegistros) {
 			i++;
 		}
+		while ((key_vector[i].libre && key_vector[i].data_size==0) && i < cantRegistros) {
+			i++;
+		}
 		if (i == cantRegistros) {
 			i = 0;
 		} else {

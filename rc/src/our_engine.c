@@ -533,11 +533,11 @@ for (i = posicion; i < cantRegistros; i++) {
 		particion++;
 
 		if (key_vector[i].libre) {
-			fprintf(fich,"Partición %d: 0x%X - 0x%X. [L] Size: %d b flags_ yo: %d padre: %d .", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size,key_vector[i].flags.actual,key_vector[i].flags.padre );
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [L] Size: %d b flags_ yo: %d padre: %d \n", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size,key_vector[i].flags.actual,key_vector[i].flags.padre );
 			log_info(logger,"Partición %d: 0x%X - 0x%X. [L] Size: %d b flags_ yo: %d padre: %d .", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size,key_vector[i].flags.actual,key_vector[i].flags.padre );
 		} else {
 
-			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s .",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s \n",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
 			log_info(logger,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s .",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
 		}
 	}
