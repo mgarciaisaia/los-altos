@@ -26,15 +26,6 @@ bool cache_active;
 uint32_t client_id = 0;
 
 
-/**
- * FIXME: falta hacer free() a todos los response
- * FIXME: falta hacer free() a todos los response
- * FIXME: falta hacer free() a todos los response
- * FIXME: falta hacer free() a todos los response
- * FIXME: falta hacer free() a todos los response
- * FIXME: falta hacer free() a todos los response
- * FIXME: falta hacer free() a todos los response
- */
 void logger_operation(const char *operation, const char *path) {
 	log_debug(logger, "Operacion recibida: %s en %s", operation, path);
 }
@@ -161,12 +152,6 @@ int remote_open(const char *path, struct fuse_file_info *fileInfo) {
 int remote_read(const char *path, char *output, size_t size, off_t offset,
 		struct fuse_file_info *fileInfo) {
 	logger_operation_read_write("read", path, size, offset);
-
-	// FIXME revisar como se maneja la cache y todo eso
-//    memcached_return_t *memcached_response = memcached_add(remote_cache, "hola", strlen("hola"), "hola puto :)", strlen("hola puto :)"), 0, 0);
-//    if(memcached_response != MEMCACHED_SUCCESS) {
-//        printf("NOOOOO %s\n", memcached_strerror(remote_cache, memcached_response));
-//    }
 
 	int bytesRead = 0;
 
@@ -319,6 +304,7 @@ int remote_mkdir(const char *path, mode_t mode) {
  * return     output    negated error number, or 0 if everything went OK
  */
 int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo) {
+    // TODO: hacerle caso al offset
 
 	logger_operation("readdir", path);
 
@@ -362,9 +348,8 @@ int remote_readdir(const char *path, void *output, fuse_fill_dir_t filler, off_t
 
     if (bufferIsFull) {
         log_info(logger, "readdir: buffer lleno");
+        return -ENOMEM;
         /*
-         * FIXME
-         *
          * En <http://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/unclear.html> dicen
          * que cuando se llena el buffer se debe devolver ENOMEM
          *
@@ -574,7 +559,6 @@ void initialize_configuration() {
         }
         set_memcached_utils_logger(logger);
         free(servers);
-        // FIXME: hago free de servers o lo sigo necesitando?
 	}
 
 	config_destroy(config);
