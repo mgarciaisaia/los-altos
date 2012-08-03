@@ -141,34 +141,15 @@ void *traerBloque(uint32_t numero_bloque) {
 }
 
 void grabarBloque(uint32_t numero_bloque, void *bloque) {
-    guardarBloqueEnCache(remote_cache, numero_bloque, bloque);
+    if(cache_active) {
+        guardarBloqueEnCache(remote_cache, numero_bloque, bloque);
+    }
     void *bloque_disco = obtenerBloque(numero_bloque);
     int i;
     for(i = 0; i < tamanioDeBloque(); i++) {
         memcpy(bloque_disco + i, bloque + i, 1);
     }
 }
-
-//int crear_archivo(char *path, mode_t modo) {
-//    char *ruta = strdup(path); // la copio para no modificar el path original
-//    char *directorio = dirname(ruta);
-//    char *nombre = basename(ruta);
-//    uint32_t inum_directorio = numeroInodo(directorio);
-//    bloquearEscritura(inum_directorio);
-//    struct INode *inodo_directorio = obtenerInodo(inum_directorio);
-//
-//    struct INode *inodo_archivo = NULL;
-//    uint32_t inum_archivo = nuevo_inodo(&inodo_archivo);
-//    inodo_archivo->mode = modo | S_IFREG;
-//    agregarEntrada(inodo_directorio, inum_archivo, nombre);
-//    agregarBloqueNuevo(inodo_archivo, 0);
-//    grabarInodo(inum_archivo, inodo_archivo);
-//    grabarInodo(inum_directorio, inum_directorio);
-//
-//    desbloquear(inum_directorio);
-//    return 0;
-//}
-
 
 /**
  *
@@ -316,35 +297,6 @@ void serve_read(int socket, struct nipc_read *request) {
     nipc_send(socket, response);
 
 	desbloquear(numero_inodo);
-//
-//
-//	void *buffer;
-//	size_t readBytes =0; // FIXME: correjir el tamanio que nos llega (vienen 4k por default, hay que achicarlo)
-//
-//	if (cache_active) {
-//
-//		readBytes = read_from_memcached(remote_cache, request->path,request->offset, request->size, &buffer);
-//	}
-//
-//	if ((readBytes < request->size)) {
-//		do_sleep();
-//
-//		readBytes = leerArchivo(request->path, request->offset,
-//				request->size, &buffer);
-//
-//		if (cache_active) {
-//						almacenar_memcached(remote_cache, request->path,
-//								request->offset, request->size, buffer);
-//					}
-//	}
-//		if (buffer == NULL && readBytes != 0) {
-//			send_no_ok(socket, readBytes, request->client_id);
-//		} else {
-//			struct nipc_packet *response = new_nipc_read_response(buffer,
-//					readBytes, request->client_id);
-//			nipc_send(socket, response);
-//
-//		}
 
 	log_debug(logger, "FIN read %s @%d+%d (pide %d)", request->path, request->offset, bytesALeer, request->client_id);
 	free(request->path);
@@ -404,7 +356,7 @@ void serve_write(int socket, struct nipc_write *request) {
 
     list_destroy_and_destroy_elements(numerosBloquesArchivo, &free);
 
-    // FIXME: enviar bytesLeidos, no OK/ERROR
+    // TODO: enviar bytesLeidos, no OK/ERROR
     if(bytesEscritos == request->size) {
         send_ok(socket, request->client_id);
     } else {

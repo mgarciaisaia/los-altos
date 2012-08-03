@@ -373,7 +373,6 @@ size_t leerArchivo(char * path, uint32_t offset, uint32_t bytesALeer, void **buf
         pthread_rwlock_unlock(registro_archivo->lock);
         return bytesLeidos;
     } else {
-        // FIXME: el archivo no esta abierto. contestar
         return ENOENT;
     }
 }
@@ -725,7 +724,7 @@ uint32_t getBloqueLibre(){
         nro_de_grupo++;
 		if(nro_de_grupo == cantidadDeGrupos()) {
 		    if(diLaVuelta) {
-		        // FIXME: loggear error de que no hay bloques libres
+		        log_error(logger_funciones, "No hay bloques libres");
 		        pthread_mutex_unlock(&sem_pedir_bloque);
 		        return 0;
 		    } else {
@@ -1413,15 +1412,17 @@ void *traerBloqueDeCache(memcached_st *cache, uint32_t numero_bloque) {
 
     bloque = memcached_get(cache, key, key_length, &data_length, &flags, &memcached_response);
 
-    if (memcached_response != MEMCACHED_SUCCESS) {
-        log_debug(logger_funciones, "Cache miss buscando el bloque %s", key);
-    } else if (data_length != tamanioDeBloque()) {
-        log_error(logger_funciones, "El bloque %s existe en cache, pero tiene %d (se esperaban %d)",
-                key, data_length, tamanioDeBloque()); // FIXME: poner bloque en NULL?
-    } else {
+    if (memcached_response == MEMCACHED_SUCCESS) {
         log_debug(logger_funciones, "Cache hit buscando el bloque %s (%d bytes)", key, data_length);
+    } else {
+        bloque = NULL;
+        if (data_length != tamanioDeBloque()) {
+            log_error(logger_funciones, "El bloque %s existe en cache, pero tiene %d (se esperaban %d)",
+                    key, data_length, tamanioDeBloque());
+        } else {
+            log_debug(logger_funciones, "Cache miss buscando el bloque %s", key);
+        }
     }
-
     free(key);
     return bloque;
 }
@@ -1442,7 +1443,6 @@ void guardarBloqueEnCache(memcached_st *cache, uint32_t numero_bloque, void *blo
 }
 
 uint32_t numeroInodo(char *path) {
-    // FIXME: usar la cache
     return getNroInodoDeLaDireccionDelPath(path);
 }
 
@@ -1453,7 +1453,6 @@ void bloquearLectura(uint32_t numero_inodo) {
 }
 
 struct INode *obtenerInodo(uint32_t numero_inodo) {
-    // FIXME: hacer que use la cache
     return getInodo(numero_inodo);
 }
 
@@ -1642,7 +1641,6 @@ int removerUltimoBloque(struct INode *inodo) {
 }
 
 void grabarInodo(uint32_t numero_inodo, struct INode *inodo) {
-    // FIXME: grabar en la cache
     struct INode *punteroInodoDisco = getInodo(numero_inodo);
     memcpy(punteroInodoDisco, inodo, sizeof(struct INode));
 }
