@@ -25,6 +25,8 @@ memcached_st *remote_cache;
 bool cache_active;
 uint32_t client_id = 0;
 
+int remote_getattr(const char *path, struct stat *statbuf);
+int remote_truncate(const char * path, off_t offset);
 
 void logger_operation(const char *operation, const char *path) {
 	log_debug(logger, "Operacion recibida: %s en %s", operation, path);
@@ -196,6 +198,25 @@ int remote_read(const char *path, char *output, size_t size, off_t offset,
 int remote_write(const char *path, const char *input, size_t size, off_t offset,
 		struct fuse_file_info *fileInfo) {
 	logger_operation_read_write("write", path, size, offset);
+
+	struct stat* stats = malloc(sizeof(struct stat));
+	int errorCode = remote_getattr(path, stats);
+	if(errorCode) {
+	    free(stats);
+	    return errorCode;
+	}
+
+	if(stats->st_size < offset + size) {
+        log_debug(logger, "Trunco %s de %d bytes a %d para un write de %d en %d", path,
+                stats->st_size, offset + size, size, offset);
+        errorCode = remote_truncate(path, offset + size);
+	}
+
+    free(stats);
+
+	if(errorCode) {
+	    return errorCode;
+	}
 
 	int bytesWrote = 0;
 

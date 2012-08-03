@@ -1556,17 +1556,21 @@ int manejarBloquesIndireccionesParaAgregar(struct INode *inodoPath, uint32_t nro
     return 0;
 }
 
+int cantidadDeBloques(struct INode *inodo) {
+    return inodo->nr_blocks * 512 / tamanioDeBloque();
+}
+
 /**
  * Busca un bloque libre y lo agrega al final del inodo, actualizando
  * size y cantidad de bloques del inodo
  */
 int agregarBloqueNuevo(struct INode *inodo, size_t size_objetivo) {
-    manejarBloquesIndireccionesParaAgregar(inodo, inodo->nr_blocks * 512 / tamanioDeBloque());
+    manejarBloquesIndireccionesParaAgregar(inodo, cantidadDeBloques(inodo));
     uint32_t bloqueLibre = getBloqueLibre();
     if(bloqueLibre == 0) {
         return ENOSPC;
     }
-    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, inodo->nr_blocks * 512 / tamanioDeBloque());
+    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, cantidadDeBloques(inodo));
     if(punteroNumeroBloque == NULL) {
         return EFBIG;
     }
@@ -1628,7 +1632,7 @@ int removerUltimoBloque(struct INode *inodo) {
     if(!inodo->nr_blocks) {
         return ESPIPE;
     }
-    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, (inodo->nr_blocks * 512 / tamanioDeBloque() - 1));
+    uint32_t *punteroNumeroBloque = getPtrNroBloqueLogicoDentroInodo(inodo, (cantidadDeBloques(inodo) - 1));
     if(punteroNumeroBloque == NULL) {
         return EFAULT;
     }
@@ -1654,10 +1658,10 @@ int truncar(char *path, size_t size) {
 
     int codigo_error = 0;
 
-    while(!codigo_error && (inodoArchivo->nr_blocks * 512 / tamanioDeBloque() - 1) < cantidad_bloques_final) {
+    while(!codigo_error && ( cantidadDeBloques(inodoArchivo) < cantidad_bloques_final)) {
         codigo_error = agregarBloqueNuevo(inodoArchivo, size);
     }
-    while(!codigo_error && (inodoArchivo->nr_blocks * 512 / tamanioDeBloque() - 1) > cantidad_bloques_final) {
+    while(!codigo_error && ( cantidadDeBloques(inodoArchivo) > cantidad_bloques_final)) {
         codigo_error = removerUltimoBloque(inodoArchivo);
     }
 

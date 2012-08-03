@@ -315,12 +315,7 @@ void serve_write(int socket, struct nipc_write *request) {
 
     struct INode *inodoArchivo = obtenerInodo(numero_inodo);
 
-    if(inodoArchivo->size < request->offset + request->size) {
-        log_debug(logger, "Trunco %s de %d bytes a %d para un write de %d en %d", request->path, inodoArchivo->size,
-                request->offset + request->size, request->size, request->offset);
-        // FIXME: chequear errores (en todo el metodo?)
-        truncar(request->path, request->offset + request->size);
-    }
+    // FIXME: chequear errores (en todo el metodo?)
 
     bloquearEscritura(numero_inodo);
 
