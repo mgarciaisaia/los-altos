@@ -642,7 +642,7 @@ static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_respon
 
     for(index = 0; index < payload->entriesLength; index++) {
         struct readdir_entry *entry = &(payload->entries[index]);
-        uint32_t entrySize = sizeof(entrySize) + sizeof(entry->mode) + sizeof(entry->n_link) + sizeof(entry->size) + strlen(entry->path) + 1;
+        uint32_t entrySize = sizeof(entrySize) + sizeof(entry->mode) + sizeof(entry->n_link) + sizeof(entry->size) + sizeof(entry->blocks) + strlen(entry->path) + 1;
 
         serializedEntry = malloc(entrySize);
         serializedEntries[index] = serializedEntry;
@@ -655,6 +655,8 @@ static struct nipc_packet* serialize_readdir_response(struct nipc_readdir_respon
         serializedEntry += sizeof(entry->n_link);
         memcpy(serializedEntry, &entry->size, sizeof(entry->size));
         serializedEntry += sizeof(entry->size);
+        memcpy(serializedEntry, &entry->blocks, sizeof(entry->blocks));
+        serializedEntry += sizeof(entry->blocks);
         memcpy(serializedEntry, entry->path, strlen(entry->path) + 1);
         serializedEntry += strlen(entry->path) + 1;
         entriesSize += entrySize;
@@ -698,7 +700,7 @@ struct nipc_readdir_response *deserialize_readdir_response(struct nipc_packet *p
 
     void *stream = packet->data + sizeof(instance->entriesLength);
     int entrySizeSize = sizeof(entrySize);
-    uint32_t nonPathEntrySize = sizeof(entry->mode) + sizeof(entry->n_link) + sizeof(entry->size) + entrySizeSize;
+    uint32_t nonPathEntrySize = sizeof(entry->mode) + sizeof(entry->n_link) + sizeof(entry->size) + sizeof(entry->blocks) + entrySizeSize;
 
 
     for(index = 0; index < instance->entriesLength; index++) {
@@ -711,6 +713,8 @@ struct nipc_readdir_response *deserialize_readdir_response(struct nipc_packet *p
         stream += sizeof(entry->n_link);
         memcpy(&(entry->size), stream, sizeof(entry->size));
         stream += sizeof(entry->size);
+        memcpy(&(entry->blocks), stream, sizeof(entry->blocks));
+        stream += sizeof(entry->blocks);
         uint32_t pathLength = entrySize - nonPathEntrySize;
         entry->path = malloc(pathLength);
         memcpy(entry->path, stream, pathLength);
@@ -747,7 +751,7 @@ static struct nipc_packet* serialize_getattr_response(struct nipc_getattr_respon
 
     packet->client_id = 0;
 
-    packet->data_length = sizeof(payload->entry->mode) + sizeof(payload->entry->n_link) + sizeof(payload->entry->size);
+    packet->data_length = sizeof(payload->entry->mode) + sizeof(payload->entry->n_link) + sizeof(payload->entry->size) + sizeof(payload->entry->blocks);
     packet->data = malloc(packet->data_length);
 
     void *data = packet->data;
@@ -758,7 +762,11 @@ static struct nipc_packet* serialize_getattr_response(struct nipc_getattr_respon
     memcpy(data, &(payload->entry->n_link), sizeof(payload->entry->n_link));
     data += sizeof(payload->entry->n_link);
 
-    memcpy(data, &(payload->entry->size), sizeof(payload->entry->n_link));
+    memcpy(data, &(payload->entry->size), sizeof(payload->entry->size));
+    data += sizeof(payload->entry->size);
+
+    memcpy(data, &(payload->entry->blocks), sizeof(payload->entry->blocks));
+    data += sizeof(payload->entry->blocks);
 
     free(payload->entry);
     free(payload);
@@ -789,6 +797,10 @@ struct nipc_getattr_response *deserialize_getattr_response(struct nipc_packet* p
     data += sizeof(instance->entry->n_link);
 
     memcpy(&(instance->entry->size), data, sizeof(instance->entry->size));
+    data += sizeof(instance->entry->size);
+
+    memcpy(&(instance->entry->blocks), data, sizeof(instance->entry->blocks));
+    data += sizeof(instance->entry->blocks);
 
     instance->entry->path = NULL;
 

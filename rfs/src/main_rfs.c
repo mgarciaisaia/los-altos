@@ -319,6 +319,12 @@ void serve_write(int socket, struct nipc_write *request) {
 
     bloquearEscritura(numero_inodo);
 
+    uint32_t nroBloqueLogicoFinal = nroBloqueDentroDelInodo(request->offset + request->size - 1);
+
+    while(cantidadDeBloques(inodoArchivo) <= nroBloqueLogicoFinal) {
+        agregarBloqueNuevo(inodoArchivo);
+    }
+
     t_list *numerosBloquesArchivo = numerosDeBloques(inodoArchivo, request->offset, request->size);
 
     t_link_element *elemento = numerosBloquesArchivo->head;
@@ -531,6 +537,7 @@ void serve_getattr(int socket, struct nipc_getattr *request) {
 	attributes->mode = inodo->mode;
 	attributes->n_link = inodo->links;
 	attributes->size = inodo->size;
+	attributes->blocks = inodo->nr_blocks;
 
 	struct nipc_getattr_response *response = new_nipc_getattr_response(
 			attributes, request->client_id);
@@ -549,7 +556,7 @@ void serve_truncate(int socket, struct nipc_truncate *request) {
 
 	do_sleep();
 
-	int32_t codError = truncar(request->path, request->offset);
+	int32_t codError = truncarArchivo(request->path, request->offset);
 	if (codError != 0)
 		send_no_ok(socket, codError, request->client_id);
 	else

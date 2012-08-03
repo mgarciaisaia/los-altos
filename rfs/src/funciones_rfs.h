@@ -242,11 +242,13 @@
 
 	void grabarBloque(uint32_t numero_bloque, void *bloque);
 
+	int cantidadDeBloques(struct INode *inodo);
+
 	/**
 	 * Busca un bloque libre y lo agrega al final del inodo, actualizando
-	 * size y cantidad de bloques del inodo
+	 * cantidad de bloques del inodo
 	 */
-	int agregarBloqueNuevo(struct INode *inodo, size_t size_objetivo);
+	int agregarBloqueNuevo(struct INode *inodo);
 
 	/**
 	 * Remueve un bloque de un inodo y lo marca como libre.

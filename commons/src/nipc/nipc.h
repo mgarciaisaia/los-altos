@@ -255,6 +255,7 @@ struct readdir_entry {
     uint32_t mode;
     uint32_t size;
     uint32_t n_link;
+    uint32_t blocks;
 };
 
 void readdir_entry_destroy(void *target);

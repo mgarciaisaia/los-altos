@@ -443,6 +443,7 @@ int remote_getattr(const char *path, struct stat *statbuf) {
     statbuf->st_mode = getattr->entry->mode;
     statbuf->st_nlink = getattr->entry->n_link;
     statbuf->st_size = getattr->entry->size;
+    statbuf->st_blocks = getattr->entry->blocks;
 
     // No hago free() de getattr->entry->path porque en getattr ignoramos el path
     // (es siempre NULL - se usa en readdir)
