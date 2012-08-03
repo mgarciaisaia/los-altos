@@ -161,7 +161,7 @@ uint32_t eliminar_particion(int32_t valor) {
 uint32_t ordenar_vector(int32_t posicion) {
 
 	char * clave_original = NULL;
-	uint32_t i, j,posicion2 = 0;
+	uint32_t i=0, j=0,posicion2 = 0;
 
 	uint32_t hasta = cantRegistros;
 	if (posicion != -1){
@@ -197,41 +197,45 @@ uint32_t ordenar_vector(int32_t posicion) {
 	return posicion2;
 }
 
-void juntarlos(uint32_t actual, uint32_t posicion) {
+void juntarlos(int32_t actual, int32_t posicion) {
 
 	// juntarlos y actualizar el que borre
 	char cuenta = 1;
 
 	pthread_rwlock_wrlock(keyVector);
 
-	int32_t padre = key_vector[actual].flags / 10;
-	bool esPar = key_vector[actual].flags % 2;
+//	int32_t padre = key_vector[actual].flags / 10;
+	bool esPar = key_vector[actual].flags.padre % 2;
 	if (esPar)
 		cuenta = 2;
 
-	if (key_vector[actual].flags > 0)
-		key_vector[actual].flags = (padre - cuenta) * 10 + padre;
-	else
-		key_vector[actual].flags = (padre + cuenta) * 10 + padre;
+	key_vector[actual].flags.actual = key_vector[actual].flags.padre;
 
-	key_vector[actual].data_size = key_vector[actual].data_size
-			+ key_vector[posicion].data_size;
+	if (key_vector[actual].flags.padre > 0)
+		key_vector[actual].flags.padre -= cuenta;
+	else
+		key_vector[actual].flags.padre += cuenta;
+
+	key_vector[actual].data_size += key_vector[posicion].data_size;
 	key_vector[posicion].data_size = 0;
 
 	pthread_rwlock_unlock(keyVector);
 
 }
 
-bool cumple(uint32_t actual, uint32_t posicion) {
+bool cumple(int32_t actual, int32_t posicionn) {
 
-	int32_t padre_actual = key_vector[actual].flags / 10;
-	int32_t otro_padre = key_vector[posicion].flags / 10;
+	bool rangoValido, sizeUtil = false, mismoPadre=false, estaLibre=false;
 
-	bool rangoValido = (posicion >= 0) && (posicion < cantRegistros);
-	bool sizeUtil = (key_vector[posicion].data_size > 0)
-			&& (key_vector[posicion].data_size == key_vector[actual].data_size);
-	bool mismoPadre = padre_actual == otro_padre;
-	bool estaLibre = key_vector[posicion].libre;
+	rangoValido = (posicionn >= 0) && (posicionn < cantRegistros);
+
+	if (rangoValido){
+
+	sizeUtil = (key_vector[posicionn].data_size > 0)
+			&& (key_vector[posicionn].data_size == key_vector[actual].data_size);
+	mismoPadre = key_vector[posicionn].flags.padre == key_vector[actual].flags.padre;
+	estaLibre = key_vector[posicionn].libre;
+	}
 
 	return (rangoValido && sizeUtil && mismoPadre && estaLibre);
 }
@@ -239,9 +243,9 @@ bool cumple(uint32_t actual, uint32_t posicion) {
 uint32_t elimina_buddy(uint32_t posicion_org) {
 
 	uint32_t s = 0, a = 0;
-	uint32_t posicion = ordenar_vector(posicion_org);
-	uint32_t siguiente = posicion + 1;
-	uint32_t anterior = posicion - 1;
+	int32_t posicion = ordenar_vector(posicion_org);
+	int32_t siguiente = posicion + 1;
+	int32_t anterior = posicion - 1;
 
 	bool termine = false;
 
@@ -272,7 +276,7 @@ uint32_t compactarDinam(void) {
 	log_info(logger, "Se compacta la cache");
 
 	// como ordenar recibe algo le mando cualquier posicion
-	int32_t posicion_new = ordenar_vector(0);
+	int32_t posicion_new = ordenar_vector(-1);
 	posicion_new = 1;
 	//empiezo desde cero y me fijo si esta vacio el siguiente
 	int32_t i = 0;
@@ -300,21 +304,18 @@ uint32_t compactarDinam(void) {
 			if ((key_vector[i].libre)
 					&& key_vector[posicion_new + i].data_size > 0) {
 
-				key_vector[i + posicion_new].data_size = key_vector[i
-						+ posicion_new].data_size + key_vector[i].data_size;
+				key_vector[i + posicion_new].data_size += key_vector[i].data_size;
 				key_vector[i + posicion_new].data = key_vector[i].data;
 				key_vector[i].data = NULL;
 				key_vector[i].data_size = 0;
 
 				ultimo_libre = i + posicion_new;
 			}
-
 		}
 
 		//al reves, pregunto si en la siguiente hay datos,y dsp si habia en la anterior y los muevo
 		if (((posicion_new + i) < cantRegistros)
 				&& (!key_vector[posicion_new + i].libre)) {
-			//	&& key_vector[posicion_new + i].data_size > 0)) {
 
 			// si el sgte esta libre y y tiene espacio para datos compacto y dsp actualizo la referencia
 
@@ -348,14 +349,14 @@ uint32_t compactarDinam(void) {
 				if ((key_vector[i].libre)
 						&& key_vector[i - posicion_new].libre) {
 					//al ultimo valor agregarle el espacio q quedo
-					key_vector[i - posicion_new].data_size = key_vector[i
-							- posicion_new].data_size + key_vector[i].data_size;
+					key_vector[i - posicion_new].data_size += key_vector[i].data_size;
 					key_vector[i].data_size = 0;
 
 					ultimo_libre = i - posicion_new;
 
 				}
-			} else if ((posicion_new + i) == cantRegistros)
+			} else
+				if ((posicion_new + i) == cantRegistros)
 				termine = true;
 		}
 		i++;
@@ -371,16 +372,18 @@ void vector_inicializar(char *keys_space, void *cache, size_t cache_size) {
 	ultima_posicion = 0;
 	cargarEnVector(keys_space, cache, cache_size, true, 0);
 
-	int32_t MAX_KEY = config_get_int_value(config, "MAX_KEY");
+	int8_t MAX_KEY = config_get_int_value(config, "MAX_KEY");
 
 	pthread_rwlock_wrlock(keyVector);
-	key_vector[0].flags = 0;
+	key_vector[0].flags.actual = 0;
+	key_vector[0].flags.padre = 0;
 	for (i = 1; i < cantRegistros; i++) {
-		key_vector[i].key = key_vector[i - 1].key + (MAX_KEY/4);
+		key_vector[i].key = key_vector[i - 1].key + MAX_KEY;
 		key_vector[i].libre = true;
 		key_vector[i].stored = false;
 		key_vector[i].data_size = 0;
 		key_vector[i].data_unuse = 0;
+		key_vector[i].flags.actual = key_vector[i].flags.padre = 0;
 	}
 	pthread_rwlock_unlock(keyVector);
 
@@ -416,7 +419,7 @@ key_element *buscarLibreNext(size_t espacio) {
 				encontrado = 1;
 			}
 		}
-		//&& (!(key_vector[i].libre)
+
 		while ((encontrado != 1) && (i < ultima_posicion)) {
 			i++;
 		}
@@ -427,12 +430,11 @@ key_element *buscarLibreNext(size_t espacio) {
 			busquedas_fallidas++;
 
 			/* preguntar frecuencia de compactacion; si aplica,
-			 * compactar, sino preguntar si es FIFO o LRU y borrar
-			 * una FREQ*/
+			 * compactar, sino borrar una FREQ*/
 			pthread_rwlock_unlock(keyVector);
 
-			if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
-				//eliminar una particion segun esquema
+			if ((busquedas_fallidas <= frecuencia) || (frecuencia == -1)) {
+
 				particion = eliminar_particion(-1);
 
 				if (particion == cantRegistros)
@@ -459,7 +461,6 @@ key_element *buscarLibreNext(size_t espacio) {
 		}
 	}
 	pthread_rwlock_unlock(keyVector);
-
 	pthread_rwlock_wrlock(posicion);
 
 	if ((i + 1) < cantRegistros)
@@ -474,7 +475,6 @@ key_element *buscarLibreNext(size_t espacio) {
 	 Al compactar tendria que preguntar de nuevo por el resto para tenerlo en cuenta,
 	 porque ahora hago como q no existe
 	 */
-//como ya sincronice las fn aca no pongo semaforos, eso no pincharia?
 	if ((key_vector[i].data_size - espacio - diferencia) > 0) {
 		int32_t posicion = buscarPosLibre();
 		if (posicion != -1) {
@@ -485,7 +485,8 @@ key_element *buscarLibreNext(size_t espacio) {
 
 			key_vector[i].data_unuse = diferencia;
 		} else {
-			log_error(logger, "La memoria cache se encuentra llena");
+			return resultado = NULL;
+			log_error(logger, "No es posible crear mas particiones");
 			//printf("No hay posiciones libres en el vector");
 //			return ENGINE_FAILED;
 		}
@@ -527,11 +528,10 @@ key_element *buscarLibreWorst(size_t espacio) {
 				busquedas_fallidas++;
 
 				/* preguntar frecuencia de compactacion; si aplica,
-				 * compactar, sino preguntar si es FIFO o LRU y borrar
-				 * una FREQ*/
+				 * compactar, sino borrar una FREQ*/
 
-				if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
-					//eliminar una particion segun esquema
+				if ((busquedas_fallidas <= frecuencia) || (frecuencia == -1)) {
+
 					particion = eliminar_particion(-1);
 
 					if (particion == cantRegistros)
@@ -594,7 +594,8 @@ key_element *buscarLibreWorst(size_t espacio) {
 							- diferencia, true, posicionn);
 			key_vector[pos_mayor_tamano].data_unuse = diferencia;
 		} else {
-			log_error(logger, "La memoria cache se encuentra llena");
+			return resultado = NULL;
+			log_error(logger, "No es posible crear mas particiones");
 			//printf("No hay posiciones libres en el vector");
 //			return ENGINE_FAILED;
 		}
@@ -603,27 +604,133 @@ key_element *buscarLibreWorst(size_t espacio) {
 	return resultado;
 }
 
-// aca adentro buscar separando los algoritmos next y worst y cuando compacte que separe buddy y dinamica
+void insert_PadreActual(int32_t posicion1,int32_t actual1,int32_t padre1,int32_t posicion2,int32_t actual2,int32_t padre2){
+
+	pthread_rwlock_wrlock(keyVector);
+
+	key_vector[posicion1].flags.padre = padre1;
+	key_vector[posicion1].flags.actual = actual1;
+	key_vector[posicion2].flags.padre = padre2;
+	key_vector[posicion2].flags.actual = actual2;
+
+	pthread_rwlock_unlock(keyVector);
+
+}
+
+void actualizar_flags(uint32_t lugares, int32_t posicionn){
+
+	int32_t padre = key_vector[lugares].flags.padre;
+	int32_t actual = key_vector[lugares].flags.actual;
+
+	//	pthread_rwlock_wrlock(keyVector);
+	if (actual == 0) {
+		//si es la primer division, al padre lo dejo en 0
+
+		insert_PadreActual(posicionn,padre - 1,0, lugares,padre + 1,0);
+
+//		key_vector[posicionn].flags.actual = (key_vector[lugares].flags.padre - 1);
+//		key_vector[lugares].flags.actual = (key_vector[lugares].flags.padre + 1);
+
+	} else {
+		//si no es la primer division
+
+		if (actual < 0) {
+
+			insert_PadreActual(posicionn,actual - 1,actual, lugares,actual - 2,actual);
+
+//			key_vector[posicionn].flags.padre = key_vector[lugares].flags.actual;
+//			key_vector[posicionn].flags.actual = key_vector[posicionn].flags.padre - 1;
+//			key_vector[lugares].flags.padre = key_vector[lugares].flags.actual;
+//			key_vector[lugares].flags.actual = key_vector[lugares].flags.actual - 2;
+
+		} else {
+
+			insert_PadreActual(posicionn,actual + 1,actual,lugares,actual + 2,actual);
+
+//			key_vector[posicionn].flags.padre = key_vector[lugares].flags.actual;
+//			key_vector[posicionn].flags.actual = key_vector[posicionn].flags.padre + 1;
+//			key_vector[lugares].flags.padre = key_vector[lugares].flags.actual;
+//			key_vector[lugares].flags.actual = key_vector[lugares].flags.actual + 2;
+		}
+	}
+//	pthread_rwlock_unlock(keyVector);
+
+}
+
+key_element * crear_arbol(uint32_t lugares, size_t espacio){
+
+	key_element *resultado = NULL;
+	uint32_t prox_espacio;
+	bool verdad = false;
+
+	do {
+		pthread_rwlock_rdlock(keyVector);
+		uint32_t prox_particion = key_vector[lugares].data_size / 2;
+		pthread_rwlock_unlock(keyVector);
+
+		if ((espacio <= prox_particion) && (prox_particion >= part_minima)) {
+			//CREAR LA PARTICION SIGUIENTE
+			prox_espacio = prox_particion;
+
+//			pthread_rwlock_unlock(keyVector);
+			int32_t posicionn = buscarPosLibre();
+
+			if (posicionn != -1) {
+
+				actualizar_flags(lugares,posicionn);
+				cargarEnVector((key_vector[posicionn].key),
+						key_vector[lugares].data + prox_espacio, prox_espacio,
+						true, posicionn);
+			} else{
+				return resultado = NULL;
+				log_error(logger, "No es posible crear mas particiones");
+//			log_debug(logger,"No hay posiciones libres en el vector");
+//		    log_debug(logger, "particion_posicionn, flags: %d : %d \n",posicionn , key_vector[posicionn].flags);
+			}
+			pthread_rwlock_wrlock(keyVector);
+			key_vector[lugares].data_size = prox_espacio;
+			pthread_rwlock_unlock(keyVector);
+			prox_particion = prox_espacio;
+		} else {
+			/*ya no lo puedo partir mas o mi espacio es mayor a la particion que cree.*/
+//			pthread_rwlock_unlock(keyVector);
+			pthread_rwlock_wrlock(keyVector);
+			if (espacio > prox_particion)
+				key_vector[lugares].data_unuse = key_vector[lugares].data_size - espacio;
+			else
+				key_vector[lugares].data_unuse = prox_particion - espacio;
+
+			pthread_rwlock_unlock(keyVector);
+			//	    log_debug(logger, "particion_lugares, flags: %d : %d \n",lugares , key_vector[lugares].flags);
+
+			resultado = &key_vector[lugares];
+			verdad = true;
+		}
+//		pthread_rwlock_rdlock(keyVector);
+
+	} while (!verdad);
+
+	return resultado;
+}
+
+
 key_element *buscarLibreBuddy(size_t espacio) {
 
-	key_element *resultado;
 	uint32_t i = 0;
 	char encontrado = 0;
 	uint32_t lugares = cantRegistros;
 
 	pthread_rwlock_rdlock(keyVector);
-//|| (key_vector[i].data_size > 0)
+
 	while (((encontrado == 0)) && (i < cantRegistros)) {
 
 		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
 
 			if (((lugares == 0) && (key_vector[lugares].data_size < espacio))
 					|| !key_vector[lugares].libre) {
-
 				// entra aca si no encontro espacio
 
 				pthread_rwlock_unlock(keyVector);
-
 				i = eliminar_particion(-1);
 
 				//Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
@@ -634,16 +741,13 @@ key_element *buscarLibreBuddy(size_t espacio) {
 				// pregunto si en el nuevo lugar entra
 				if ((key_vector[i].data_size > espacio)
 						&& (key_vector[i].libre)) {
-					//	&& (key_vector[i].data_size <= key_vector[lugares].data_size)
 					lugares = i;
 					encontrado = 1;
 				}
-			} else {
+			} else
 				//si llegue al final pero habia encontrado algo
 				encontrado = 1;
-			}
 		} else {
-
 			if (((encontrado == 0) && (key_vector[i].data_size >= espacio))
 					&& ((key_vector[i].libre))) {
 				if (lugares == cantRegistros)
@@ -653,103 +757,14 @@ key_element *buscarLibreBuddy(size_t espacio) {
 							<= key_vector[lugares].data_size)
 						lugares = i;
 				}
-
 			}
 		}
 		i++;
 	}
 
-	uint32_t prox_espacio;
-	bool verdad = false;
-	int32_t padre;
-	char contador = 1;
-
-	do {
-
-		uint32_t prox_particion = key_vector[lugares].data_size / 2;
-
-		if ((espacio <= prox_particion) && (prox_particion >= part_minima)) {
-			//CREAR LA PARTICION SIGUIENTE
-			prox_espacio = key_vector[lugares].data_size / 2;
-			// actualizar las particiones
-			int32_t posicionn = buscarPosLibre();
-
-			padre = key_vector[lugares].flags % 10;
-			pthread_rwlock_unlock(keyVector);
-
-			if (posicionn != -1) {
-
-				if (key_vector[lugares].flags == 0) {
-					key_vector[posicionn].flags = (padre - 1);
-					key_vector[lugares].flags = (padre + 1);
-				} else {
-					if (key_vector[lugares].flags < 0) {
-						key_vector[posicionn].flags = (padre * 10)
-								+ (padre - 1);
-						key_vector[lugares].flags = (padre * 10) + (padre - 2);
-					} else {
-						key_vector[posicionn].flags = (padre * 10)
-								+ (padre + 1);
-						key_vector[lugares].flags = (padre * 10) + (padre + 2);
-					}
-				}
-
-				cargarEnVector((key_vector[posicionn].key),
-						key_vector[lugares].data + prox_espacio, prox_espacio,
-						true, posicionn);
-			} else
-				printf("No hay posiciones libres en el vector");
-//		    log_debug(logger, "particion_posicionn, flags: %d : %d \n",posicionn , key_vector[posicionn].flags);
-
-			pthread_rwlock_wrlock(keyVector);
-//			key_vector[lugares].flags = key_vector[posicionn].flags;
-			key_vector[lugares].data_size = prox_espacio;
-			prox_particion = prox_espacio;
-			pthread_rwlock_unlock(keyVector);
-			pthread_rwlock_rdlock(keyVector);
-		} else {
-			/*ya no lo puedo partir mas o mi espacio es mayor a la particion que cree.*/
-			pthread_rwlock_unlock(keyVector);
-//					if(pthread_rwlock_trywrlock(keyVector))
-//						perror("trylock");
-//					else
-//						printf("Entro try lock\n");
-//			padre = key_vector[lugares].flags % 10;
-			pthread_rwlock_wrlock(keyVector);
-
-//			if (key_vector[lugares].flags == 0)
-//				key_vector[lugares].flags = (padre + 1);
-//
-//			else {
-//			if (key_vector[lugares].flags > 0)
-//				key_vector[lugares].flags = (padre * 10) + (padre + 2);
-//			else
-//				key_vector[lugares].flags = (padre * 10) + (padre - 2);
-////			}
-
-			if (espacio > prox_particion)
-				key_vector[lugares].data_unuse = key_vector[lugares].data_size
-						- espacio;
-			else
-				key_vector[lugares].data_unuse = prox_particion - espacio;
-
-			pthread_rwlock_unlock(keyVector);
-			pthread_rwlock_rdlock(keyVector);
-			//	    log_debug(logger, "particion_lugares, flags: %d : %d \n",lugares , key_vector[lugares].flags);
-
-			resultado = &key_vector[lugares];
-
-			verdad = true;
-		}
-
-		if (contador == 1)
-			contador = 2;
-		else
-			contador = 1;
-
-	} while (!verdad);
-
 	pthread_rwlock_unlock(keyVector);
+
+	key_element *resultado = crear_arbol(lugares,espacio);
 
 	return resultado;
 }

@@ -13,6 +13,11 @@
 #include <memcached/visibility.h>
 #include <time.h>
 
+struct tree{
+	int32_t actual;
+	int32_t padre;
+};
+
 struct key_element {
 	char *key;
 	size_t nkey;
@@ -20,7 +25,7 @@ struct key_element {
 	size_t data_size;
 	size_t data_unuse;
 	void *data;
-	int32_t flags;
+	struct tree flags;
 	bool libre;
 	rel_time_t exptime;
 	struct timespec tp;

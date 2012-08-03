@@ -212,30 +212,6 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 
 				vector_inicializar(keys_space, cache, cache_size);
 			}
-			/*		if (strcmp(string, "PART_DINAM") == 0) {
-			 //hago la tabla de keys y apuntar a la fn ng_store que corresponda
-
-			 double worstCase = engine->config.cache_max_size
-			 / engine->config.chunk_size;
-
-			 key_vector = alocate_vector(worstCase);
-			 keys_space = alocate_keys_space(worstCase);
-			 cache = malloc(engine->config.cache_max_size);
-
-			 cache_size = engine->config.cache_max_size;
-			 part_minima = engine->config.chunk_size;
-			 ultima_posicion = 0;
-
-			 vector_inicializar(keys_space,cache,cache_size);
-
-			 } else {
-
-			 if (strcmp(string, "BUDDY") == 0) {
-			 //apuntar a la fn y hacer las cuentas para buddy
-			 alocate_buddy();
-			 }
-			 }
-			 */
 
 		} else
 			printf("no existe la clave");
@@ -245,10 +221,6 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 			perror("Error locking the cache");
 
 	}
-
-//		printf("%d", engine->config.block_size_max);
-
-//	mtrace();
 
 	/*
 	 * Registro la SIGUSR1. El registro de signals debe ser realizado en la función initialize
@@ -305,22 +277,18 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	logger_operation("Allocate",strkey);
 	//valido que no sea mayor a la particion maxima
 	if (nbytes > part_maxima){
-		printf("El tamaño de los datos excede el límite \n");
-//		return MEMCACHED_FAILURE;
-//		return ENGINE_FAILED;
+		log_debug(logger,"El tamaño de los datos excede el límite, la clave no se guardará \n");
+//		return ENGINE_E2BIG;
+		return ENGINE_SUCCESS;
 	}
 
 	key_element* (*vector_search)(uint32_t);
-
 	char *string = config_get_string_value(config, "ESQUEMA");
 
 	if (strcmp(string, "BUDDY") == 0)
-
 		vector_search = &buscarLibreBuddy;
-
 	else {
 		char *string2 = config_get_string_value(config, "PARTICION");
-
 		if (strcmp(string2, "NEXT") == 0)
 			vector_search = &buscarLibreNext;
 		else
@@ -350,7 +318,6 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	struct timespec tp;
 	clock_gettime(0, &tp);
 
-// aca necesito semaforo? porque en realidad no uso el vector pero si
 // modifico la direccion que tiene ahi
 //	it->flags = flags;
 	it->exptime = 0;
@@ -358,7 +325,7 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	it->data_size = nbytes;
 //		it->key = malloc(nkey);		innecesario porq ya tengo espacio
 //		it->data = malloc(nbytes);	innecesario porq ya tengo espacio
-	it->stored = false; //este capaz que se necesita
+	it->stored = false;
 	it->libre = false;
 	it->tp = tp;
 
@@ -375,7 +342,6 @@ static void dummy_ng_item_release(ENGINE_HANDLE *handler, const void *cookie,
 		item* item) {
 
 	key_element *it = (key_element*) item;
-
 
 	if (!it->stored) {
 		it->libre = true;
@@ -490,24 +456,19 @@ static ENGINE_ERROR_CODE dummy_ng_item_delete(ENGINE_HANDLE* handle,
 	int32_t res = vector_get(strkey);
 
 	if (res < 0) {
-
 		return ENGINE_KEY_ENOENT;
 	}
 
 //modifico eliminar_particion para poder usarla aca:
 	uint32_t valor = eliminar_particion (res);
-
 	key_element *item = &key_vector[valor];
 
 	char *string = config_get_string_value(config, "ESQUEMA");
-
 	if (strcmp(string, "BUDDY") == 0) {
-
 //Aca me devuelve la nueva posicion dsp de ordenado junto con el nuevo tamaño dsp de compactar en caso de haberlo comprimido
 
 		size_t new_pos = elimina_buddy(valor);
 		item = &key_vector[new_pos];
-
 	}
 
 	dummy_ng_item_release(handle, NULL, item);
@@ -557,6 +518,7 @@ void dummy_ng_dummp(int signal) {
 	  strftime(output,128,"%d/%m/%y %H:%M:%S",tlocal);
 
 	fprintf (fich,"Dump: %s\n",output);
+	log_info (logger,"Dump: %s",output);
 
 	uint32_t posicion = ordenar_vector(-1);
 	posicion = 0;
@@ -571,12 +533,12 @@ for (i = posicion; i < cantRegistros; i++) {
 		particion++;
 
 		if (key_vector[i].libre) {
-			fprintf(fich,"Partición %d: 0x%X - 0x%X. [L] Size: %d b \n", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size);
-
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [L] Size: %d b flags_ yo: %d padre: %d .", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size,key_vector[i].flags.actual,key_vector[i].flags.padre );
+			log_info(logger,"Partición %d: 0x%X - 0x%X. [L] Size: %d b flags_ yo: %d padre: %d .", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size,key_vector[i].flags.actual,key_vector[i].flags.padre );
 		} else {
 
-			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s \n",
-					particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s .",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
+			log_info(logger,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s .",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
 		}
 	}
 }
