@@ -203,7 +203,7 @@
 	int directorioVacio(uint32_t nroInodoDirectorio);
 
 	int32_t crearArchivo(char * path, uint32_t mode);
-	void setearInodo(struct INode * inodoArchivo, uint32_t mode);
+	int setearInodo(struct INode * inodoArchivo, uint32_t mode);
 
 	int32_t eliminarArchivo(char * path);
 
