@@ -436,7 +436,7 @@ key_element *buscarLibreNext(size_t espacio) {
 			 * compactar, sino borrar una FREQ*/
 			pthread_rwlock_unlock(keyVector);
 
-			if ((busquedas_fallidas <= frecuencia) || (frecuencia == -1)) {
+			if ((busquedas_fallidas < frecuencia) || (frecuencia == -1)) {
 
 				particion = eliminar_particion(-1);
 
@@ -533,7 +533,7 @@ key_element *buscarLibreWorst(size_t espacio) {
 				/* preguntar frecuencia de compactacion; si aplica,
 				 * compactar, sino borrar una FREQ*/
 
-				if ((busquedas_fallidas <= frecuencia) || (frecuencia == -1)) {
+				if ((busquedas_fallidas = frecuencia) || (frecuencia == -1)) {
 
 					particion = eliminar_particion(-1);
 
