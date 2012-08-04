@@ -130,7 +130,7 @@ void actualizar_key(key_element *it) {
 //devuelve la posicion borrada
 uint32_t eliminar_particion(int32_t valor) {
 
-	uint32_t resultado =0;
+	uint32_t resultado =cantRegistros;
 
 //si entra aca fue porque habia que borrar segun fifo o lru
 	if (valor == -1) {
@@ -145,8 +145,7 @@ uint32_t eliminar_particion(int32_t valor) {
 //aca muere ¿porque? ya no hay semaforo de lectura.Solo para buddy no funciona
 		pthread_rwlock_wrlock(keyVector);
 
-		key_vector[resultado].data_size = key_vector[resultado].data_size
-				+ key_vector[resultado].data_unuse;
+		key_vector[resultado].data_size += key_vector[resultado].data_unuse;
 		key_vector[resultado].libre = true;
 		key_vector[resultado].stored = false;
 		key_vector[resultado].data_unuse = 0;
@@ -504,7 +503,14 @@ key_element *buscarLibreNext(size_t espacio) {
 			key_vector[i].data_unuse = diferencia;
 		} else {
 			return resultado = NULL;
-			log_error(logger, "No es posible crear mas particiones");
+		//	log_error(logger, "No es posible crear mas particiones");
+			uint32_t aux = eliminar_particion(-1);
+			cargarEnVector((key_vector[posicion].key),
+					key_vector[aux].data + espacio + diferencia,
+					key_vector[aux].data_size - espacio - diferencia, true,
+					posicion);
+
+			key_vector[aux].data_unuse = diferencia;
 			//printf("No hay posiciones libres en el vector");
 //			return ENGINE_FAILED;
 		}
@@ -620,8 +626,14 @@ key_element *buscarLibreWorst(size_t espacio) {
 			key_vector[pos_mayor_tamano].data_unuse = diferencia;
 		} else {
 			return resultado = NULL;
-			log_error(logger, "No es posible crear mas particiones");
-			//printf("No hay posiciones libres en el vector");
+			//	log_error(logger, "No es posible crear mas particiones");
+				uint32_t aux = eliminar_particion(-1);
+				cargarEnVector((key_vector[aux].key),
+						key_vector[aux].data + espacio + diferencia,
+						key_vector[aux].data_size - espacio - diferencia, true,
+						aux);
+
+				key_vector[aux].data_unuse = diferencia;			//printf("No hay posiciones libres en el vector");
 //			return ENGINE_FAILED;
 		}
 	}
@@ -690,9 +702,15 @@ key_element * crear_arbol(uint32_t lugares, size_t espacio) {
 				cargarEnVector((key_vector[posicionn].key),
 						key_vector[lugares].data + prox_espacio, prox_espacio,
 						true, posicionn);
+
 			} else {
 				return resultado = NULL;
-				log_error(logger, "No es posible crear mas particiones");
+				//	log_error(logger, "No es posible crear mas particiones");
+					uint32_t aux = eliminar_particion(-1);
+					actualizar_flags(lugares, aux);
+					cargarEnVector((key_vector[aux].key),
+							key_vector[lugares].data + prox_espacio, prox_espacio,
+							true, aux);
 //			log_debug(logger,"No hay posiciones libres en el vector");
 //		    log_debug(logger, "particion_posicionn, flags: %d : %d \n",posicionn , key_vector[posicionn].flags);
 			}
