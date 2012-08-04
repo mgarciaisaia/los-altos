@@ -267,8 +267,6 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 			if(string_equals_ignore_case(nombre,ruta)){
 				log_trace(logger_funciones, "nro de inodo que gestiona %s es %u\n",ruta,directorio->inode);
 				nroInodoBuscado = directorio->inode;
-				free(directorio->name);
-                free(directorio);
 				free(nombre);
 				break;
 			}
@@ -279,6 +277,8 @@ uint32_t buscarNroInodoEnEntradasDirectorio(struct INode * inodoDeBusqueda,char 
 			free(directorio);
 			directorio = leerEntrada(ptr);
 		}
+		free(directorio->name);
+        free(directorio);
 
 	}
 
@@ -956,6 +956,9 @@ int agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
                     free(nombre);
                     break;
 				} else {
+				    free(nombre);
+				    free(directorio->name);
+                    free(directorio);
 				    return errorAgregar;
 				}
 			}
