@@ -875,6 +875,12 @@ int32_t main(void) {
 		log_trace(logger, "Actividad del epoll");
 		int index;
 		for (index = 0; index < readySocketsCount; ++index) {
+		    if ((events[index].events & EPOLLERR) || (events[index].events & EPOLLHUP) ||
+		            (!(events[index].events & EPOLLIN))) {
+                 fprintf (stderr, "epoll error\n");
+                 close (events[index].data.fd);
+                 continue;
+               }
 			if (events[index].data.fd == listeningSocket) {
 				// nueva conexion entrante: la acepto y meto el nuevo descriptor en el poll
 				int querySocket = accept(listeningSocket,
