@@ -312,7 +312,7 @@ static ENGINE_ERROR_CODE dummy_ng_allocate(ENGINE_HANDLE *handler,
 	} else
 		it = vector_search(nbytes);
 
-	if (it == NULL) {
+	if ((it == NULL) || it->key == NULL){
 		return ENGINE_ENOMEM;
 	}
 	struct timespec tp;
