@@ -950,11 +950,13 @@ int agregarEntradaDirectorio(struct INode * inodo,char * nameNewEntry){
 				directorio->entry_len = sizeMinEntradaDirectorioActual;
 				void * ptrInicioNuevaEntrada = ptr + sizeMinEntradaDirectorioActual;
 				int errorAgregar = agregarNuevaEntrada(ptrInicioNuevaEntrada,nameNewEntry,resto);
-				grabarEntrada(ptr, directorio);
 				if(errorAgregar == 0) {
+				    grabarEntrada(ptr, directorio);
                     encontroEspacio = 1;
                     free(nombre);
                     break;
+				} else {
+				    return errorAgregar;
 				}
 			}
 			free(nombre);
