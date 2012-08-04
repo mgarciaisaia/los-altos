@@ -35,7 +35,6 @@
 extern t_list * archivos_abiertos;
 
 static uint32_t nro_de_grupo = 0;
-static pthread_mutex_t sem_escribir;
 static pthread_mutex_t sem_liberar_bloque;
 static pthread_mutex_t sem_pedir_bloque;
 static pthread_mutex_t sem_crear_dir;
@@ -55,7 +54,6 @@ void set_logger_funciones(t_log *logger_para_funciones) {
 }
 
 void init_semaforos(void) {
-	pthread_mutex_init(&sem_escribir, NULL);
 	pthread_mutex_init(&sem_liberar_bloque, NULL);
 	pthread_mutex_init(&sem_pedir_bloque, NULL);
 	pthread_mutex_init(&sem_crear_dir, NULL);
@@ -68,7 +66,6 @@ void init_semaforos(void) {
 }
 
 void destroy_semaforos(void) {
-	pthread_mutex_destroy(&sem_escribir);
 	pthread_mutex_destroy(&sem_liberar_bloque);
 	pthread_mutex_destroy(&sem_pedir_bloque);
 	pthread_mutex_destroy(&sem_crear_dir);
@@ -797,52 +794,6 @@ void escribirBloque(void * posicionPtr,uint32_t size){
 	char * dato = "";
 	for(i = 0;i < size;i++,posicionPtr++)
 		memcpy(posicionPtr,dato,1);
-}
-
-int32_t escribirArchivo(char * path, void * input, uint32_t size, uint32_t offset){
-
-	int32_t resultado = 0;
-	pthread_mutex_lock(&sem_escribir);
-	struct archivo_abierto * registro_archivo = getRegistroArchivoAbierto(getNroInodoDeLaDireccionDelPath(path));
-	pthread_mutex_unlock(&sem_escribir);
-
-	if(registro_archivo != NULL && registro_archivo->cantidad_abiertos > 0){
-		pthread_rwlock_wrlock(registro_archivo->lock);
-		uint32_t nroInodoPath = getNroInodoDeLaDireccionDelPath(path);
-		if(nroInodoPath == 0){
-			resultado = ENOENT;
-			log_error(logger_funciones, "no existe el archivo");
-		} else{
-
-			struct INode * inodoPath = getInodo(nroInodoPath);
-
-			if(inodoPath->size < size + offset){
-				uint32_t truncar = size + offset;
-				truncarArchivo(path,truncar);
-			}
-
-			size_t bytesEscritos = 0;
-			while(size > 0){
-				uint32_t resto = tamanioDeBloque() - desplazamientoDentroDelBloque(offset);
-				if(resto >= size){
-					escribir(inodoPath,input+ bytesEscritos,size,offset);
-					offset += size;
-					size -= size;
-				} else {
-					escribir(inodoPath,input + bytesEscritos,resto,offset);
-					offset += resto;
-					size -= resto;
-				}
-                bytesEscritos += resto;
-			}
-		}
-		pthread_rwlock_unlock(registro_archivo->lock);
-	} else {
-	    log_error(logger_funciones, "El archivo %s no esta abierto", path);
-	    return ETXTBSY;
-	}
-
-	return resultado;
 }
 
 void escribir(struct INode * inodo, void * input,uint32_t size,uint32_t offset){
