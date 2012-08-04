@@ -468,6 +468,10 @@ int remote_truncate(const char * path, off_t offset) {
 	return check_ok_error("truncate", path, response);
 }
 
+int dummy_utimens (const char *path, const struct timespec tv[2]) {
+    return 0;
+}
+
 /**
  * http://sourceforge.net/apps/mediawiki/fuse/index.php?title=Functions_list
  */
@@ -482,7 +486,8 @@ static struct fuse_operations remote_operations = {
 		.readdir = remote_readdir,
 		.rmdir = remote_rmdir,
 		.getattr = remote_getattr,
-		.truncate = remote_truncate
+		.truncate = remote_truncate,
+		.utimens = dummy_utimens
 };
 
 int remote_handshake() {
