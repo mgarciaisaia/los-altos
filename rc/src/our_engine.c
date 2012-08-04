@@ -532,7 +532,7 @@ for (i = posicion; i < cantRegistros; i++) {
 		if (key_vector[i].libre) {
 			fprintf(fich,"Partición %d: 0x%X - 0x%X. [L] Size: %d b \n", particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size );
 		} else {
-			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %s \n",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec , key_vector[i].key );
+			fprintf(fich,"Partición %d: 0x%X - 0x%X. [X] Size: %d b %s <%ld:%ld> Key: %.*s \n",particion,key_vector[i].data,key_vector[i].data + key_vector[i].data_size, key_vector[i].data_size, stri, key_vector[i].tp.tv_sec, key_vector[i].tp.tv_nsec ,key_vector[i].nkey, key_vector[i].key );
 		}
 	}
 }
