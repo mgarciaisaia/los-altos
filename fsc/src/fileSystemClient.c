@@ -528,8 +528,6 @@ int remote_handshake() {
 			return 0;
 		}
 	} else {
-	    free(response->data);
-        free(response);
 		return check_error("handshake", "", response);
 	}
 }

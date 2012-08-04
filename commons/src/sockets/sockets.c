@@ -12,8 +12,28 @@
 #include "../commons/log.h"
 #include <errno.h>
 #include <netinet/tcp.h>
+#include <fcntl.h>
 
 t_log *logger_socket;
+
+int make_socket_non_blocking (int sfd) {
+ int flags, s;
+
+ flags = fcntl (sfd, F_GETFL, 0);
+ if (flags == -1) {
+     perror ("fcntl");
+     return -1;
+   }
+
+ flags |= O_NONBLOCK;
+ s = fcntl (sfd, F_SETFL, flags);
+ if (s == -1) {
+     perror ("fcntl");
+     return -1;
+   }
+
+ return 0;
+}
 
 struct sockaddr_in *socket_address(in_addr_t ip, uint16_t port) {
     struct sockaddr_in *address = malloc(sizeof(struct sockaddr_in));
@@ -28,10 +48,9 @@ int socket_connect(char *remoteIP, uint16_t port) {
     int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
     int flag = 1;
     setsockopt(socketDescriptor, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
-    struct sockaddr_in *address = socket_address(inet_addr(remoteIP),
-            port);
-    connect(socketDescriptor, (struct sockaddr*) address,
-            sizeof(struct sockaddr_in));
+    make_socket_non_blocking(socketDescriptor);
+    struct sockaddr_in *address = socket_address(inet_addr(remoteIP), port);
+    connect(socketDescriptor, (struct sockaddr*) address, sizeof(struct sockaddr_in));
     free(address);
     return socketDescriptor;
 }
@@ -73,6 +92,9 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
     while (receivedHeaderLenght < headerSize) {
         int received = recv(socketDescriptor, header, headerSize, MSG_PEEK);
         if (received < 0) {
+            if(errno == EAGAIN) {
+                continue;
+            }
             log_error(logger_socket, "Error recibiendo cabecera en %d - %s", socketDescriptor, strerror(errno));
             free(header);
             struct nipc_error *error = new_nipc_error(-errno, "Error recibiendo cabecera");
@@ -103,9 +125,12 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
         int received = recv(socketDescriptor, message + receivedBytes,
                 messageSize - receivedBytes, 0);
         if (received < 0) {
+            if(errno == EAGAIN) {
+                continue;
+            }
             free(message);
             log_error(logger_socket, "Error recibiendo paquete en %d - %s", socketDescriptor, strerror(errno));
-            struct nipc_error *error = new_nipc_error(-errno, "Error recibiendo cabecera");
+            struct nipc_error *error = new_nipc_error(-errno, "Error recibiendo paquete");
             return error->serialize(error);
         } else if(received == 0) {
             free(message);
@@ -147,6 +172,7 @@ int socket_binded(uint16_t port) {
         perror("socket");
         return -1;
     }
+    make_socket_non_blocking(socketDescriptor);
     struct sockaddr_in *address = socket_address(INADDR_ANY, port);
     if(bind(socketDescriptor, (struct sockaddr*) address,
             sizeof(struct sockaddr_in))) {
