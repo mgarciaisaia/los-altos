@@ -885,20 +885,7 @@ int32_t main(void) {
 				// nueva conexion entrante: la acepto y meto el nuevo descriptor en el poll
 				int querySocket = accept(listeningSocket,
 						(struct sockaddr *) &address, &addressLength);
-				if (querySocket < 0) {
-					perror("Accept fallo");
-					return -1;
-				}
-				// FIXME:
-				// setnonblocking(querySocket);
-				int flags = fcntl(querySocket, F_GETFL, 0);
-				if (flags < 0) {
-					flags = 0;
-				}
-				if (fcntl(querySocket, F_SETFD, flags | O_NONBLOCK)) {
-					perror("fcntl");
-					return -1;
-				}
+				make_socket_non_blocking(querySocket);
 				event->events = EPOLLIN | EPOLLET;
 				event->data.fd = querySocket;
 				epoll_ctl(epoll, EPOLL_CTL_ADD, querySocket, event);
