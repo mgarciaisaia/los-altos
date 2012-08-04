@@ -65,7 +65,7 @@ int nipc_send(int socketDescriptor, struct nipc_packet *request) {
 
     int sentBytes = 0;
     while (sentBytes < requestSize) {
-        int sentChunkSize = send(socketDescriptor, rawRequest + sentBytes, requestSize - sentBytes, 0);
+        int sentChunkSize = send(socketDescriptor, rawRequest + sentBytes, requestSize - sentBytes, MSG_DONTWAIT);
         if (sentChunkSize < 0 && errno != EAGAIN) {
             log_error(logger_socket, "Error enviando un chunk - %s", strerror(errno));
             perror("Error enviando un chunk");
