@@ -130,7 +130,7 @@ void actualizar_key(key_element *it) {
 //devuelve la posicion borrada
 uint32_t eliminar_particion(int32_t valor) {
 
-	uint32_t resultado;
+	uint32_t resultado =0;
 
 //si entra aca fue porque habia que borrar segun fifo o lru
 	if (valor == -1) {
@@ -399,9 +399,9 @@ void vector_inicializar(char *keys_space, void *cache, size_t cache_size) {
 
 key_element *buscarLibreNext(size_t espacio) {
 
-	key_element *resultado;
+	key_element *resultado = NULL;
 	int16_t busquedas_fallidas = 0;
-	uint32_t particion;
+	uint32_t particion=0;
 
 	uint32_t i = ultima_posicion;
 	char encontrado = 0;
@@ -517,7 +517,7 @@ key_element *buscarLibreNext(size_t espacio) {
 
 key_element *buscarLibreWorst(size_t espacio) {
 
-	key_element *resultado;
+	key_element *resultado=NULL;
 	int16_t busquedas_fallidas = 0;
 	uint32_t i = 0;
 	uint32_t pos_mayor_tamano = 0;
@@ -648,47 +648,28 @@ void actualizar_flags(uint32_t lugares, int32_t posicionn) {
 	int32_t padre = key_vector[lugares].flags.padre;
 	int32_t actual = key_vector[lugares].flags.actual;
 
-	//	pthread_rwlock_wrlock(keyVector);
 	if (actual == 0) {
 		//si es la primer division, al padre lo dejo en 0
 
 		insert_PadreActual(posicionn, padre - 1, 0, lugares, padre + 1, 0);
-
-//		key_vector[posicionn].flags.actual = (key_vector[lugares].flags.padre - 1);
-//		key_vector[lugares].flags.actual = (key_vector[lugares].flags.padre + 1);
-
 	} else {
 		//si no es la primer division
 
 		if (actual < 0) {
-
 			insert_PadreActual(posicionn, actual - 1, actual, lugares,
 					actual - 2, actual);
-
-//			key_vector[posicionn].flags.padre = key_vector[lugares].flags.actual;
-//			key_vector[posicionn].flags.actual = key_vector[posicionn].flags.padre - 1;
-//			key_vector[lugares].flags.padre = key_vector[lugares].flags.actual;
-//			key_vector[lugares].flags.actual = key_vector[lugares].flags.actual - 2;
-
 		} else {
-
 			insert_PadreActual(posicionn, actual + 1, actual, lugares,
 					actual + 2, actual);
-
-//			key_vector[posicionn].flags.padre = key_vector[lugares].flags.actual;
-//			key_vector[posicionn].flags.actual = key_vector[posicionn].flags.padre + 1;
-//			key_vector[lugares].flags.padre = key_vector[lugares].flags.actual;
-//			key_vector[lugares].flags.actual = key_vector[lugares].flags.actual + 2;
 		}
 	}
-//	pthread_rwlock_unlock(keyVector);
 
 }
 
 key_element * crear_arbol(uint32_t lugares, size_t espacio) {
 
 	key_element *resultado = NULL;
-	uint32_t prox_espacio;
+	uint32_t prox_espacio = 0;
 	bool verdad = false;
 
 	do {
@@ -800,7 +781,7 @@ key_element *buscarLibreBuddy(size_t espacio) {
 //busca el item con esa key y lo devuelve.
 int32_t vector_get(char *key) {
 //	key_element *resultado;
-	int32_t resultado;
+	int32_t resultado = -1;
 	uint32_t encontrado = 0;
 	uint32_t i = 0;
 //buscar la key en el vector
@@ -810,11 +791,6 @@ int32_t vector_get(char *key) {
 	while ((encontrado == 0) && (i < cantRegistros)) {
 
 		if ((i == cantRegistros) || key_vector[i].data_size == 0) {
-
-//			while ((key_vector[i].libre) && (i < cantRegistros)) {
-//				i++;
-//			}
-//			if (i == cantRegistros) {
 			//llegue al final y no la encontre
 
 			resultado = -1;
