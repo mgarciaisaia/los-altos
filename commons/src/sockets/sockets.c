@@ -78,6 +78,7 @@ struct nipc_packet *nipc_receive(int socketDescriptor) {
             struct nipc_error *error = new_nipc_error(-errno, "Error recibiendo cabecera");
             return error->serialize(error);
         } else if(received == 0) {
+            perror("Desconectado");
             log_error(logger_socket, "Error recibiendo cabecera en %d - Desconectado del servidor", socketDescriptor);
             free(header);
             struct nipc_error *error = new_nipc_error(-EBADF, "Desconectado del servidor");
