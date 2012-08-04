@@ -85,11 +85,11 @@ int remote_create(const char *path, mode_t mode, struct fuse_file_info *fileInfo
     struct nipc_packet* packet = createData->serialize(createData);
     struct nipc_packet* response = nipc_query(packet, fileSystemIP, fileSystemPort);
     if(cache_active && response->type == nipc_ok) {
-            char *pathcopy = strdup(path);
-            char *directory = dirname(pathcopy);
-            delete_memcached(remote_cache, directory, nipc_readdir_response);
-            free(pathcopy);
-        }
+        char *pathcopy = strdup(path);
+        char *directory = dirname(pathcopy);
+        delete_memcached(remote_cache, directory, nipc_readdir_response);
+        free(pathcopy);
+    }
     return check_ok_error("create", path, response);
 }
 
@@ -274,8 +274,13 @@ int remote_unlink(const char *path) {
 	struct nipc_packet* packet = unlinkData->serialize(unlinkData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
-	if(cache_active)
-			delete_memcached(remote_cache, path,nipc_getattr_response);
+	if(cache_active && response->type == nipc_ok) {
+        delete_memcached(remote_cache, path, nipc_getattr_response);
+        char *pathcopy = strdup(path);
+        char *directory = dirname(pathcopy);
+        delete_memcached(remote_cache, directory, nipc_readdir_response);
+        free(pathcopy);
+    }
 
 	return check_ok_error("unlink", path, response);
 }
@@ -287,6 +292,12 @@ int remote_mkdir(const char *path, mode_t mode) {
 	struct nipc_packet* packet = mkdirData->serialize(mkdirData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
+	if(cache_active && response->type == nipc_ok) {
+        char *pathcopy = strdup(path);
+        char *directory = dirname(pathcopy);
+        delete_memcached(remote_cache, directory, nipc_readdir_response);
+        free(pathcopy);
+    }
 	return check_ok_error("mkdir", path, response);
 }
 
@@ -392,8 +403,13 @@ int remote_rmdir(const char *path) {
 	struct nipc_packet* packet = rmdirData->serialize(rmdirData);
 	struct nipc_packet* response = nipc_query(packet, fileSystemIP,
 			fileSystemPort);
-	if(cache_active)
-			delete_memcached(remote_cache, path,nipc_readdir_response);
+	if(cache_active && response->type == nipc_ok) {
+        delete_memcached(remote_cache, path, nipc_getattr_response);
+        char *pathcopy = strdup(path);
+        char *directory = dirname(pathcopy);
+        delete_memcached(remote_cache, directory, nipc_readdir_response);
+        free(pathcopy);
+    }
 
 	return check_ok_error("rmdir", path, response);
 }
