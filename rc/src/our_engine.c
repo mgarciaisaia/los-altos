@@ -216,9 +216,7 @@ static ENGINE_ERROR_CODE dummy_ng_initialize(ENGINE_HANDLE* handle,
 		} else
 			printf("no existe la clave");
 
-		int lock = mlock(cache, cache_size);
-		if (lock == -1)
-			perror("Error locking the cache");
+		mlock(cache, cache_size);
 
 	}
 
